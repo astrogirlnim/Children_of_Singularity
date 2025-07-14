@@ -1,0 +1,109 @@
+# Gitleaks Configuration for Children of Singularity
+# This file defines rules for detecting secrets and credentials in commits
+
+title = "Children of Singularity - Gitleaks Configuration"
+
+[extend]
+# Use the default gitleaks rules as a base
+useDefault = true
+
+# Custom rules for this project
+[[rules]]
+id = "database-url"
+description = "PostgreSQL database URL"
+regex = '''(postgresql|postgres):\/\/[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+:\d+\/[a-zA-Z0-9._-]+'''
+tags = ["database", "postgresql"]
+
+[[rules]]
+id = "fastapi-secret-key"
+description = "FastAPI secret key"
+regex = '''(?i)(secret_key|SECRET_KEY)\s*[=:]\s*["\']([a-zA-Z0-9._-]{16,})["\']'''
+tags = ["fastapi", "secret", "key"]
+
+[[rules]]
+id = "jwt-secret"
+description = "JWT secret key"
+regex = '''(?i)(jwt_secret|JWT_SECRET|jwt_key|JWT_KEY)\s*[=:]\s*["\']([a-zA-Z0-9._-]{16,})["\']'''
+tags = ["jwt", "secret", "authentication"]
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API key"
+regex = '''sk-[a-zA-Z0-9]{48}'''
+tags = ["openai", "api", "key"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API key pattern"
+regex = '''(?i)(api_key|API_KEY|apikey|APIKEY)\s*[=:]\s*["\']([a-zA-Z0-9._-]{16,})["\']'''
+tags = ["api", "key", "generic"]
+
+[[rules]]
+id = "private-key"
+description = "Private key"
+regex = '''-----BEGIN [A-Z ]+ PRIVATE KEY-----'''
+tags = ["private", "key", "crypto"]
+
+[[rules]]
+id = "godot-encryption-key"
+description = "Godot encryption key"
+regex = '''(?i)(encryption_key|ENCRYPTION_KEY|crypt_key|CRYPT_KEY)\s*[=:]\s*["\']([a-zA-Z0-9._-]{16,})["\']'''
+tags = ["godot", "encryption", "key"]
+
+# File patterns to ignore
+[allowlist]
+description = "Allowlist for false positives"
+files = [
+    '''\.git/.*''',
+    '''\.gitleaks\.toml''',
+    '''backend/venv/.*''',
+    '''logs/.*''',
+    '''\.log$''',
+    '''test_.*\.py$''',
+    '''.*_test\.py$''',
+    '''.*_test\.gd$''',
+    '''test_.*\.gd$''',
+    '''README\.md$''',
+    '''\.md$''',
+    '''\.sample$''',
+    '''memory_bank/.*''',
+    '''documentation/.*''',
+    '''_docs/.*''',
+    '''\.godot/.*''',
+    '''\.import$''',
+    '''\.tmp$''',
+    '''\.rdb$''',
+    '''\.dmp$''',
+    '''\.sql$''',
+    '''schema\.sql$''',
+    '''project\.godot$''',
+]
+
+# Paths to ignore specific rules
+regexes = [
+    '''(postgresql|postgres):\/\/[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+:\d+\/[a-zA-Z0-9._-]+''',
+    '''(?i)(secret_key|SECRET_KEY|api_key|API_KEY)\s*[=:]\s*["\']([a-zA-Z0-9._-]{16,})["\']''',
+    '''(?i)(example|placeholder|dummy|test).*''',
+]
+
+paths = [
+    '''data/postgres/.*''',
+    '''backend/.*\.py$''',
+    '''.*\.sql$''',
+    '''.*\.md$''',
+    '''documentation/.*''',
+    '''_docs/.*''',
+    '''memory_bank/.*''',
+    '''.*\.sample$''',
+    '''.*\.example$''',
+    '''.*\.template$''',
+]
+
+# Entropy detection settings
+[entropy]
+# Enable entropy detection for high-entropy strings
+enable = true
+# Minimum entropy threshold (0.0 - 8.0)
+threshold = 4.0
+# Groups to check for entropy
+groups = ["password", "key", "secret", "token", "api", "jwt"]

@@ -156,4 +156,3 @@ This document outlines the player's journey through the core gameplay loop and h
 - AI communications tied to system triggers, presented via audio + UI overlay
 - Persistent data: user inventory, credits, upgrades, zone unlocks, progression path
 - Networking model: small zone instances, persistence per player state, optional PvP toggle
-
