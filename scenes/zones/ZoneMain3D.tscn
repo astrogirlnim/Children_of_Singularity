@@ -279,6 +279,8 @@ anchor_bottom = 1.0
 text = "WASD: Move
 E: Collect Debris
 F: Interact
+Q/Mouse Wheel: Zoom In
+R/Mouse Wheel: Zoom Out
 ESC: Menu"
 vertical_alignment = 1
 

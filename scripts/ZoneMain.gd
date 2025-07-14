@@ -18,6 +18,13 @@ signal npc_hub_entered()
 @onready var player_ship: CharacterBody2D = $PlayerShip
 @onready var debris_container: Node2D = $DebrisContainer
 @onready var npc_hub_container: Node2D = $NPCHubContainer
+
+# Camera zoom settings
+var default_zoom: float = 1.0
+var min_zoom: float = 0.5
+var max_zoom: float = 2.0
+var zoom_speed: float = 2.0
+var current_zoom: float = 1.0
 @onready var hud: Control = $UILayer/HUD
 @onready var debug_label: Label = $UILayer/HUD/DebugLabel
 @onready var log_label: Label = $UILayer/HUD/LogLabel
@@ -89,6 +96,9 @@ func _ready() -> void:
 	_setup_ui_connections()
 	_setup_npc_hubs()
 	_update_debug_display()
+
+	# Initialize camera zoom
+	_initialize_camera_zoom()
 
 	# Connect player signals
 	if player_ship:
@@ -1339,6 +1349,9 @@ func _update_player_count_display() -> void:
 
 func _physics_process(delta: float) -> void:
 	"""Physics process - handle network updates"""
+	# Handle zoom input controls
+	_handle_zoom_input(delta)
+
 	# Send position updates to network periodically (throttled)
 	if is_multiplayer_client or is_multiplayer_server:
 		network_update_timer += delta
@@ -1355,6 +1368,33 @@ func _physics_process(delta: float) -> void:
 		# Update network player count display
 		if is_multiplayer_server or is_multiplayer_client:
 			_update_player_count_display()
+
+func _handle_zoom_input(delta: float) -> void:
+	"""Handle zoom input controls"""
+	var zoom_input = 0.0
+
+	if Input.is_action_pressed("zoom_in"):
+		zoom_input = -1.0
+	elif Input.is_action_pressed("zoom_out"):
+		zoom_input = 1.0
+
+	if zoom_input != 0.0:
+		set_zoom(current_zoom + zoom_input * zoom_speed * delta)
+		_log_message("ZoneMain: Camera zoom adjusted to %.2f" % current_zoom)
+
+func set_zoom(new_zoom: float) -> void:
+	"""Set the camera zoom level"""
+	current_zoom = clamp(new_zoom, min_zoom, max_zoom)
+
+	if camera_2d:
+		camera_2d.zoom = Vector2(current_zoom, current_zoom)
+
+func _initialize_camera_zoom() -> void:
+	"""Initialize camera zoom settings"""
+	current_zoom = default_zoom
+	if camera_2d:
+		camera_2d.zoom = Vector2(current_zoom, current_zoom)
+		_log_message("ZoneMain: Camera zoom initialized to %.2f" % current_zoom)
 
 func _update_ui_elements() -> void:
 	"""Update all UI elements with current game state"""
