@@ -88,8 +88,10 @@ def initialize_database():
                             progression_path VARCHAR(50) NOT NULL DEFAULT 'rogue',
                             position_x FLOAT NOT NULL DEFAULT 0.0,
                             position_y FLOAT NOT NULL DEFAULT 0.0,
-                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT
+                                CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT
+                                CURRENT_TIMESTAMP
                         );
                     """
                     )
@@ -438,7 +440,8 @@ async def add_inventory_item(player_id: str, item: InventoryItem):
                 # Add item to inventory
                 cursor.execute(
                     """
-                    INSERT INTO inventory (player_id, item_id, item_type, quantity, value)
+                    INSERT INTO inventory (player_id, item_id, item_type,
+                                          quantity, value)
                     VALUES (%s, %s, %s, %s, %s)
                 """,
                     (
@@ -452,7 +455,8 @@ async def add_inventory_item(player_id: str, item: InventoryItem):
 
                 conn.commit()
                 logger.info(
-                    f"Added {item.item_type} (quantity: {item.quantity}) to {player_id}'s inventory"
+                    f"Added {item.item_type} (quantity: {item.quantity}) to "
+                    + f"{player_id}'s inventory"
                 )
                 return {"message": "Item added to inventory", "item": item}
 
