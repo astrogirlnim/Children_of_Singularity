@@ -53,4 +53,4 @@ Client (Godot) <--ENet--> Server (Godot) <--HTTP--> Backend (FastAPI) <--> Datab
 - Graceful degradation for network issues
 - Comprehensive logging at all system levels
 - Fallback mechanisms for missing resources
-- User-friendly error messages 
+- User-friendly error messages

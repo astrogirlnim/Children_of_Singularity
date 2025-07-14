@@ -48,7 +48,7 @@ func _ready() -> void:
 func _setup_collision() -> void:
 	"""Set up collision detection for the player ship"""
 	_log_message("PlayerShip: Setting up collision detection")
-	
+
 	# Create a basic collision shape if one doesn't exist
 	if collision_shape_2d and not collision_shape_2d.shape:
 		var rect_shape = RectangleShape2D.new()
@@ -76,7 +76,7 @@ func _physics_process(delta: float) -> void:
 func _handle_movement(delta: float) -> void:
 	"""Handle player movement input and physics"""
 	var input_vector = Vector2.ZERO
-	
+
 	# Get input from all movement actions
 	if Input.is_action_pressed("move_right"):
 		input_vector.x += 1
@@ -86,14 +86,14 @@ func _handle_movement(delta: float) -> void:
 		input_vector.y += 1
 	if Input.is_action_pressed("move_up"):
 		input_vector.y -= 1
-	
+
 	# Normalize diagonal movement
 	if input_vector != Vector2.ZERO:
 		input_vector = input_vector.normalized()
 		velocity = velocity.move_toward(input_vector * speed, acceleration * delta)
 	else:
 		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
-	
+
 	# Apply movement
 	move_and_slide()
 
@@ -101,7 +101,7 @@ func _handle_interactions() -> void:
 	"""Handle interaction inputs (collection, NPC interaction, etc.)"""
 	if Input.is_action_just_pressed("collect"):
 		_attempt_collection()
-	
+
 	if Input.is_action_just_pressed("interact"):
 		_attempt_interaction()
 
@@ -114,16 +114,16 @@ func _attempt_collection() -> void:
 	if not can_collect:
 		_log_message("PlayerShip: Collection on cooldown")
 		return
-	
+
 	if current_inventory.size() >= inventory_capacity:
 		_log_message("PlayerShip: Inventory full! Cannot collect more debris")
 		return
-	
+
 	# For now, simulate collecting debris
 	var debris_types = ["scrap_metal", "broken_satellite", "bio_waste", "ai_component"]
 	var collected_type = debris_types[randi() % debris_types.size()]
 	var collected_value = randi_range(10, 50)
-	
+
 	_collect_debris(collected_type, collected_value)
 
 func _collect_debris(debris_type: String, value: int) -> void:
@@ -133,12 +133,12 @@ func _collect_debris(debris_type: String, value: int) -> void:
 		"value": value,
 		"timestamp": Time.get_unix_time_from_system()
 	}
-	
+
 	current_inventory.append(debris_item)
 	_log_message("PlayerShip: Collected %s (Value: %d) - Inventory: %d/%d" % [debris_type, value, current_inventory.size(), inventory_capacity])
-	
+
 	debris_collected.emit(debris_type, value)
-	
+
 	# Brief collection cooldown
 	can_collect = false
 	await get_tree().create_timer(0.5).timeout
@@ -209,11 +209,11 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 		"zone_access":
 			# This will be handled by the zone system
 			pass
-	
+
 	_log_message("PlayerShip: Upgrade effects applied - Speed: %.1f, Capacity: %d" % [speed, inventory_capacity])
 
 ## Teleport player to a specific position
 func teleport_to(new_position: Vector2) -> void:
 	global_position = new_position
 	_log_message("PlayerShip: Teleported to %s" % new_position)
-	position_changed.emit(global_position) 
+	position_changed.emit(global_position)

@@ -38,13 +38,13 @@ func _initialize_inventory() -> void:
 func add_item(item_id: String, quantity: int) -> bool:
 	"""Add an item to the inventory"""
 	_log_message("InventoryManager: Adding item %s (quantity: %d)" % [item_id, quantity])
-	
+
 	# Check if inventory has space
 	if player_inventory.size() >= inventory_capacity:
 		_log_message("InventoryManager: Inventory full - cannot add item")
 		inventory_full.emit()
 		return false
-	
+
 	# TODO: Implement actual item addition logic
 	var new_item = {
 		"item_id": item_id,
@@ -53,10 +53,10 @@ func add_item(item_id: String, quantity: int) -> bool:
 		"value": _calculate_item_value(item_id, quantity),
 		"timestamp": Time.get_unix_time_from_system()
 	}
-	
+
 	player_inventory.append(new_item)
 	_log_message("InventoryManager: Item added successfully - Total items: %d" % player_inventory.size())
-	
+
 	item_added.emit(new_item.item_type, quantity)
 	inventory_updated.emit(player_inventory)
 	return true
@@ -67,7 +67,7 @@ func add_item(item_id: String, quantity: int) -> bool:
 func remove_item(item_id: String, quantity: int) -> bool:
 	"""Remove an item from the inventory"""
 	_log_message("InventoryManager: Removing item %s (quantity: %d)" % [item_id, quantity])
-	
+
 	# TODO: Implement actual item removal logic
 	for i in range(player_inventory.size()):
 		if player_inventory[i].item_id == item_id:
@@ -83,7 +83,7 @@ func remove_item(item_id: String, quantity: int) -> bool:
 			else:
 				_log_message("InventoryManager: Insufficient quantity to remove")
 				return false
-	
+
 	_log_message("InventoryManager: Item not found in inventory")
 	return false
 
@@ -147,7 +147,7 @@ func _calculate_item_value(item_id: String, quantity: int) -> int:
 	# TODO: Implement proper item value calculation
 	var base_value = 10
 	var item_type = _get_item_type(item_id)
-	
+
 	match item_type:
 		"scrap_metal":
 			base_value = 5
@@ -159,11 +159,11 @@ func _calculate_item_value(item_id: String, quantity: int) -> int:
 			base_value = 500
 		_:
 			base_value = 10
-	
+
 	return base_value * quantity
 
 func _log_message(message: String) -> void:
 	"""Log a message with timestamp"""
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
-	print(formatted_message) 
+	print(formatted_message)

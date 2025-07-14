@@ -113,4 +113,3 @@ Phase 3A: Deeper Progression (Augmentations / AI Path)
 ---
 
 If desired, this document can be extended into a visual diagram for project documentation or G2P3 submission.
-

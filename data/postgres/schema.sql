@@ -109,20 +109,20 @@ CREATE TRIGGER update_zones_updated_at BEFORE UPDATE ON zones
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert default upgrade types for new players
-INSERT INTO upgrades (player_id, upgrade_type, level) 
-SELECT p.id, 'speed_boost', 0 FROM players p 
+INSERT INTO upgrades (player_id, upgrade_type, level)
+SELECT p.id, 'speed_boost', 0 FROM players p
 WHERE NOT EXISTS (SELECT 1 FROM upgrades u WHERE u.player_id = p.id AND u.upgrade_type = 'speed_boost');
 
-INSERT INTO upgrades (player_id, upgrade_type, level) 
-SELECT p.id, 'inventory_expansion', 0 FROM players p 
+INSERT INTO upgrades (player_id, upgrade_type, level)
+SELECT p.id, 'inventory_expansion', 0 FROM players p
 WHERE NOT EXISTS (SELECT 1 FROM upgrades u WHERE u.player_id = p.id AND u.upgrade_type = 'inventory_expansion');
 
-INSERT INTO upgrades (player_id, upgrade_type, level) 
-SELECT p.id, 'collection_efficiency', 0 FROM players p 
+INSERT INTO upgrades (player_id, upgrade_type, level)
+SELECT p.id, 'collection_efficiency', 0 FROM players p
 WHERE NOT EXISTS (SELECT 1 FROM upgrades u WHERE u.player_id = p.id AND u.upgrade_type = 'collection_efficiency');
 
-INSERT INTO upgrades (player_id, upgrade_type, level) 
-SELECT p.id, 'zone_access', 1 FROM players p 
+INSERT INTO upgrades (player_id, upgrade_type, level)
+SELECT p.id, 'zone_access', 1 FROM players p
 WHERE NOT EXISTS (SELECT 1 FROM upgrades u WHERE u.player_id = p.id AND u.upgrade_type = 'zone_access');
 
 -- Create a function to initialize default upgrades for new players
@@ -143,8 +143,8 @@ CREATE TRIGGER initialize_new_player_upgrades AFTER INSERT ON players
     FOR EACH ROW EXECUTE FUNCTION initialize_player_upgrades();
 
 -- Create some sample data for testing
-INSERT INTO players (id, name, credits, progression_path, position_x, position_y) 
-VALUES 
+INSERT INTO players (id, name, credits, progression_path, position_x, position_y)
+VALUES
     ('550e8400-e29b-41d4-a716-446655440000', 'Test Salvager', 100, 'rogue', 0.0, 0.0),
     ('550e8400-e29b-41d4-a716-446655440001', 'Corporate Drone', 250, 'corporate', 100.0, 50.0),
     ('550e8400-e29b-41d4-a716-446655440002', 'AI Hybrid', 500, 'ai_integration', -50.0, -75.0)
@@ -168,7 +168,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Create a view for easy player data retrieval
 CREATE OR REPLACE VIEW player_summary AS
-SELECT 
+SELECT
     p.id,
     p.name,
     p.credits,
@@ -197,4 +197,4 @@ COMMENT ON TABLE upgrades IS 'Player upgrades and progression levels';
 COMMENT ON TABLE zones IS 'Zone access permissions and visit history';
 COMMENT ON TABLE game_sessions IS 'Player session tracking for analytics';
 COMMENT ON TABLE ai_interactions IS 'AI communication logs and milestone tracking';
-COMMENT ON VIEW player_summary IS 'Consolidated player data for quick queries'; 
+COMMENT ON VIEW player_summary IS 'Consolidated player data for quick queries';

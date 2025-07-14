@@ -33,36 +33,36 @@ func _ready() -> void:
 	_initialize_zone()
 	_spawn_initial_debris()
 	_update_debug_display()
-	
+
 	# Connect player signals
 	if player_ship:
 		player_ship.debris_collected.connect(_on_debris_collected)
 		player_ship.position_changed.connect(_on_player_position_changed)
-	
+
 	_log_message("ZoneMain: Zone ready for gameplay")
 	zone_ready.emit()
 
 func _initialize_zone() -> void:
 	"""Initialize the zone with basic settings and validate components"""
 	_log_message("ZoneMain: Setting up zone bounds and camera")
-	
+
 	# Set camera limits based on zone bounds
 	if camera_2d:
 		camera_2d.limit_left = int(zone_bounds.position.x)
 		camera_2d.limit_top = int(zone_bounds.position.y)
 		camera_2d.limit_right = int(zone_bounds.end.x)
 		camera_2d.limit_bottom = int(zone_bounds.end.y)
-	
+
 	# Initialize HUD
 	if debug_label:
 		debug_label.text = "Children of the Singularity - %s [DEBUG]" % zone_name
-	
+
 	_log_message("ZoneMain: Zone initialization complete")
 
 func _spawn_initial_debris() -> void:
 	"""Spawn initial debris objects in the zone"""
 	_log_message("ZoneMain: Spawning initial debris (placeholder)")
-	
+
 	# TODO: Implement actual debris spawning system
 	# For now, just log that we would spawn debris
 	for i in range(10):
@@ -71,7 +71,7 @@ func _spawn_initial_debris() -> void:
 			randf_range(zone_bounds.position.y, zone_bounds.end.y)
 		)
 		_log_message("ZoneMain: Would spawn debris at %s" % debris_pos)
-	
+
 	current_debris_count = 10
 	_log_message("ZoneMain: Initial debris spawn complete (%d objects)" % current_debris_count)
 
@@ -96,14 +96,14 @@ func _log_message(message: String) -> void:
 	"""Add a message to the game log and display it"""
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
-	
+
 	print(formatted_message)
 	game_logs.append(formatted_message)
-	
+
 	# Keep only last 10 log entries for display
 	if game_logs.size() > 10:
 		game_logs.pop_front()
-	
+
 	# Update log display
 	if log_label:
 		log_label.text = "Console Log:\n" + "\n".join(game_logs)
@@ -137,4 +137,4 @@ func reset_zone() -> void:
 	_log_message("ZoneMain: Resetting zone to initial state")
 	clear_all_debris()
 	_spawn_initial_debris()
-	zone_ready.emit() 
+	zone_ready.emit()

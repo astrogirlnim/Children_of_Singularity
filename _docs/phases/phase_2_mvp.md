@@ -67,4 +67,4 @@ Deliver a playable, networked game with the core gameplay loop: explore, collect
 - All core systems are networked and persistent
 - Minimal UI is present and functional
 - Static AI messages trigger at milestones
-- Logs confirm all major actions 
+- Logs confirm all major actions

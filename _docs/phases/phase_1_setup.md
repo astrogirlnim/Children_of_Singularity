@@ -50,4 +50,4 @@ Establish the foundational project structure and environment. This phase deliver
 - All core folders/files present and tracked
 - Minimal scene loads with no errors
 - Networking/backend stubs exist (not functional)
-- README and logs confirm setup 
+- README and logs confirm setup

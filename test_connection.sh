@@ -14,7 +14,7 @@ echo "1. Health Check:"
 curl -s "$BACKEND_URL/api/v1/health" | python3 -m json.tool 2>/dev/null || echo "❌ Health check failed"
 echo
 
-# Test stats endpoint  
+# Test stats endpoint
 echo "2. Game Stats:"
 curl -s "$BACKEND_URL/api/v1/stats" | python3 -m json.tool 2>/dev/null || echo "❌ Stats check failed"
 echo
@@ -28,4 +28,4 @@ echo "✅ API connection tests complete!"
 echo
 echo "🔗 Architecture Overview:"
 echo "  Frontend (Godot) ←→ Backend (FastAPI)"
-echo "  Game logic ←→ Player data, AI, persistence" 
+echo "  Game logic ←→ Player data, AI, persistence"

@@ -44,4 +44,4 @@ Please pay special attention to:
 - [ ] API security and data validation
 - [ ] Database schema changes
 - [ ] Performance implications
-- [ ] User experience impact 
+- [ ] User experience impact

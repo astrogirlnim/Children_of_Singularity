@@ -60,4 +60,4 @@ python-multipart==0.0.6
 - 60 FPS client rendering
 - <100ms network latency for local multiplayer
 - <500ms API response times
-- Support for 10+ concurrent players per zone 
+- Support for 10+ concurrent players per zone

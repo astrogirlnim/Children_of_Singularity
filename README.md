@@ -156,4 +156,4 @@ python3 -m venv backend/venv
 
 ---
 
-© Children of the Singularity – All rights reserved. 
+© Children of the Singularity – All rights reserved.

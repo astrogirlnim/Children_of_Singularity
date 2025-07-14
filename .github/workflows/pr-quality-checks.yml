@@ -10,20 +10,20 @@ jobs:
   godot-validation:
     name: Godot Project Validation
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Godot
       uses: chickensoft-games/setup-godot@v1
       with:
         version: 4.4.1
-        
+
     - name: Validate Godot Project
       run: |
         echo "🎮 Validating Godot project structure and scripts..."
         godot --headless --check --quit
-        
+
     - name: Check GDScript Syntax
       run: |
         echo "📝 Checking GDScript files for syntax errors..."
@@ -37,40 +37,40 @@ jobs:
   python-quality:
     name: Python Backend Quality
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.12'
-        
+
     - name: Install dependencies
       run: |
         cd backend
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install flake8 black mypy pytest
-        
+
     - name: Run Black formatting check
       run: |
         echo "🖤 Checking Python code formatting with Black..."
         cd backend
         black --check app.py
-        
+
     - name: Run Flake8 linting
       run: |
         echo "🔍 Running Flake8 linting..."
         cd backend
         flake8 app.py --max-line-length=88 --statistics
-        
+
     - name: Run MyPy type checking
       run: |
         echo "🔤 Running MyPy type checking..."
         cd backend
         mypy app.py --ignore-missing-imports
-        
+
     - name: Test Backend Import
       run: |
         echo "📦 Testing backend module imports..."
@@ -80,70 +80,70 @@ jobs:
   api-testing:
     name: API Endpoint Testing
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.12'
-        
+
     - name: Install dependencies
       run: |
         cd backend
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install httpx pytest
-        
+
     - name: Start Backend Server
       run: |
         cd backend
         python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
         echo "🚀 Backend server started..."
         sleep 5
-        
+
     - name: Test API Endpoints
       run: |
         echo "🔌 Testing API endpoints..."
-        
+
         # Test health endpoint
         echo "Testing /api/v1/health..."
         curl -f http://localhost:8000/api/v1/health
-        
+
         # Test stats endpoint
         echo "Testing /api/v1/stats..."
         curl -f http://localhost:8000/api/v1/stats
-        
+
         # Test root endpoint
         echo "Testing root endpoint..."
         curl -f http://localhost:8000/
-        
+
         echo "✅ All API endpoints responding correctly"
 
   code-quality:
     name: Code Quality Analysis
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Check for TODO/FIXME comments
       run: |
         echo "📋 Checking for TODO/FIXME comments..."
         TODO_COUNT=$(grep -r "TODO\|FIXME\|XXX\|BUG\|HACK" --include="*.gd" --include="*.py" . | wc -l)
         echo "Found $TODO_COUNT TODO/FIXME comments"
-        
+
         if [ $TODO_COUNT -gt 1000 ]; then
           echo "⚠️  Warning: High number of TODO comments ($TODO_COUNT)"
         else
           echo "✅ TODO comment count is acceptable ($TODO_COUNT)"
         fi
-        
+
     - name: Check file structure
       run: |
         echo "📁 Validating project structure..."
-        
+
         # Check required directories
         required_dirs=("scripts" "scenes" "backend" "assets" "data/postgres" "logs" "memory_bank")
         for dir in "${required_dirs[@]}"; do
@@ -154,7 +154,7 @@ jobs:
             exit 1
           fi
         done
-        
+
         # Check required files
         required_files=("project.godot" "backend/app.py" "backend/requirements.txt" "README.md")
         for file in "${required_files[@]}"; do
@@ -165,11 +165,11 @@ jobs:
             exit 1
           fi
         done
-        
+
     - name: Check naming conventions
       run: |
         echo "📝 Checking naming conventions..."
-        
+
         # Check GDScript files use snake_case
         echo "Checking GDScript file naming..."
         find scripts -name "*.gd" -type f | while read file; do
@@ -180,13 +180,13 @@ jobs:
             echo "⚠️  Consider snake_case for: $file"
           fi
         done
-        
+
     - name: Database Schema Validation
       run: |
         echo "🗄️  Validating database schema..."
         if [ -f "data/postgres/schema.sql" ]; then
           echo "✅ Database schema file exists"
-          
+
           # Basic SQL syntax check
           if grep -q "CREATE TABLE" data/postgres/schema.sql; then
             echo "✅ Schema contains table definitions"
@@ -194,7 +194,7 @@ jobs:
             echo "❌ Schema missing table definitions"
             exit 1
           fi
-          
+
           if grep -q "uuid_generate_v4" data/postgres/schema.sql; then
             echo "✅ Schema uses UUID generation"
           else
@@ -208,21 +208,21 @@ jobs:
   security-scan:
     name: Security Analysis
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Check for sensitive data
       run: |
         echo "🔒 Scanning for sensitive data..."
-        
+
         # Check for potential secrets
         if grep -r "password\|secret\|key\|token" --include="*.py" --include="*.gd" --exclude-dir=".git" . | grep -v "TODO\|FIXME\|password_change\|secret_key\|api_key"; then
           echo "⚠️  Potential sensitive data found - please review"
         else
           echo "✅ No obvious sensitive data found"
         fi
-        
+
         # Check for hardcoded URLs/IPs
         if grep -r "http://\|https://\|[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+" --include="*.py" --include="*.gd" . | grep -v "localhost\|127.0.0.1\|0.0.0.0\|example.com\|github.com"; then
           echo "⚠️  Hardcoded URLs/IPs found - consider using environment variables"
@@ -230,17 +230,79 @@ jobs:
           echo "✅ No hardcoded URLs/IPs found"
         fi
 
+  gitleaks-scan:
+    name: Gitleaks Secret Detection
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for gitleaks
+
+    - name: Setup Gitleaks
+      run: |
+        echo "🔍 Setting up Gitleaks..."
+        # Download and install gitleaks
+        wget -O gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.27.2/gitleaks_8.27.2_linux_x64.tar.gz
+        tar -xzf gitleaks.tar.gz
+        chmod +x gitleaks
+        sudo mv gitleaks /usr/local/bin/
+        echo "✅ Gitleaks installed successfully"
+
+    - name: Verify Gitleaks Configuration
+      run: |
+        echo "⚙️ Verifying Gitleaks configuration..."
+        if [ -f ".gitleaks.toml" ]; then
+          echo "✅ Gitleaks configuration file found"
+          echo "📄 Configuration preview:"
+          head -20 .gitleaks.toml
+        else
+          echo "❌ Gitleaks configuration file missing"
+          exit 1
+        fi
+
+    - name: Run Gitleaks Secret Detection
+      run: |
+        echo "🔒 Running Gitleaks secret detection..."
+        echo "Scanning repository for secrets and credentials..."
+
+        # Run gitleaks detect on all files
+        gitleaks detect --config .gitleaks.toml --verbose --report-format json --report-path gitleaks-report.json
+
+        # Check if any secrets were found
+        if [ -f "gitleaks-report.json" ]; then
+          secret_count=$(jq length gitleaks-report.json)
+          if [ "$secret_count" -gt 0 ]; then
+            echo "❌ $secret_count secrets detected!"
+            echo "🔍 Secrets found:"
+            jq '.[] | {file: .File, line: .StartLine, rule: .RuleID, description: .Description}' gitleaks-report.json
+            exit 1
+          else
+            echo "✅ No secrets detected in repository"
+          fi
+        else
+          echo "✅ No secrets detected in repository"
+        fi
+
+    - name: Upload Gitleaks Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: gitleaks-report
+        path: gitleaks-report.json
+        retention-days: 7
+
   performance-check:
     name: Performance Analysis
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Check file sizes
       run: |
         echo "📊 Checking file sizes..."
-        
+
         # Check for large files (exclude venv directory)
         find . -name "*.py" -o -name "*.gd" -o -name "*.sql" | grep -v "/venv/" | while read file; do
           size=$(wc -l < "$file")
@@ -252,11 +314,11 @@ jobs:
             echo "✅ Good size: $file ($size lines)"
           fi
         done
-        
+
     - name: Check for performance anti-patterns
       run: |
         echo "🚀 Checking for performance anti-patterns..."
-        
+
         # Check for print statements in GDScript (we use print for logging in our implementation)
         if grep -r "print(" --include="*.gd" .; then
           echo "✅ Found print statements in GDScript (used for logging)"
@@ -267,14 +329,14 @@ jobs:
   documentation-check:
     name: Documentation Quality
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Check documentation completeness
       run: |
         echo "📚 Checking documentation..."
-        
+
         # Check README exists and has content
         if [ -f "README.md" ] && [ -s "README.md" ]; then
           echo "✅ README.md exists and has content"
@@ -282,7 +344,7 @@ jobs:
           echo "❌ README.md missing or empty"
           exit 1
         fi
-        
+
         # Check memory bank documentation
         memory_bank_files=("memory_bank_projectbrief.md" "memory_bank_activeContext.md" "memory_bank_progress.md")
         for file in "${memory_bank_files[@]}"; do
@@ -293,18 +355,18 @@ jobs:
             exit 1
           fi
         done
-        
+
     - name: Check inline documentation
       run: |
         echo "📖 Checking inline documentation..."
-        
+
         # Check for function documentation in GDScript
         gd_files=$(find scripts -name "*.gd" -type f | wc -l)
         documented_functions=$(grep -r "func.*:" --include="*.gd" scripts | wc -l)
-        
+
         echo "GDScript files: $gd_files"
         echo "Documented functions: $documented_functions"
-        
+
         if [ $documented_functions -gt 0 ]; then
           echo "✅ Functions are documented in GDScript"
         else
@@ -314,51 +376,51 @@ jobs:
   final-integration:
     name: Final Integration Test
     runs-on: ubuntu-latest
-    needs: [godot-validation, python-quality, api-testing, code-quality, security-scan, performance-check, documentation-check]
-    
+    needs: [godot-validation, python-quality, api-testing, code-quality, security-scan, gitleaks-scan, performance-check, documentation-check]
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.12'
-        
+
     - name: Setup Godot
       uses: chickensoft-games/setup-godot@v1
       with:
         version: 4.4.1
-        
+
     - name: Install Python dependencies
       run: |
         cd backend
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        
+
     - name: Full Integration Test
       run: |
         echo "🎯 Running full integration test..."
-        
+
         # Start backend
         cd backend
         python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
         BACKEND_PID=$!
         cd ..
-        
+
         # Wait for backend to start
         sleep 5
-        
+
         # Test backend is responding
         curl -f http://localhost:8000/api/v1/health
-        
+
         # Test Godot project
         godot --headless --check --quit
-        
+
         # Clean up
         kill $BACKEND_PID
-        
+
         echo "✅ Full integration test passed!"
-        
+
     - name: Quality Gate Summary
       run: |
         echo "🏆 Quality Gate Summary:"
@@ -367,8 +429,9 @@ jobs:
         echo "✅ API endpoint testing passed"
         echo "✅ Code quality analysis passed"
         echo "✅ Security scan passed"
+        echo "✅ Gitleaks secret detection passed"
         echo "✅ Performance check passed"
         echo "✅ Documentation check passed"
         echo "✅ Full integration test passed"
         echo ""
-        echo "🎉 All quality checks passed! PR is ready for review." 
+        echo "🎉 All quality checks passed! PR is ready for review."

@@ -71,4 +71,4 @@
 ### Community Health
 - **Positive Sentiment**: 85% positive reviews focusing on atmosphere and cooperation
 - **Content Creation**: Player-generated content (screenshots, stories) shared regularly
-- **Word-of-Mouth**: 40% of new players come from friend recommendations 
+- **Word-of-Mouth**: 40% of new players come from friend recommendations

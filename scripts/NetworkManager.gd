@@ -35,7 +35,7 @@ func _ready() -> void:
 func _setup_networking() -> void:
 	"""Initialize networking configuration"""
 	_log_message("NetworkManager: Setting up ENet networking configuration")
-	
+
 	# TODO: Implement actual ENet configuration
 	# For now, just set up basic structure
 	_log_message("NetworkManager: ENet configuration complete (stub)")
@@ -43,7 +43,7 @@ func _setup_networking() -> void:
 func start_server() -> bool:
 	"""Start the game server"""
 	_log_message("NetworkManager: Starting server on port %d" % server_port)
-	
+
 	# TODO: Implement actual server startup
 	is_server = true
 	is_connected = true
@@ -53,7 +53,7 @@ func start_server() -> bool:
 func connect_to_server(server_address: String, port: int = 12345) -> bool:
 	"""Connect to a game server"""
 	_log_message("NetworkManager: Connecting to server at %s:%d" % [server_address, port])
-	
+
 	# TODO: Implement actual client connection
 	is_client = true
 	is_connected = true
@@ -64,7 +64,7 @@ func connect_to_server(server_address: String, port: int = 12345) -> bool:
 func disconnect_from_server() -> void:
 	"""Disconnect from the current server"""
 	_log_message("NetworkManager: Disconnecting from server")
-	
+
 	# TODO: Implement actual disconnection
 	is_connected = false
 	is_client = false
@@ -77,9 +77,9 @@ func send_player_update(player_data: Dictionary) -> void:
 	if not is_connected:
 		_log_message("NetworkManager: Cannot send update - not connected")
 		return
-	
+
 	_log_message("NetworkManager: Sending player update - Position: %s, Inventory: %d items" % [player_data.get("position", "unknown"), player_data.get("inventory", []).size()])
-	
+
 	# TODO: Implement actual player update transmission
 	_log_message("NetworkManager: Player update sent (stub)")
 
@@ -88,16 +88,16 @@ func sync_zone_state(zone_data: Dictionary) -> void:
 	if not is_connected:
 		_log_message("NetworkManager: Cannot sync zone - not connected")
 		return
-	
+
 	_log_message("NetworkManager: Syncing zone state - Zone: %s, Debris: %d" % [zone_data.get("zone_id", "unknown"), zone_data.get("debris_count", 0)])
-	
+
 	# TODO: Implement actual zone state synchronization
 	_log_message("NetworkManager: Zone state synced (stub)")
 
 func request_zone_join(zone_id: String) -> bool:
 	"""Request to join a specific zone"""
 	_log_message("NetworkManager: Requesting to join zone: %s" % zone_id)
-	
+
 	# TODO: Implement actual zone join request
 	_log_message("NetworkManager: Zone join request sent (stub)")
 	return true
@@ -110,7 +110,7 @@ func simulate_player_join(player_id: String) -> void:
 		"inventory": [],
 		"credits": 0
 	}
-	
+
 	current_players[player_id] = player_data
 	_log_message("NetworkManager: Player %s joined the zone" % player_id)
 	player_joined.emit(player_id, player_data)
@@ -151,4 +151,4 @@ func _on_debris_collected(player_id: String, debris_id: String, debris_type: Str
 @rpc("any_peer", "call_local")
 func _on_zone_state_changed(zone_id: String, new_state: Dictionary) -> void:
 	_log_message("NetworkManager: Received zone state change - %s: %s" % [zone_id, new_state])
-	server_state_updated.emit(new_state) 
+	server_state_updated.emit(new_state)

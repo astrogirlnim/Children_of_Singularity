@@ -49,7 +49,7 @@ verify_process() {
 # Function to cleanup on exit
 cleanup() {
     echo -e "\n${YELLOW}Shutting down development environment...${NC}"
-    
+
     # Kill backend process
     if [[ -n $BACKEND_PID ]]; then
         echo -e "${YELLOW}Stopping backend API (PID: $BACKEND_PID)...${NC}"
@@ -61,10 +61,10 @@ cleanup() {
             kill -9 $BACKEND_PID 2>/dev/null || true
         fi
     fi
-    
+
     # Kill Godot process
     if [[ -n $GODOT_PID ]]; then
-        echo -e "${YELLOW}Stopping Godot game (PID: $GODOT_PID)...${NC}"  
+        echo -e "${YELLOW}Stopping Godot game (PID: $GODOT_PID)...${NC}"
         kill $GODOT_PID 2>/dev/null || true
         # Wait for graceful shutdown
         sleep 2
@@ -73,13 +73,13 @@ cleanup() {
             kill -9 $GODOT_PID 2>/dev/null || true
         fi
     fi
-    
+
     # Clean up any remaining processes on port 8000
     if check_port $BACKEND_PORT; then
         echo -e "${YELLOW}Cleaning up remaining processes on port $BACKEND_PORT...${NC}"
         kill_port $BACKEND_PORT
     fi
-    
+
     echo -e "${GREEN}Development environment stopped.${NC}"
 }
 
@@ -188,12 +188,12 @@ while true; do
         echo -e "${RED}❌ Backend process crashed! Exiting...${NC}"
         exit 1
     fi
-    
+
     # Check if Godot is still running
     if ! ps -p $GODOT_PID > /dev/null 2>&1; then
         echo -e "${YELLOW}Godot process ended. Shutting down...${NC}"
         break
     fi
-    
+
     sleep 5
-done 
+done
