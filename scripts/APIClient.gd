@@ -23,7 +23,7 @@ signal api_error(error_message: String)
 # API configuration
 var base_url: String = "http://localhost:8000/api/v1"
 var player_id: String = "player_001"
-var timeout: float = 30.0
+var request_timeout: float = 30.0
 
 # Request tracking
 var pending_requests: Dictionary = {}
@@ -32,7 +32,7 @@ var request_id_counter: int = 0
 func _ready() -> void:
 	_log_message("APIClient: Initializing HTTP client")
 	request_completed.connect(_on_request_completed)
-	timeout = 30.0
+	request_timeout = 30.0
 	_log_message("APIClient: HTTP client ready")
 
 ## Load player data from the backend
@@ -43,7 +43,7 @@ func load_player_data(player_id: String = "") -> void:
 	var url = "%s/players/%s" % [base_url, player_id]
 	_log_message("APIClient: Loading player data from %s" % url)
 
-	var request_id = _make_request(url, HTTPClient.METHOD_GET, {}, "load_player_data")
+	var request_id = _make_request(url, HTTPClient.METHOD_GET, [], "load_player_data")
 	if request_id == -1:
 		api_error.emit("Failed to initiate player data load request")
 
@@ -63,7 +63,7 @@ func load_inventory() -> void:
 	var url = "%s/players/%s/inventory" % [base_url, player_id]
 	_log_message("APIClient: Loading inventory from %s" % url)
 
-	var request_id = _make_request(url, HTTPClient.METHOD_GET, {}, "load_inventory")
+	var request_id = _make_request(url, HTTPClient.METHOD_GET, [], "load_inventory")
 	if request_id == -1:
 		api_error.emit("Failed to initiate inventory load request")
 
@@ -83,7 +83,7 @@ func clear_inventory() -> void:
 	var url = "%s/players/%s/inventory" % [base_url, player_id]
 	_log_message("APIClient: Clearing inventory at %s" % url)
 
-	var request_id = _make_request(url, HTTPClient.METHOD_DELETE, {}, "clear_inventory")
+	var request_id = _make_request(url, HTTPClient.METHOD_DELETE, [], "clear_inventory")
 	if request_id == -1:
 		api_error.emit("Failed to initiate inventory clear request")
 
@@ -104,7 +104,7 @@ func check_health() -> void:
 	var url = "%s/health" % base_url
 	_log_message("APIClient: Checking backend health at %s" % url)
 
-	var request_id = _make_request(url, HTTPClient.METHOD_GET, {}, "check_health")
+	var request_id = _make_request(url, HTTPClient.METHOD_GET, [], "check_health")
 	if request_id == -1:
 		api_error.emit("Failed to initiate health check request")
 
@@ -157,14 +157,14 @@ func _handle_successful_response(response_data: Dictionary) -> void:
 	# Determine response type based on content (since we don't have request tracking)
 	if "status" in response_data and response_data.status == "healthy":
 		_log_message("APIClient: Backend health check passed")
-	elif "player_id" in response_data and "credits" in response_data:
+	elif response_data is Dictionary and "player_id" in response_data and "credits" in response_data:
 		_log_message("APIClient: Player data received")
 		player_data_loaded.emit(response_data)
-	elif "inventory" in response_data or (response_data is Array):
+	elif (response_data is Dictionary and "inventory" in response_data) or (response_data is Array):
 		_log_message("APIClient: Inventory data received")
-		var inventory_data = response_data.get("inventory", response_data)
+		var inventory_data: Array = response_data.get("inventory", []) if response_data is Dictionary else response_data
 		inventory_updated.emit(inventory_data)
-	elif "credits" in response_data:
+	elif response_data is Dictionary and "credits" in response_data:
 		_log_message("APIClient: Credits updated")
 		credits_updated.emit(response_data.credits)
 	else:

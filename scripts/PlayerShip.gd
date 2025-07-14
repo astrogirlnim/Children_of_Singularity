@@ -56,11 +56,68 @@ var can_interact: bool = false
 
 func _ready() -> void:
 	_log_message("PlayerShip: Initializing player ship")
+	_setup_player_visuals()
 	_setup_collision()
 	_setup_collection_area()
 	_setup_interaction_area()
 	_initialize_player_state()
 	_log_message("PlayerShip: Player ship ready for gameplay")
+
+func _setup_player_visuals() -> void:
+	"""Set up visual appearance for the player ship"""
+	_log_message("PlayerShip: Setting up player ship visuals")
+
+	# Create a sophisticated player ship texture
+	if sprite_2d:
+		var texture = ImageTexture.new()
+		var image = Image.create(64, 32, false, Image.FORMAT_RGBA8)
+
+		# Fill with base color
+		var base_color = Color(0.4, 0.7, 1.0, 1.0)  # Light blue
+		image.fill(base_color)
+
+		# Create ship body (rounded rectangle)
+		for x in range(8, 48):
+			for y in range(8, 24):
+				var distance_from_center = Vector2(x - 28, y - 16).length()
+				var color_intensity = 1.0 - (distance_from_center * 0.01)
+				var pixel_color = base_color * color_intensity
+				pixel_color.a = 1.0
+				image.set_pixel(x, y, pixel_color)
+
+		# Create ship nose (triangle pointing right)
+		for x in range(48, 64):
+			var triangle_width = int((64 - x) * 0.5)
+			for y in range(16 - triangle_width, 16 + triangle_width + 1):
+				if y >= 0 and y < 32:
+					image.set_pixel(x, y, Color(0.6, 0.8, 1.0, 1.0))
+
+		# Add engine glow at the back
+		for x in range(4, 12):
+			for y in range(12, 20):
+				image.set_pixel(x, y, Color(1.0, 0.5, 0.2, 1.0))  # Orange glow
+
+		# Add some details and highlights
+		for x in range(16, 40):
+			image.set_pixel(x, 14, Color(0.8, 0.9, 1.0, 1.0))  # Top highlight
+			image.set_pixel(x, 18, Color(0.8, 0.9, 1.0, 1.0))  # Bottom highlight
+
+		# Add border for better visibility
+		for x in range(64):
+			for y in range(32):
+				if x == 0 or x == 63 or y == 0 or y == 31:
+					if image.get_pixel(x, y).a > 0.5:
+						image.set_pixel(x, y, Color(0.2, 0.4, 0.8, 1.0))
+
+		# Add cockpit
+		for x in range(32, 44):
+			for y in range(12, 20):
+				image.set_pixel(x, y, Color(0.8, 0.9, 1.0, 1.0))
+
+		texture.set_image(image)
+		sprite_2d.texture = texture
+
+		_log_message("PlayerShip: Enhanced player ship texture created")
 
 func _setup_collision() -> void:
 	"""Set up collision detection for the player ship"""
@@ -225,7 +282,15 @@ func _collect_debris_object(debris_object: RigidBody2D) -> void:
 	var debris_value = debris_object.get_meta("debris_value", 0)
 	var debris_id = debris_object.get_meta("debris_id", "unknown")
 
-	# Create inventory item
+	# Network-authoritative collection - send to server for validation
+	var zone_main = get_parent()
+	if zone_main and zone_main.has_method("get_network_manager"):
+		var network_manager = zone_main.get_network_manager()
+		if network_manager:
+			network_manager.collect_debris(debris_id, debris_type)
+			_log_message("PlayerShip: Sent debris collection request to network - %s (%s)" % [debris_id, debris_type])
+
+	# Create inventory item (local prediction - server will validate)
 	var debris_item = {
 		"type": debris_type,
 		"value": debris_value,
@@ -243,7 +308,6 @@ func _collect_debris_object(debris_object: RigidBody2D) -> void:
 	debris_collected.emit(debris_type, debris_value)
 
 	# Remove the debris object from the zone
-	var zone_main = get_parent()
 	if zone_main and zone_main.has_method("remove_debris"):
 		zone_main.remove_debris(debris_object)
 

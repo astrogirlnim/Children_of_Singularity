@@ -21,9 +21,10 @@ signal npc_hub_entered()
 @onready var hud: Control = $UILayer/HUD
 @onready var debug_label: Label = $UILayer/HUD/DebugLabel
 @onready var log_label: Label = $UILayer/HUD/LogLabel
-@onready var api_client: APIClient = $APIClient
-@onready var upgrade_system: UpgradeSystem = $UpgradeSystem
+@onready var api_client: Node = $APIClient
+@onready var upgrade_system: Node = $UpgradeSystem
 @onready var ai_communicator: AICommunicator = $AICommunicator
+@onready var network_manager: NetworkManager = $NetworkManager
 
 # UI Components
 @onready var inventory_panel: Panel = $UILayer/HUD/InventoryPanel
@@ -35,12 +36,21 @@ signal npc_hub_entered()
 @onready var ai_message_overlay: Panel = $UILayer/HUD/AIMessageOverlay
 @onready var ai_message_label: Label = $UILayer/HUD/AIMessageOverlay/AIMessageLabel
 
+# Upgrade Status Components
+@onready var upgrade_status_panel: Panel = $UILayer/HUD/UpgradeStatusPanel
+@onready var upgrade_status_text: Label = $UILayer/HUD/UpgradeStatusPanel/UpgradeStatusText
+
 # Trading Interface Components
 @onready var trading_interface: Panel = $UILayer/HUD/TradingInterface
 @onready var trading_title: Label = $UILayer/HUD/TradingInterface/TradingTitle
 @onready var sell_all_button: Button = $UILayer/HUD/TradingInterface/TradingContent/SellAllButton
 @onready var trading_result: Label = $UILayer/HUD/TradingInterface/TradingContent/TradingResult
 @onready var trading_close_button: Button = $UILayer/HUD/TradingInterface/TradingCloseButton
+
+# Network Management
+var network_players: Dictionary = {}
+var is_multiplayer_server: bool = false
+var is_multiplayer_client: bool = false
 
 var zone_name: String = "Zone Alpha"
 var zone_id: String = "zone_alpha_01"
@@ -69,6 +79,7 @@ var trading_open: bool = false
 
 func _ready() -> void:
 	_log_message("ZoneMain: Initializing zone controller")
+	_setup_zone_background()
 	_initialize_zone()
 	_spawn_initial_debris()
 	_setup_ui_connections()
@@ -84,19 +95,37 @@ func _ready() -> void:
 
 	# Connect API client signals
 	if api_client:
-		api_client.player_data_loaded.connect(_on_player_data_loaded)
-		api_client.credits_updated.connect(_on_credits_updated)
-		api_client.inventory_updated.connect(_on_inventory_updated)
-		api_client.api_error.connect(_on_api_error)
+		if api_client.has_signal("player_data_loaded"):
+			api_client.player_data_loaded.connect(_on_player_data_loaded)
+		if api_client.has_signal("credits_updated"):
+			api_client.credits_updated.connect(_on_credits_updated)
+		if api_client.has_signal("inventory_updated"):
+			api_client.inventory_updated.connect(_on_inventory_updated)
+		if api_client.has_signal("api_error"):
+			api_client.api_error.connect(_on_api_error)
 
 		# Check backend health on startup
-		api_client.check_health()
+		if api_client.has_method("check_health"):
+			api_client.check_health()
 
 	# Connect upgrade system signals
 	if upgrade_system:
 		upgrade_system.upgrade_purchased.connect(_on_upgrade_purchased)
 		upgrade_system.upgrade_purchase_failed.connect(_on_upgrade_purchase_failed)
 		upgrade_system.upgrade_effects_applied.connect(_on_upgrade_effects_applied)
+
+	# Connect network manager signals
+	if network_manager:
+		network_manager.connected_to_server.connect(_on_connected_to_server)
+		network_manager.disconnected_from_server.connect(_on_disconnected_from_server)
+		network_manager.player_joined.connect(_on_network_player_joined)
+		network_manager.player_left.connect(_on_network_player_left)
+		network_manager.player_position_updated.connect(_on_network_player_position_updated)
+		network_manager.debris_collected_by_player.connect(_on_network_debris_collected)
+		network_manager.server_state_updated.connect(_on_network_server_state_updated)
+
+		# Initialize networking (attempt to start as server first)
+		_initialize_networking()
 
 	# Connect AI communicator signals
 	if ai_communicator:
@@ -165,10 +194,25 @@ func _setup_npc_hub_visuals(hub: StaticBody2D) -> void:
 	"""Set up visual components for an NPC hub"""
 	var sprite = hub.get_node("HubSprite")
 	if sprite:
-		# Create a simple colored rectangle texture
+		# Create a more sophisticated hub texture
 		var texture = ImageTexture.new()
 		var image = Image.create(150, 150, false, Image.FORMAT_RGBA8)
-		image.fill(Color(0.8, 0.6, 0.2, 1.0))
+
+		# Create a gradient background
+		for x in range(150):
+			for y in range(150):
+				var distance_from_center = Vector2(x - 75, y - 75).length()
+				var normalized_distance = distance_from_center / 75.0
+				var color_intensity = 1.0 - (normalized_distance * 0.3)
+				var base_color = Color(0.8, 0.6, 0.2, 1.0)
+				image.set_pixel(x, y, base_color * color_intensity)
+
+		# Add a border
+		for x in range(150):
+			for y in range(150):
+				if x < 5 or x > 144 or y < 5 or y > 144:
+					image.set_pixel(x, y, Color(1.0, 0.8, 0.4, 1.0))
+
 		texture.set_image(image)
 		sprite.texture = texture
 
@@ -219,30 +263,62 @@ func _clear_inventory_display() -> void:
 	inventory_items.clear()
 
 func _add_inventory_item_to_display(item: Dictionary) -> void:
-	"""Add an item to the inventory display"""
+	"""Add an item to the inventory display with interactive functionality"""
 	if not inventory_grid:
 		return
 
-	# Create item container
-	var item_container = Panel.new()
-	item_container.custom_minimum_size = Vector2(80, 80)
+	# Create interactive item button
+	var item_button = Button.new()
+	item_button.custom_minimum_size = Vector2(80, 80)
+	item_button.flat = true
 
 	# Get item color based on type
 	var item_color = _get_item_color(item.type)
-	item_container.color = item_color
+
+	# Create custom style for the button
+	var style_normal = StyleBoxFlat.new()
+	style_normal.bg_color = item_color
+	style_normal.border_width_left = 2
+	style_normal.border_width_right = 2
+	style_normal.border_width_top = 2
+	style_normal.border_width_bottom = 2
+	style_normal.border_color = Color.WHITE
+	style_normal.corner_radius_top_left = 4
+	style_normal.corner_radius_top_right = 4
+	style_normal.corner_radius_bottom_left = 4
+	style_normal.corner_radius_bottom_right = 4
+
+	var style_hover = StyleBoxFlat.new()
+	style_hover.bg_color = item_color.lightened(0.2)
+	style_hover.border_width_left = 2
+	style_hover.border_width_right = 2
+	style_hover.border_width_top = 2
+	style_hover.border_width_bottom = 2
+	style_hover.border_color = Color.YELLOW
+	style_hover.corner_radius_top_left = 4
+	style_hover.corner_radius_top_right = 4
+	style_hover.corner_radius_bottom_left = 4
+	style_hover.corner_radius_bottom_right = 4
+
+	item_button.add_theme_stylebox_override("normal", style_normal)
+	item_button.add_theme_stylebox_override("hover", style_hover)
+	item_button.add_theme_stylebox_override("pressed", style_hover)
 
 	# Create item label
-	var item_label = Label.new()
-	item_label.text = "%s\nVal: %d" % [_get_item_display_name(item.type), item.value]
-	item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	item_label.anchor_right = 1.0
-	item_label.anchor_bottom = 1.0
+	item_button.text = "%s\nVal: %d" % [_get_item_display_name(item.type), item.value]
+	item_button.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	item_button.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
-	item_container.add_child(item_label)
-	inventory_grid.add_child(item_container)
-	inventory_items.append(item_container)
+	# Store item data in button
+	item_button.set_meta("item_data", item)
+
+	# Connect button signals for interactivity
+	item_button.pressed.connect(_on_inventory_item_clicked.bind(item))
+	item_button.mouse_entered.connect(_on_inventory_item_hovered.bind(item))
+	item_button.mouse_exited.connect(_on_inventory_item_unhovered.bind(item))
+
+	inventory_grid.add_child(item_button)
+	inventory_items.append(item_button)
 
 func _get_item_color(item_type: String) -> Color:
 	"""Get the display color for an item type"""
@@ -338,10 +414,45 @@ func _create_debris_object(debris_type_data: Dictionary) -> RigidBody2D:
 	var sprite = Sprite2D.new()
 	sprite.name = "DebrisSprite"
 
-	# Create a simple colored rectangle texture
+	# Create a more sophisticated debris texture
+	var size = 32
 	var texture = ImageTexture.new()
-	var image = Image.create(32, 32, false, Image.FORMAT_RGBA8)
-	image.fill(debris_type_data.color)
+	var image = Image.create(size, size, false, Image.FORMAT_RGBA8)
+
+	# Base color with some variation
+	var base_color = debris_type_data.color
+	for x in range(size):
+		for y in range(size):
+			var distance_from_center = Vector2(x - size/2, y - size/2).length()
+			if distance_from_center < size/2:
+				var color_variation = randf_range(0.8, 1.2)
+				var pixel_color = base_color * color_variation
+				pixel_color.a = 1.0
+				image.set_pixel(x, y, pixel_color)
+			else:
+				image.set_pixel(x, y, Color.TRANSPARENT)
+
+	# Add some highlights for different debris types
+	match debris_type_data.type:
+		"broken_satellite":
+			# Add some metallic highlights
+			for i in range(5):
+				var x = randi() % size
+				var y = randi() % size
+				image.set_pixel(x, y, Color(0.9, 0.9, 0.9, 1.0))
+		"ai_component":
+			# Add some glowing effects
+			for i in range(8):
+				var x = randi() % size
+				var y = randi() % size
+				image.set_pixel(x, y, Color(0.7, 1.0, 1.0, 1.0))
+		"unknown_artifact":
+			# Add some mysterious sparkles
+			for i in range(10):
+				var x = randi() % size
+				var y = randi() % size
+				image.set_pixel(x, y, Color(1.0, 0.8, 1.0, 1.0))
+
 	texture.set_image(image)
 	sprite.texture = texture
 
@@ -356,9 +467,13 @@ func _create_debris_object(debris_type_data: Dictionary) -> RigidBody2D:
 	debris_object.add_child(collision_shape)
 
 	# Add metadata to the debris object
+	var debris_id = "debris_%s_%d_%d" % [debris_type_data.type, current_debris_count, Time.get_ticks_msec()]
 	debris_object.set_meta("debris_type", debris_type_data.type)
 	debris_object.set_meta("debris_value", debris_type_data.value)
-	debris_object.set_meta("debris_id", "debris_%s_%d" % [debris_type_data.type, current_debris_count])
+	debris_object.set_meta("debris_id", debris_id)
+
+	# Add network sync methods to debris object
+	debris_object.set_script(preload("res://scripts/DebrisObject.gd"))
 
 	# Add slight random rotation and velocity
 	debris_object.rotation = randf() * TAU
@@ -382,9 +497,10 @@ func _on_debris_collected(debris_type: String, value: int) -> void:
 		ai_communicator.trigger_milestone("first_collection")
 
 	# Check for inventory full milestone
-	if player_ship and player_ship.current_inventory.size() >= player_ship.inventory_capacity:
-		if ai_communicator and not ai_communicator.is_milestone_triggered("inventory_full"):
-			ai_communicator.trigger_milestone("inventory_full")
+	if player_ship and ai_communicator:
+		if player_ship.current_inventory.size() >= player_ship.inventory_capacity:
+			if not ai_communicator.is_milestone_triggered("inventory_full"):
+				ai_communicator.trigger_milestone("inventory_full")
 
 	# Sync with backend if available
 	if api_client:
@@ -420,7 +536,13 @@ func _on_npc_hub_exited() -> void:
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
 	if debug_label:
-		debug_label.text = "Children of the Singularity - %s [DEBUG] | Debris: %d/%d" % [zone_name, current_debris_count, max_debris_count]
+		var player_count = 1 + network_players.size() if (is_multiplayer_server or is_multiplayer_client) else 1
+		debug_label.text = "Children of the Singularity - %s [DEBUG] | Players: %d | Debris: %d/%d" % [
+			zone_name,
+			player_count,
+			current_debris_count,
+			max_debris_count
+		]
 
 func _log_message(message: String) -> void:
 	"""Add a message to the game log and display it"""
@@ -440,10 +562,16 @@ func _log_message(message: String) -> void:
 
 ## Display AI message to player
 func show_ai_message(message: String, duration: float = 3.0) -> void:
-	"""Display an AI message to the player"""
+	"""Display an AI message to the player with enhanced styling"""
 	if ai_message_overlay and ai_message_label:
 		ai_message_label.text = message
 		ai_message_overlay.visible = true
+
+		# Add visual effects for milestone messages
+		if "milestone" in message.to_lower() or "upgrade" in message.to_lower() or "first" in message.to_lower():
+			ai_message_overlay.modulate = Color(1.0, 1.0, 0.8, 1.0)  # Slightly yellow tint for important messages
+		else:
+			ai_message_overlay.modulate = Color.WHITE
 
 		# Hide after duration
 		get_tree().create_timer(duration).timeout.connect(func(): ai_message_overlay.visible = false)
@@ -501,29 +629,16 @@ func _setup_upgrade_interface() -> void:
 	if not trading_result or not player_ship or not upgrade_system:
 		return
 
+	# Clear existing upgrade buttons
+	_clear_upgrade_buttons()
+
 	var credits = player_ship.credits
 	var upgrades = player_ship.upgrades
 
-	var interface_text = "UPGRADE STATION\nCredits: %d\n\nAvailable Upgrades:\n" % credits
+	var interface_text = "UPGRADE STATION\nCredits: %d\n\nClick upgrade buttons to purchase:\n" % credits
 
-	# Show available upgrades
-	for upgrade_type in upgrade_system.get_all_upgrades():
-		var upgrade_info = upgrade_system.get_upgrade_info(upgrade_type)
-		var current_level = upgrades.get(upgrade_type, 0)
-		var max_level = upgrade_info.max_level
-		var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
-
-		interface_text += "\n%s (Level %d/%d)" % [upgrade_info.name, current_level, max_level]
-		interface_text += "\n%s" % upgrade_info.description
-
-		if current_level >= max_level:
-			interface_text += "\n[MAX LEVEL]"
-		elif credits >= cost:
-			interface_text += "\n[UPGRADE - %d Credits]" % cost
-		else:
-			interface_text += "\n[INSUFFICIENT CREDITS - %d Required]" % cost
-
-		interface_text += "\n"
+	# Create upgrade buttons
+	_create_upgrade_buttons()
 
 	trading_result.text = interface_text
 
@@ -741,87 +856,10 @@ func _on_api_error(error_message: String) -> void:
 	if sell_all_button:
 		sell_all_button.disabled = false
 
-func _create_upgrade_buttons() -> void:
-	"""Create upgrade buttons dynamically"""
-	if not trading_interface or not upgrade_system:
-		return
 
-	# Remove existing upgrade buttons
-	_clear_upgrade_buttons()
-
-	# Create upgrade buttons for each upgrade type
-	var button_container = VBoxContainer.new()
-	button_container.name = "UpgradeButtons"
-
-	var credits = player_ship.credits if player_ship else 0
-	var upgrades = player_ship.upgrades if player_ship else {}
-
-	for upgrade_type in upgrade_system.get_all_upgrades():
-		var upgrade_info = upgrade_system.get_upgrade_info(upgrade_type)
-		var current_level = upgrades.get(upgrade_type, 0)
-		var max_level = upgrade_info.max_level
-		var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
-
-		var button = Button.new()
-		button.name = "Upgrade_%s" % upgrade_type
-		button.text = "%s - %d Credits" % [upgrade_info.name, cost]
-		button.custom_minimum_size = Vector2(200, 30)
-
-		# Disable button if can't afford or at max level
-		if current_level >= max_level:
-			button.disabled = true
-			button.text = "%s - MAX LEVEL" % upgrade_info.name
-		elif credits < cost:
-			button.disabled = true
-
-		# Connect button signal
-		button.pressed.connect(_on_upgrade_button_pressed.bind(upgrade_type))
-
-		button_container.add_child(button)
-
-	# Add button container to trading interface
-	trading_interface.add_child(button_container)
-
-func _clear_upgrade_buttons() -> void:
-	"""Clear existing upgrade buttons"""
-	var button_container = trading_interface.get_node_or_null("UpgradeButtons")
-	if button_container:
-		button_container.queue_free()
-
-func _on_upgrade_button_pressed(upgrade_type: String) -> void:
-	"""Handle upgrade button press"""
-	if not player_ship or not upgrade_system:
-		return
-
-	_log_message("ZoneMain: Attempting to purchase upgrade: %s" % upgrade_type)
-
-	var current_level = player_ship.upgrades.get(upgrade_type, 0)
-	var available_credits = player_ship.credits
-
-	var result = upgrade_system.purchase_upgrade(upgrade_type, current_level, available_credits)
-
-	if result.success:
-		# Update player ship
-		player_ship.spend_credits(result.cost)
-		player_ship.apply_upgrade(upgrade_type, result.new_level)
-
-		# Show success message
-		show_ai_message("Upgrade purchased: %s Level %d" % [upgrade_type, result.new_level], 3.0)
-
-		# Trigger AI milestone for first upgrade
-		if ai_communicator and not ai_communicator.is_milestone_triggered("first_upgrade"):
-			ai_communicator.trigger_milestone("first_upgrade")
-
-		# Check for zone access milestone
-		if upgrade_type == "zone_access" and result.new_level > 1:
-			if ai_communicator and not ai_communicator.is_milestone_triggered("zone_access"):
-				ai_communicator.trigger_milestone("zone_access")
 
 		# Refresh upgrade interface
 		_setup_upgrade_interface()
-	else:
-		# Show error message
-		show_ai_message("Purchase failed: %s" % result.reason, 3.0)
 
 ## Upgrade System Response Handlers
 func _on_upgrade_purchased(upgrade_type: String, new_level: int, cost: int) -> void:
@@ -858,3 +896,555 @@ func _on_ai_broadcast_ready(message_data: Dictionary) -> void:
 	# Display the broadcast message
 	var content = message_data.get("content", "System message")
 	show_ai_message(content, 5.0)
+
+func get_network_manager() -> NetworkManager:
+	"""Get the network manager instance"""
+	return network_manager
+
+## Interactive Inventory Functions
+func _on_inventory_item_clicked(item: Dictionary) -> void:
+	"""Handle inventory item click"""
+	_log_message("ZoneMain: Inventory item clicked - %s (Value: %d)" % [item.type, item.value])
+
+	# Show detailed item information
+	_show_item_details(item)
+
+func _on_inventory_item_hovered(item: Dictionary) -> void:
+	"""Handle inventory item hover"""
+	_log_message("ZoneMain: Inventory item hovered - %s" % item.type)
+
+	# Show tooltip with item details
+	_show_item_tooltip(item)
+
+func _on_inventory_item_unhovered(item: Dictionary) -> void:
+	"""Handle inventory item unhover"""
+	_log_message("ZoneMain: Inventory item unhovered - %s" % item.type)
+
+	# Hide tooltip
+	_hide_item_tooltip()
+
+func _show_item_details(item: Dictionary) -> void:
+	"""Show detailed item information in AI message overlay"""
+	var item_name = _get_item_display_name(item.type)
+	var item_description = _get_item_description(item.type)
+
+	var details_text = "ITEM DETAILS\n\n"
+	details_text += "Name: %s\n" % item_name
+	details_text += "Type: %s\n" % item.type
+	details_text += "Value: %d Credits\n" % item.value
+	details_text += "Description: %s\n" % item_description
+
+	if "timestamp" in item:
+		var collection_time = Time.get_datetime_dict_from_unix_time(item.timestamp)
+		details_text += "Collected: %02d:%02d:%02d" % [collection_time.hour, collection_time.minute, collection_time.second]
+
+	show_ai_message(details_text, 5.0)
+
+func _show_item_tooltip(item: Dictionary) -> void:
+	"""Show item tooltip"""
+	# For now, update the inventory status label as a simple tooltip
+	if inventory_status:
+		var tooltip_text = "%s - %d Credits\n%s" % [
+			_get_item_display_name(item.type),
+			item.value,
+			_get_item_description(item.type)
+		]
+		inventory_status.text = tooltip_text
+
+func _hide_item_tooltip() -> void:
+	"""Hide item tooltip"""
+	if inventory_status and player_ship:
+		inventory_status.text = "%d/%d Items" % [player_ship.current_inventory.size(), player_ship.inventory_capacity]
+
+func _get_item_description(item_type: String) -> String:
+	"""Get a description for an item type"""
+	match item_type:
+		"scrap_metal":
+			return "Common debris from damaged ships. Basic salvage material."
+		"broken_satellite":
+			return "Damaged communication equipment. Contains valuable components."
+		"bio_waste":
+			return "Organic waste materials. Processed for biological components."
+		"ai_component":
+			return "Advanced AI processing unit. Highly valuable salvage."
+		"unknown_artifact":
+			return "Mysterious object of unknown origin. Extremely valuable."
+		_:
+			return "Unknown debris type. Value uncertain."
+
+## Upgrade Interface Functions
+var upgrade_buttons: Array[Button] = []
+
+func _create_upgrade_buttons() -> void:
+	"""Create interactive upgrade buttons"""
+	if not trading_interface or not upgrade_system:
+		return
+
+	var trading_content = trading_interface.get_node("TradingContent")
+	if not trading_content:
+		return
+
+	var credits = player_ship.credits if player_ship else 0
+	var upgrades = player_ship.upgrades if player_ship else {}
+
+	# Create upgrade buttons for each upgrade type
+	for upgrade_type in upgrade_system.get_all_upgrades():
+		var upgrade_info = upgrade_system.get_upgrade_info(upgrade_type)
+		var current_level = upgrades.get(upgrade_type, 0)
+		var max_level = upgrade_info.max_level
+		var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+
+		var button = Button.new()
+		button.custom_minimum_size = Vector2(300, 80)
+		button.text = _format_upgrade_button_text(upgrade_type, upgrade_info, current_level, max_level, cost)
+
+		# Set button style based on availability
+		if current_level >= max_level:
+			button.disabled = true
+			button.modulate = Color.GRAY
+		elif credits < cost:
+			button.disabled = true
+			button.modulate = Color.RED
+		else:
+			button.modulate = Color.GREEN
+
+		# Connect button signal
+		button.pressed.connect(_on_upgrade_button_pressed.bind(upgrade_type))
+		button.mouse_entered.connect(_on_upgrade_button_hovered.bind(upgrade_type))
+		button.mouse_exited.connect(_on_upgrade_button_unhovered.bind(upgrade_type))
+
+		trading_content.add_child(button)
+		upgrade_buttons.append(button)
+
+func _clear_upgrade_buttons() -> void:
+	"""Clear all upgrade buttons"""
+	for button in upgrade_buttons:
+		if is_instance_valid(button):
+			button.queue_free()
+	upgrade_buttons.clear()
+
+func _format_upgrade_button_text(upgrade_type: String, upgrade_info: Dictionary, current_level: int, max_level: int, cost: int) -> String:
+	"""Format the text for an upgrade button"""
+	var text = "%s (Level %d/%d)\n" % [upgrade_info.name, current_level, max_level]
+	text += "%s\n" % upgrade_info.description
+
+	if current_level >= max_level:
+		text += "[MAX LEVEL]"
+	else:
+		text += "[UPGRADE - %d Credits]" % cost
+
+	return text
+
+func _on_upgrade_button_pressed(upgrade_type: String) -> void:
+	"""Handle upgrade button press"""
+	_log_message("ZoneMain: Upgrade button pressed - %s" % upgrade_type)
+
+	if not player_ship or not upgrade_system:
+		return
+
+	var credits = player_ship.credits
+	var current_level = player_ship.upgrades.get(upgrade_type, 0)
+	var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+
+	if credits >= cost:
+		# Purchase upgrade
+		_purchase_upgrade(upgrade_type)
+	else:
+		# Show insufficient credits message
+		show_ai_message("Insufficient Credits!\nYou need %d credits to purchase this upgrade.\nCurrent credits: %d" % [cost, credits], 3.0)
+
+func _on_upgrade_button_hovered(upgrade_type: String) -> void:
+	"""Handle upgrade button hover"""
+	if not upgrade_system:
+		return
+
+	var upgrade_info = upgrade_system.get_upgrade_info(upgrade_type)
+	var current_level = player_ship.upgrades.get(upgrade_type, 0) if player_ship else 0
+	var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+
+	var tooltip_text = "UPGRADE DETAILS\n\n"
+	tooltip_text += "Name: %s\n" % upgrade_info.name
+	tooltip_text += "Current Level: %d/%d\n" % [current_level, upgrade_info.max_level]
+	tooltip_text += "Cost: %d Credits\n" % cost
+	tooltip_text += "Effect: %s\n" % upgrade_info.description
+
+	# Show detailed effects
+	if "effects" in upgrade_info:
+		tooltip_text += "\nEffects:\n"
+		for effect_name in upgrade_info.effects:
+			var effect_value = upgrade_info.effects[effect_name]
+			tooltip_text += "• %s: +%s\n" % [effect_name, effect_value]
+
+	show_ai_message(tooltip_text, 4.0)
+
+func _on_upgrade_button_unhovered(upgrade_type: String) -> void:
+	"""Handle upgrade button unhover"""
+	# Hide tooltip by clearing AI message
+	if ai_message_overlay:
+		ai_message_overlay.visible = false
+
+func _purchase_upgrade(upgrade_type: String) -> void:
+	"""Purchase an upgrade"""
+	_log_message("ZoneMain: Attempting to purchase upgrade - %s" % upgrade_type)
+
+	if not player_ship or not upgrade_system:
+		return
+
+	var current_level = player_ship.upgrades.get(upgrade_type, 0)
+	var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+
+	if player_ship.credits >= cost:
+		# Deduct credits
+		player_ship.credits -= cost
+
+		# Purchase upgrade through upgrade system
+		if upgrade_system.purchase_upgrade(upgrade_type, player_ship):
+			_log_message("ZoneMain: Successfully purchased upgrade - %s" % upgrade_type)
+
+			# Trigger AI milestone for first upgrade
+			if ai_communicator and not ai_communicator.is_milestone_triggered("first_upgrade"):
+				ai_communicator.trigger_milestone("first_upgrade")
+
+			# Update UI
+			_refresh_upgrade_interface()
+			_update_debug_display()
+
+			# Show success message
+			var upgrade_info = upgrade_system.get_upgrade_info(upgrade_type)
+			show_ai_message("Upgrade Purchased!\n%s upgraded to level %d\nRemaining credits: %d" % [upgrade_info.name, current_level + 1, player_ship.credits], 3.0)
+
+			# Sync with backend
+			if api_client:
+				api_client.sync_player_data(player_ship.player_id, player_ship.credits, player_ship.current_inventory)
+		else:
+			_log_message("ZoneMain: Failed to purchase upgrade - %s" % upgrade_type)
+			show_ai_message("Upgrade Failed!\nUnable to process upgrade request.", 3.0)
+	else:
+		show_ai_message("Insufficient Credits!\nYou need %d credits.\nCurrent credits: %d" % [cost, player_ship.credits], 3.0)
+
+func _refresh_upgrade_interface() -> void:
+	"""Refresh the upgrade interface"""
+	if current_hub_type == "upgrade":
+		_setup_upgrade_interface()
+
+## Network Management Functions
+func _initialize_networking() -> void:
+	"""Initialize networking system"""
+	_log_message("ZoneMain: Initializing networking system")
+
+	# For MVP, try to start as server first
+	if network_manager.start_server():
+		is_multiplayer_server = true
+		_log_message("ZoneMain: Started as multiplayer server")
+
+		# Sync initial zone state
+		_sync_zone_state_to_network()
+	else:
+		_log_message("ZoneMain: Failed to start as server, will connect as client if needed")
+
+func _sync_zone_state_to_network() -> void:
+	"""Sync current zone state to network"""
+	if not is_multiplayer_server:
+		return
+
+	var zone_data = {
+		"zone_id": zone_id,
+		"zone_name": zone_name,
+		"debris_count": current_debris_count,
+		"debris": _get_debris_state(),
+		"timestamp": Time.get_ticks_msec()
+	}
+
+	network_manager.sync_zone_state(zone_data)
+
+func _get_debris_state() -> Dictionary:
+	"""Get current debris state for network sync"""
+	var debris_state = {}
+
+	for debris in debris_container.get_children():
+		if debris.has_method("get_debris_id"):
+			var debris_id = debris.get_debris_id()
+			debris_state[debris_id] = {
+				"type": debris.get_debris_type(),
+				"position": debris.global_position,
+				"value": debris.get_debris_value()
+			}
+
+	return debris_state
+
+func _update_network_player_position() -> void:
+	"""Update local player position to network"""
+	if not network_manager or not network_manager.is_connected:
+		return
+
+	var player_data = {
+		"position": player_ship.global_position,
+		"inventory": player_ship.current_inventory,
+		"credits": player_ship.credits,
+		"timestamp": Time.get_ticks_msec()
+	}
+
+	network_manager.send_player_update(player_data)
+
+func connect_to_multiplayer_server(server_address: String) -> bool:
+	"""Connect to a multiplayer server"""
+	_log_message("ZoneMain: Attempting to connect to server at %s" % server_address)
+
+	if network_manager.connect_to_server(server_address):
+		is_multiplayer_client = true
+		_log_message("ZoneMain: Connection attempt initiated")
+		return true
+	else:
+		_log_message("ZoneMain: Failed to initiate connection")
+		return false
+
+## Network Event Handlers
+func _on_connected_to_server() -> void:
+	"""Handle successful connection to server"""
+	_log_message("ZoneMain: Successfully connected to multiplayer server")
+	is_multiplayer_client = true
+
+	# Trigger AI milestone for zone access
+	if ai_communicator and not ai_communicator.is_milestone_triggered("zone_access"):
+		ai_communicator.trigger_milestone("zone_access")
+
+	# Request to join the current zone
+	network_manager.request_zone_join(zone_id)
+
+	# Start sending position updates
+	_update_network_player_position()
+
+func _on_disconnected_from_server() -> void:
+	"""Handle disconnection from server"""
+	_log_message("ZoneMain: Disconnected from multiplayer server")
+	is_multiplayer_client = false
+
+	# Clean up network players
+	_cleanup_network_players()
+
+func _on_network_player_joined(player_id: int, player_data: Dictionary) -> void:
+	"""Handle new player joining the network"""
+	_log_message("ZoneMain: Network player %d joined" % player_id)
+
+	# Create visual representation for network player
+	_create_network_player_visual(player_id, player_data)
+
+	# Update player count in UI
+	_update_player_count_display()
+
+func _on_network_player_left(player_id: int) -> void:
+	"""Handle player leaving the network"""
+	_log_message("ZoneMain: Network player %d left" % player_id)
+
+	# Remove visual representation
+	_remove_network_player_visual(player_id)
+
+	# Update player count in UI
+	_update_player_count_display()
+
+func _on_network_player_position_updated(player_id: int, position: Vector2) -> void:
+	"""Handle network player position update"""
+	if player_id in network_players:
+		var player_visual = network_players[player_id]
+		if player_visual:
+			player_visual.global_position = position
+
+func _on_network_debris_collected(player_id: int, debris_id: String, debris_type: String) -> void:
+	"""Handle debris collection by network player"""
+	_log_message("ZoneMain: Network player %d collected debris %s (%s)" % [player_id, debris_id, debris_type])
+
+	# Remove debris from local zone
+	_remove_debris_by_id(debris_id)
+
+	# Update debris count
+	current_debris_count = max(0, current_debris_count - 1)
+	_update_debug_display()
+
+func _on_network_server_state_updated(state_data: Dictionary) -> void:
+	"""Handle server state update"""
+	_log_message("ZoneMain: Received server state update")
+
+	# Update local zone state based on server data
+	var debris_data = state_data.get("debris", {})
+	_sync_debris_from_server(debris_data)
+
+## Network Helper Functions
+func _create_network_player_visual(player_id: int, player_data: Dictionary) -> void:
+	"""Create visual representation for network player"""
+	var player_visual = CharacterBody2D.new()
+	player_visual.name = "NetworkPlayer_%d" % player_id
+
+	# Add sprite for network player
+	var sprite = Sprite2D.new()
+	sprite.modulate = Color.BLUE  # Different color for network players
+	player_visual.add_child(sprite)
+
+	# Add collision shape
+	var collision = CollisionShape2D.new()
+	var shape = RectangleShape2D.new()
+	shape.size = Vector2(64, 32)
+	collision.shape = shape
+	player_visual.add_child(collision)
+
+	# Position the network player
+	var position = player_data.get("position", Vector2.ZERO)
+	player_visual.global_position = position
+
+	# Add to scene and track
+	add_child(player_visual)
+	network_players[player_id] = player_visual
+
+	_log_message("ZoneMain: Created visual for network player %d at %s" % [player_id, position])
+
+func _remove_network_player_visual(player_id: int) -> void:
+	"""Remove visual representation for network player"""
+	if player_id in network_players:
+		var player_visual = network_players[player_id]
+		if player_visual:
+			player_visual.queue_free()
+		network_players.erase(player_id)
+		_log_message("ZoneMain: Removed visual for network player %d" % player_id)
+
+func _cleanup_network_players() -> void:
+	"""Clean up all network player visuals"""
+	for player_id in network_players.keys():
+		_remove_network_player_visual(player_id)
+	network_players.clear()
+
+func _remove_debris_by_id(debris_id: String) -> void:
+	"""Remove debris by ID (for network sync)"""
+	for debris in debris_container.get_children():
+		if debris.has_method("get_debris_id") and debris.get_debris_id() == debris_id:
+			debris.queue_free()
+			break
+
+func _sync_debris_from_server(debris_data: Dictionary) -> void:
+	"""Sync debris state from server"""
+	# This is a simplified sync - in a full implementation, you'd want
+	# more sophisticated state reconciliation
+	_log_message("ZoneMain: Syncing debris state from server - %d items" % debris_data.size())
+
+func _update_player_count_display() -> void:
+	"""Update player count display in UI"""
+	var total_players = 1 + network_players.size()  # Local player + network players
+	debug_label.text = "Children of the Singularity - %s [DEBUG] | Players: %d | Debris: %d/%d" % [
+		zone_name,
+		total_players,
+		current_debris_count,
+		max_debris_count
+	]
+
+func _physics_process(delta: float) -> void:
+	"""Physics process - handle network updates"""
+	# Send position updates to network periodically
+	if is_multiplayer_client or is_multiplayer_server:
+		_update_network_player_position()
+
+	# Update UI timer
+	ui_update_timer += delta
+	if ui_update_timer >= ui_update_interval:
+		ui_update_timer = 0.0
+		_update_ui_elements()
+
+		# Update network player count display
+		if is_multiplayer_server or is_multiplayer_client:
+			_update_player_count_display()
+
+func _update_ui_elements() -> void:
+	"""Update all UI elements with current game state"""
+	if not player_ship:
+		return
+
+	# Update credits display
+	if credits_label:
+		credits_label.text = "Credits: %d" % player_ship.credits
+
+	# Update inventory status
+	if inventory_status:
+		var current_size = player_ship.current_inventory.size()
+		var max_size = player_ship.inventory_capacity
+		inventory_status.text = "%d/%d Items" % [current_size, max_size]
+
+		# Color code based on fullness
+		if current_size >= max_size:
+			inventory_status.modulate = Color.RED
+		elif current_size >= max_size * 0.8:
+			inventory_status.modulate = Color.YELLOW
+		else:
+			inventory_status.modulate = Color.WHITE
+
+	# Update debris count
+	if debris_count_label:
+		debris_count_label.text = "Nearby Debris: %d" % current_debris_count
+
+	# Update collection range (with upgrades)
+	if collection_range_label:
+		var range_text = "Collection Range: %.0f" % player_ship.collection_range
+		if player_ship.upgrades.get("collection_efficiency", 0) > 0:
+			range_text += " (+%d)" % (player_ship.upgrades.get("collection_efficiency", 0) * 10)
+		collection_range_label.text = range_text
+
+	# Update inventory display
+	_update_inventory_display(player_ship.current_inventory)
+
+	# Update upgrade status display
+	_update_upgrade_status_display()
+
+	# Update debug display
+	_update_debug_display()
+
+func _update_upgrade_status_display() -> void:
+	"""Update the upgrade status display"""
+	if not upgrade_status_text or not player_ship:
+		return
+
+	var status_text = ""
+	var upgrade_count = 0
+
+	if player_ship.upgrades.size() > 0:
+		for upgrade_type in player_ship.upgrades:
+			var level = player_ship.upgrades[upgrade_type]
+			if level > 0:
+				var upgrade_info = upgrade_system.get_upgrade_info(upgrade_type) if upgrade_system else {}
+				var upgrade_name = upgrade_info.get("name", upgrade_type)
+				status_text += "%s: L%d\n" % [upgrade_name, level]
+				upgrade_count += 1
+
+	if upgrade_count == 0:
+		upgrade_status_text.text = "No upgrades purchased"
+		upgrade_status_text.modulate = Color.GRAY
+	else:
+		upgrade_status_text.text = status_text
+		upgrade_status_text.modulate = Color.WHITE
+
+func _setup_zone_background() -> void:
+	"""Set up the zone background for better visual appeal"""
+	_log_message("ZoneMain: Setting up zone background")
+
+	# Create a space-like background
+	var background = ColorRect.new()
+	background.name = "SpaceBackground"
+	background.color = Color(0.05, 0.05, 0.15, 1.0)  # Dark space blue
+	background.size = Vector2(4000, 4000)
+	background.position = Vector2(-2000, -2000)
+	background.z_index = -100
+
+	# Add some stars
+	var stars_container = Node2D.new()
+	stars_container.name = "StarsContainer"
+	stars_container.z_index = -90
+
+	for i in range(100):
+		var star = ColorRect.new()
+		star.size = Vector2(2, 2)
+		star.color = Color(1.0, 1.0, 1.0, randf_range(0.3, 1.0))
+		star.position = Vector2(
+			randf_range(-2000, 2000),
+			randf_range(-2000, 2000)
+		)
+		stars_container.add_child(star)
+
+	add_child(background)
+	add_child(stars_container)
+
+	_log_message("ZoneMain: Zone background setup complete")
