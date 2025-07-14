@@ -19,6 +19,8 @@ signal interaction_unavailable()
 
 @onready var sprite_2d: Sprite2D = $Sprite2D
 @onready var collision_shape_2d: CollisionShape2D = $CollisionShape2D
+@onready var collection_area: Area2D = $CollectionArea
+@onready var collection_collision: CollisionShape2D = $CollectionArea/CollectionCollision
 
 # Movement properties
 var speed: float = 200.0
@@ -35,13 +37,14 @@ var upgrades: Dictionary = {}
 
 # Interaction state
 var can_collect: bool = true
-var collection_range: float = 50.0
-var nearby_debris: Array[Node2D] = []
-var nearby_npcs: Array[Node2D] = []
+var collection_range: float = 80.0
+var nearby_debris: Array[RigidBody2D] = []
+var collection_cooldown: float = 0.5
 
 func _ready() -> void:
 	_log_message("PlayerShip: Initializing player ship")
 	_setup_collision()
+	_setup_collection_area()
 	_initialize_player_state()
 	_log_message("PlayerShip: Player ship ready for gameplay")
 
@@ -55,6 +58,34 @@ func _setup_collision() -> void:
 		rect_shape.size = Vector2(32, 32)
 		collision_shape_2d.shape = rect_shape
 		_log_message("PlayerShip: Created default collision shape")
+
+func _setup_collection_area() -> void:
+	"""Set up collection area for debris detection"""
+	_log_message("PlayerShip: Setting up collection area")
+
+	# Create collection area if it doesn't exist
+	if not collection_area:
+		collection_area = Area2D.new()
+		collection_area.name = "CollectionArea"
+		collection_area.collision_layer = 0  # Don't collide with anything
+		collection_area.collision_mask = 4   # Detect debris (layer 4)
+		add_child(collection_area)
+
+		# Create collision shape for collection area
+		collection_collision = CollisionShape2D.new()
+		collection_collision.name = "CollectionCollision"
+		var circle_shape = CircleShape2D.new()
+		circle_shape.radius = collection_range
+		collection_collision.shape = circle_shape
+		collection_area.add_child(collection_collision)
+
+		_log_message("PlayerShip: Created collection area")
+
+	# Connect signals
+	if collection_area:
+		collection_area.body_entered.connect(_on_collection_area_body_entered)
+		collection_area.body_exited.connect(_on_collection_area_body_exited)
+		_log_message("PlayerShip: Collection area signals connected")
 
 func _initialize_player_state() -> void:
 	"""Initialize player state and inventory"""
@@ -119,30 +150,77 @@ func _attempt_collection() -> void:
 		_log_message("PlayerShip: Inventory full! Cannot collect more debris")
 		return
 
-	# For now, simulate collecting debris
-	var debris_types = ["scrap_metal", "broken_satellite", "bio_waste", "ai_component"]
-	var collected_type = debris_types[randi() % debris_types.size()]
-	var collected_value = randi_range(10, 50)
+	if nearby_debris.is_empty():
+		_log_message("PlayerShip: No debris in collection range")
+		return
 
-	_collect_debris(collected_type, collected_value)
+	# Find the closest debris
+	var closest_debris = _find_closest_debris()
+	if closest_debris:
+		_collect_debris_object(closest_debris)
 
-func _collect_debris(debris_type: String, value: int) -> void:
-	"""Collect a specific piece of debris"""
+func _find_closest_debris() -> RigidBody2D:
+	"""Find the closest debris object in range"""
+	var closest_debris: RigidBody2D = null
+	var closest_distance = INF
+
+	for debris in nearby_debris:
+		if is_instance_valid(debris):
+			var distance = global_position.distance_to(debris.global_position)
+			if distance < closest_distance:
+				closest_distance = distance
+				closest_debris = debris
+
+	return closest_debris
+
+func _collect_debris_object(debris_object: RigidBody2D) -> void:
+	"""Collect a specific debris object"""
+	if not is_instance_valid(debris_object):
+		return
+
+	# Get debris data from metadata
+	var debris_type = debris_object.get_meta("debris_type", "unknown")
+	var debris_value = debris_object.get_meta("debris_value", 0)
+	var debris_id = debris_object.get_meta("debris_id", "unknown")
+
+	# Create inventory item
 	var debris_item = {
 		"type": debris_type,
-		"value": value,
+		"value": debris_value,
+		"id": debris_id,
 		"timestamp": Time.get_unix_time_from_system()
 	}
 
 	current_inventory.append(debris_item)
-	_log_message("PlayerShip: Collected %s (Value: %d) - Inventory: %d/%d" % [debris_type, value, current_inventory.size(), inventory_capacity])
+	_log_message("PlayerShip: Collected %s (Value: %d) - Inventory: %d/%d" % [debris_type, debris_value, current_inventory.size(), inventory_capacity])
 
-	debris_collected.emit(debris_type, value)
+	# Remove from nearby debris list
+	nearby_debris.erase(debris_object)
+
+	# Emit signal
+	debris_collected.emit(debris_type, debris_value)
+
+	# Remove the debris object from the zone
+	var zone_main = get_parent()
+	if zone_main and zone_main.has_method("remove_debris"):
+		zone_main.remove_debris(debris_object)
 
 	# Brief collection cooldown
 	can_collect = false
-	await get_tree().create_timer(0.5).timeout
+	await get_tree().create_timer(collection_cooldown).timeout
 	can_collect = true
+
+func _on_collection_area_body_entered(body: Node2D) -> void:
+	"""Handle debris entering collection range"""
+	if body.is_in_group("debris") or body.has_meta("debris_type"):
+		nearby_debris.append(body)
+		_log_message("PlayerShip: Debris entered collection range - %s" % body.get_meta("debris_type", "unknown"))
+
+func _on_collection_area_body_exited(body: Node2D) -> void:
+	"""Handle debris exiting collection range"""
+	if body in nearby_debris:
+		nearby_debris.erase(body)
+		_log_message("PlayerShip: Debris exited collection range - %s" % body.get_meta("debris_type", "unknown"))
 
 func _attempt_interaction() -> void:
 	"""Attempt to interact with nearby NPCs or objects"""
@@ -165,7 +243,8 @@ func get_player_info() -> Dictionary:
 		"inventory_capacity": inventory_capacity,
 		"credits": credits,
 		"upgrades": upgrades,
-		"speed": speed
+		"speed": speed,
+		"nearby_debris_count": nearby_debris.size()
 	}
 
 ## Add credits to the player
@@ -205,12 +284,26 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 		"inventory_expansion":
 			inventory_capacity = 10 + (level * 5)
 		"collection_efficiency":
-			collection_range = 50.0 + (level * 25.0)
+			collection_range = 80.0 + (level * 20.0)
+			collection_cooldown = max(0.1, 0.5 - (level * 0.05))
+			# Update collection area size
+			if collection_collision and collection_collision.shape:
+				collection_collision.shape.radius = collection_range
 		"zone_access":
 			# This will be handled by the zone system
 			pass
 
-	_log_message("PlayerShip: Upgrade effects applied - Speed: %.1f, Capacity: %d" % [speed, inventory_capacity])
+	_log_message("PlayerShip: Upgrade effects applied - Speed: %.1f, Capacity: %d, Collection Range: %.1f" % [speed, inventory_capacity, collection_range])
+
+## Get debris in collection range
+func get_debris_in_range() -> Array[RigidBody2D]:
+	"""Get all debris currently in collection range"""
+	return nearby_debris.duplicate()
+
+## Get the closest debris object
+func get_closest_debris() -> RigidBody2D:
+	"""Get the closest debris object in range"""
+	return _find_closest_debris()
 
 ## Teleport player to a specific position
 func teleport_to(new_position: Vector2) -> void:

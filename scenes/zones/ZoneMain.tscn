@@ -1,10 +1,13 @@
-[gd_scene load_steps=4 format=3 uid="uid://b8xvwgqjkm8nh"]
+[gd_scene load_steps=5 format=3 uid="uid://b8xvwgqjkm8nh"]
 
 [ext_resource type="Script" path="res://scripts/ZoneMain.gd" id="1_0k8x5"]
 [ext_resource type="Script" path="res://scripts/PlayerShip.gd" id="2_1h3k2"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
 size = Vector2(64, 32)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 80.0
 
 [node name="ZoneMain" type="Node2D"]
 script = ExtResource("1_0k8x5")
@@ -13,6 +16,8 @@ script = ExtResource("1_0k8x5")
 enabled = true
 
 [node name="PlayerShip" type="CharacterBody2D" parent="."]
+collision_layer = 1
+collision_mask = 1
 script = ExtResource("2_1h3k2")
 
 [node name="Sprite2D" type="Sprite2D" parent="PlayerShip"]
@@ -20,6 +25,13 @@ modulate = Color(0.5, 0.8, 1, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PlayerShip"]
 shape = SubResource("RectangleShape2D_1")
+
+[node name="CollectionArea" type="Area2D" parent="PlayerShip"]
+collision_layer = 0
+collision_mask = 4
+
+[node name="CollectionCollision" type="CollisionShape2D" parent="PlayerShip/CollectionArea"]
+shape = SubResource("CircleShape2D_1")
 
 [node name="DebrisContainer" type="Node2D" parent="."]
 
