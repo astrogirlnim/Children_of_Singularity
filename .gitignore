@@ -11,3 +11,37 @@ __pycache__/
 *.pyd
 *.pyw
 *.pyz
+
+# Godot 4.x
+.godot/
+.godot/**
+*.uid
+*.import
+*.remap
+*.tmp
+
+# Godot auto-generated files
+*.translation
+*.tres.backup
+*.tscn.backup
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+logs/
+*.log
+
+# Build outputs
+export/
+builds/
