@@ -17,9 +17,13 @@ signal npc_hub_entered()
 @onready var camera_2d: Camera2D = $Camera2D
 @onready var player_ship: CharacterBody2D = $PlayerShip
 @onready var debris_container: Node2D = $DebrisContainer
+@onready var npc_hub_container: Node2D = $NPCHubContainer
 @onready var hud: Control = $UILayer/HUD
 @onready var debug_label: Label = $UILayer/HUD/DebugLabel
 @onready var log_label: Label = $UILayer/HUD/LogLabel
+@onready var api_client: APIClient = $APIClient
+@onready var upgrade_system: UpgradeSystem = $UpgradeSystem
+@onready var ai_communicator: AICommunicator = $AICommunicator
 
 # UI Components
 @onready var inventory_panel: Panel = $UILayer/HUD/InventoryPanel
@@ -30,6 +34,13 @@ signal npc_hub_entered()
 @onready var collection_range_label: Label = $UILayer/HUD/StatsPanel/CollectionRangeLabel
 @onready var ai_message_overlay: Panel = $UILayer/HUD/AIMessageOverlay
 @onready var ai_message_label: Label = $UILayer/HUD/AIMessageOverlay/AIMessageLabel
+
+# Trading Interface Components
+@onready var trading_interface: Panel = $UILayer/HUD/TradingInterface
+@onready var trading_title: Label = $UILayer/HUD/TradingInterface/TradingTitle
+@onready var sell_all_button: Button = $UILayer/HUD/TradingInterface/TradingContent/SellAllButton
+@onready var trading_result: Label = $UILayer/HUD/TradingInterface/TradingContent/TradingResult
+@onready var trading_close_button: Button = $UILayer/HUD/TradingInterface/TradingCloseButton
 
 var zone_name: String = "Zone Alpha"
 var zone_id: String = "zone_alpha_01"
@@ -52,17 +63,46 @@ var inventory_items: Array[Control] = []
 var ui_update_timer: float = 0.0
 var ui_update_interval: float = 0.1
 
+# Trading system
+var current_hub_type: String = ""
+var trading_open: bool = false
+
 func _ready() -> void:
 	_log_message("ZoneMain: Initializing zone controller")
 	_initialize_zone()
 	_spawn_initial_debris()
 	_setup_ui_connections()
+	_setup_npc_hubs()
 	_update_debug_display()
 
 	# Connect player signals
 	if player_ship:
 		player_ship.debris_collected.connect(_on_debris_collected)
 		player_ship.position_changed.connect(_on_player_position_changed)
+		player_ship.npc_hub_entered.connect(_on_npc_hub_entered)
+		player_ship.npc_hub_exited.connect(_on_npc_hub_exited)
+
+	# Connect API client signals
+	if api_client:
+		api_client.player_data_loaded.connect(_on_player_data_loaded)
+		api_client.credits_updated.connect(_on_credits_updated)
+		api_client.inventory_updated.connect(_on_inventory_updated)
+		api_client.api_error.connect(_on_api_error)
+
+		# Check backend health on startup
+		api_client.check_health()
+
+	# Connect upgrade system signals
+	if upgrade_system:
+		upgrade_system.upgrade_purchased.connect(_on_upgrade_purchased)
+		upgrade_system.upgrade_purchase_failed.connect(_on_upgrade_purchase_failed)
+		upgrade_system.upgrade_effects_applied.connect(_on_upgrade_effects_applied)
+
+	# Connect AI communicator signals
+	if ai_communicator:
+		ai_communicator.ai_message_received.connect(_on_ai_message_received)
+		ai_communicator.milestone_reached.connect(_on_milestone_reached)
+		ai_communicator.broadcast_ready.connect(_on_ai_broadcast_ready)
 
 	_log_message("ZoneMain: Zone ready for gameplay")
 	zone_ready.emit()
@@ -101,7 +141,36 @@ func _setup_ui_connections() -> void:
 	# Initialize UI state
 	_update_ui()
 
+	# Connect trading interface signals
+	if sell_all_button:
+		sell_all_button.pressed.connect(_on_sell_all_pressed)
+
+	if trading_close_button:
+		trading_close_button.pressed.connect(_on_trading_close_pressed)
+
 	_log_message("ZoneMain: UI connections established")
+
+func _setup_npc_hubs() -> void:
+	"""Set up NPC hub visual components"""
+	_log_message("ZoneMain: Setting up NPC hubs")
+
+	# Find all NPC hubs and set up their visual components
+	for hub in npc_hub_container.get_children():
+		if hub is StaticBody2D:
+			_setup_npc_hub_visuals(hub)
+
+	_log_message("ZoneMain: NPC hubs setup complete")
+
+func _setup_npc_hub_visuals(hub: StaticBody2D) -> void:
+	"""Set up visual components for an NPC hub"""
+	var sprite = hub.get_node("HubSprite")
+	if sprite:
+		# Create a simple colored rectangle texture
+		var texture = ImageTexture.new()
+		var image = Image.create(150, 150, false, Image.FORMAT_RGBA8)
+		image.fill(Color(0.8, 0.6, 0.2, 1.0))
+		texture.set_image(image)
+		sprite.texture = texture
 
 func _update_ui() -> void:
 	"""Update all UI elements with current game state"""
@@ -308,6 +377,26 @@ func _on_debris_collected(debris_type: String, value: int) -> void:
 	debris_collected.emit(debris_type, value)
 	_update_debug_display()
 
+	# Trigger AI milestone for first collection
+	if ai_communicator and not ai_communicator.is_milestone_triggered("first_collection"):
+		ai_communicator.trigger_milestone("first_collection")
+
+	# Check for inventory full milestone
+	if player_ship and player_ship.current_inventory.size() >= player_ship.inventory_capacity:
+		if ai_communicator and not ai_communicator.is_milestone_triggered("inventory_full"):
+			ai_communicator.trigger_milestone("inventory_full")
+
+	# Sync with backend if available
+	if api_client:
+		var item_data = {
+			"item_id": "debris_%s_%d" % [debris_type, Time.get_unix_time_from_system()],
+			"item_type": debris_type,
+			"quantity": 1,
+			"value": value,
+			"timestamp": Time.get_unix_time_from_system()
+		}
+		api_client.add_inventory_item(item_data)
+
 	# Spawn a new debris object to maintain count
 	if current_debris_count < max_debris_count:
 		get_tree().create_timer(randf_range(5.0, 15.0)).timeout.connect(_spawn_debris_object)
@@ -316,6 +405,17 @@ func _on_player_position_changed(new_position: Vector2) -> void:
 	"""Handle player position updates for camera tracking"""
 	if camera_2d:
 		camera_2d.global_position = new_position
+
+func _on_npc_hub_entered(hub_type: String) -> void:
+	"""Handle player entering NPC hub"""
+	_log_message("ZoneMain: Player entered %s hub" % hub_type)
+	current_hub_type = hub_type
+	show_ai_message("Press F to interact with %s" % hub_type.capitalize(), 2.0)
+
+func _on_npc_hub_exited() -> void:
+	"""Handle player exiting NPC hub"""
+	_log_message("ZoneMain: Player exited NPC hub")
+	current_hub_type = ""
 
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
@@ -349,6 +449,145 @@ func show_ai_message(message: String, duration: float = 3.0) -> void:
 		get_tree().create_timer(duration).timeout.connect(func(): ai_message_overlay.visible = false)
 
 		_log_message("ZoneMain: AI message displayed: %s" % message)
+
+## Open trading interface
+func open_trading_interface(hub_type: String) -> void:
+	"""Open the trading interface for a specific hub type"""
+	if not trading_interface:
+		_log_message("ZoneMain: Trading interface not available")
+		return
+
+	_log_message("ZoneMain: Opening %s interface" % hub_type)
+
+	current_hub_type = hub_type
+	trading_open = true
+
+	# Update interface based on hub type
+	if trading_title:
+		match hub_type:
+			"trading":
+				trading_title.text = "TRADING TERMINAL"
+				_setup_trading_interface()
+			"upgrade":
+				trading_title.text = "UPGRADE STATION"
+				_setup_upgrade_interface()
+			_:
+				trading_title.text = "INTERACTION TERMINAL"
+				_setup_trading_interface()
+
+	# Show the interface
+	trading_interface.visible = true
+
+func _setup_trading_interface() -> void:
+	"""Set up the trading interface for selling items"""
+	if not trading_result or not player_ship:
+		return
+
+	var inventory_value = player_ship.get_inventory_value()
+	var inventory_count = player_ship.current_inventory.size()
+
+	if inventory_count > 0:
+		trading_result.text = "You have %d items worth %d credits total.\nClick 'Sell All' to convert to credits." % [inventory_count, inventory_value]
+	else:
+		trading_result.text = "Your inventory is empty.\nCollect debris to trade for credits."
+
+	# Show sell all button
+	if sell_all_button:
+		sell_all_button.visible = true
+		sell_all_button.text = "SELL ALL DEBRIS"
+
+func _setup_upgrade_interface() -> void:
+	"""Set up the upgrade interface for purchasing upgrades"""
+	if not trading_result or not player_ship or not upgrade_system:
+		return
+
+	var credits = player_ship.credits
+	var upgrades = player_ship.upgrades
+
+	var interface_text = "UPGRADE STATION\nCredits: %d\n\nAvailable Upgrades:\n" % credits
+
+	# Show available upgrades
+	for upgrade_type in upgrade_system.get_all_upgrades():
+		var upgrade_info = upgrade_system.get_upgrade_info(upgrade_type)
+		var current_level = upgrades.get(upgrade_type, 0)
+		var max_level = upgrade_info.max_level
+		var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+
+		interface_text += "\n%s (Level %d/%d)" % [upgrade_info.name, current_level, max_level]
+		interface_text += "\n%s" % upgrade_info.description
+
+		if current_level >= max_level:
+			interface_text += "\n[MAX LEVEL]"
+		elif credits >= cost:
+			interface_text += "\n[UPGRADE - %d Credits]" % cost
+		else:
+			interface_text += "\n[INSUFFICIENT CREDITS - %d Required]" % cost
+
+		interface_text += "\n"
+
+	trading_result.text = interface_text
+
+	# Hide sell all button, show upgrade buttons
+	if sell_all_button:
+		sell_all_button.visible = false
+
+	# Create upgrade buttons dynamically
+	_create_upgrade_buttons()
+
+func _on_sell_all_pressed() -> void:
+	"""Handle sell all button press"""
+	if not player_ship or not api_client:
+		return
+
+	_log_message("ZoneMain: Processing sell all transaction")
+
+	# Calculate total value
+	var total_value = player_ship.get_inventory_value()
+	var item_count = player_ship.current_inventory.size()
+
+	if item_count == 0:
+		trading_result.text = "No items to sell!"
+		return
+
+	# Update UI to show processing
+	trading_result.text = "Processing transaction..."
+	sell_all_button.disabled = true
+
+	# Store transaction data for completion
+	var transaction_data = {
+		"total_value": total_value,
+		"item_count": item_count
+	}
+
+	# Send requests to backend
+	api_client.clear_inventory()
+	api_client.update_credits(total_value)
+
+	# Clear local inventory
+	player_ship.clear_inventory()
+	player_ship.add_credits(total_value)
+
+	# Update result text
+	trading_result.text = "Sold %d items for %d credits!\nTotal credits: %d" % [item_count, total_value, player_ship.credits]
+
+	# Show AI message
+	show_ai_message("Transaction completed. %d credits deposited to your account." % total_value, 3.0)
+
+	# Trigger AI milestone for first sale
+	if ai_communicator and not ai_communicator.is_milestone_triggered("first_sale"):
+		ai_communicator.trigger_milestone("first_sale")
+
+	# Re-enable button
+	sell_all_button.disabled = false
+
+	_log_message("ZoneMain: Sold %d items for %d credits" % [item_count, total_value])
+
+func _on_trading_close_pressed() -> void:
+	"""Handle trading interface close button press"""
+	_log_message("ZoneMain: Closing trading interface")
+	trading_interface.visible = false
+	trading_open = false
+	current_hub_type = ""
 
 ## Get debris object by ID
 func get_debris_by_id(debris_id: String) -> RigidBody2D:
@@ -451,3 +690,171 @@ func reset_zone() -> void:
 	clear_all_debris()
 	_spawn_initial_debris()
 	zone_ready.emit()
+
+## API Response Handlers
+func _on_player_data_loaded(player_data: Dictionary) -> void:
+	"""Handle player data loaded from backend"""
+	_log_message("ZoneMain: Player data loaded from backend")
+
+	if player_ship:
+		# Update player ship with backend data
+		if "credits" in player_data:
+			player_ship.credits = player_data.credits
+		if "upgrades" in player_data:
+			player_ship.upgrades = player_data.upgrades
+			# Apply upgrade effects
+			for upgrade_type in player_data.upgrades:
+				player_ship.apply_upgrade(upgrade_type, player_data.upgrades[upgrade_type])
+
+func _on_credits_updated(credits: int) -> void:
+	"""Handle credits updated from backend"""
+	_log_message("ZoneMain: Credits updated from backend: %d" % credits)
+
+	if player_ship:
+		player_ship.credits = credits
+
+func _on_inventory_updated(inventory_data: Array) -> void:
+	"""Handle inventory updated from backend"""
+	_log_message("ZoneMain: Inventory updated from backend")
+
+	if player_ship:
+		# Convert backend inventory format to local format
+		var local_inventory = []
+		for item in inventory_data:
+			local_inventory.append({
+				"type": item.get("item_type", "unknown"),
+				"value": item.get("value", 0),
+				"id": item.get("item_id", "unknown"),
+				"timestamp": item.get("timestamp", Time.get_unix_time_from_system())
+			})
+
+		player_ship.current_inventory = local_inventory
+
+func _on_api_error(error_message: String) -> void:
+	"""Handle API errors"""
+	_log_message("ZoneMain: API error: %s" % error_message)
+
+	# Show error message to player
+	show_ai_message("Network error: %s" % error_message, 5.0)
+
+	# Re-enable trading button if it was disabled
+	if sell_all_button:
+		sell_all_button.disabled = false
+
+func _create_upgrade_buttons() -> void:
+	"""Create upgrade buttons dynamically"""
+	if not trading_interface or not upgrade_system:
+		return
+
+	# Remove existing upgrade buttons
+	_clear_upgrade_buttons()
+
+	# Create upgrade buttons for each upgrade type
+	var button_container = VBoxContainer.new()
+	button_container.name = "UpgradeButtons"
+
+	var credits = player_ship.credits if player_ship else 0
+	var upgrades = player_ship.upgrades if player_ship else {}
+
+	for upgrade_type in upgrade_system.get_all_upgrades():
+		var upgrade_info = upgrade_system.get_upgrade_info(upgrade_type)
+		var current_level = upgrades.get(upgrade_type, 0)
+		var max_level = upgrade_info.max_level
+		var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+
+		var button = Button.new()
+		button.name = "Upgrade_%s" % upgrade_type
+		button.text = "%s - %d Credits" % [upgrade_info.name, cost]
+		button.custom_minimum_size = Vector2(200, 30)
+
+		# Disable button if can't afford or at max level
+		if current_level >= max_level:
+			button.disabled = true
+			button.text = "%s - MAX LEVEL" % upgrade_info.name
+		elif credits < cost:
+			button.disabled = true
+
+		# Connect button signal
+		button.pressed.connect(_on_upgrade_button_pressed.bind(upgrade_type))
+
+		button_container.add_child(button)
+
+	# Add button container to trading interface
+	trading_interface.add_child(button_container)
+
+func _clear_upgrade_buttons() -> void:
+	"""Clear existing upgrade buttons"""
+	var button_container = trading_interface.get_node_or_null("UpgradeButtons")
+	if button_container:
+		button_container.queue_free()
+
+func _on_upgrade_button_pressed(upgrade_type: String) -> void:
+	"""Handle upgrade button press"""
+	if not player_ship or not upgrade_system:
+		return
+
+	_log_message("ZoneMain: Attempting to purchase upgrade: %s" % upgrade_type)
+
+	var current_level = player_ship.upgrades.get(upgrade_type, 0)
+	var available_credits = player_ship.credits
+
+	var result = upgrade_system.purchase_upgrade(upgrade_type, current_level, available_credits)
+
+	if result.success:
+		# Update player ship
+		player_ship.spend_credits(result.cost)
+		player_ship.apply_upgrade(upgrade_type, result.new_level)
+
+		# Show success message
+		show_ai_message("Upgrade purchased: %s Level %d" % [upgrade_type, result.new_level], 3.0)
+
+		# Trigger AI milestone for first upgrade
+		if ai_communicator and not ai_communicator.is_milestone_triggered("first_upgrade"):
+			ai_communicator.trigger_milestone("first_upgrade")
+
+		# Check for zone access milestone
+		if upgrade_type == "zone_access" and result.new_level > 1:
+			if ai_communicator and not ai_communicator.is_milestone_triggered("zone_access"):
+				ai_communicator.trigger_milestone("zone_access")
+
+		# Refresh upgrade interface
+		_setup_upgrade_interface()
+	else:
+		# Show error message
+		show_ai_message("Purchase failed: %s" % result.reason, 3.0)
+
+## Upgrade System Response Handlers
+func _on_upgrade_purchased(upgrade_type: String, new_level: int, cost: int) -> void:
+	"""Handle upgrade purchase completion"""
+	_log_message("ZoneMain: Upgrade purchased - %s Level %d for %d credits" % [upgrade_type, new_level, cost])
+
+func _on_upgrade_purchase_failed(upgrade_type: String, reason: String) -> void:
+	"""Handle upgrade purchase failure"""
+	_log_message("ZoneMain: Upgrade purchase failed - %s: %s" % [upgrade_type, reason])
+
+func _on_upgrade_effects_applied(upgrade_type: String, level: int) -> void:
+	"""Handle upgrade effects being applied"""
+	_log_message("ZoneMain: Upgrade effects applied - %s Level %d" % [upgrade_type, level])
+
+## AI Communication Response Handlers
+func _on_ai_message_received(message_type: String, content: String) -> void:
+	"""Handle AI message received"""
+	_log_message("ZoneMain: AI message received - Type: %s, Content: %s" % [message_type, content])
+
+	# Display AI message to player
+	show_ai_message(content, 4.0)
+
+func _on_milestone_reached(milestone_name: String) -> void:
+	"""Handle milestone reached"""
+	_log_message("ZoneMain: Milestone reached - %s" % milestone_name)
+
+	# Add visual or audio feedback for milestone completion
+	# TODO: Add special effects for milestone completion
+
+func _on_ai_broadcast_ready(message_data: Dictionary) -> void:
+	"""Handle AI broadcast ready"""
+	_log_message("ZoneMain: AI broadcast ready - %s" % message_data)
+
+	# Display the broadcast message
+	var content = message_data.get("content", "System message")
+	show_ai_message(content, 5.0)
