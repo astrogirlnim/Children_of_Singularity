@@ -57,3 +57,121 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 text = "Logs: System initializing..."
 vertical_alignment = 2
+
+[node name="InventoryPanel" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.02
+anchor_top = 0.1
+anchor_right = 0.25
+anchor_bottom = 0.4
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="InventoryTitle" type="Label" parent="UILayer/HUD/InventoryPanel"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.1
+text = "INVENTORY"
+horizontal_alignment = 1
+
+[node name="InventoryGrid" type="GridContainer" parent="UILayer/HUD/InventoryPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.1
+anchor_right = 0.95
+anchor_bottom = 0.85
+columns = 2
+
+[node name="InventoryStatus" type="Label" parent="UILayer/HUD/InventoryPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.85
+anchor_right = 0.95
+anchor_bottom = 1.0
+text = "0/10 Items"
+horizontal_alignment = 1
+
+[node name="StatsPanel" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.02
+anchor_top = 0.45
+anchor_right = 0.25
+anchor_bottom = 0.65
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="StatsTitle" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.2
+text = "PLAYER STATS"
+horizontal_alignment = 1
+
+[node name="CreditsLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.25
+anchor_right = 0.95
+anchor_bottom = 0.45
+text = "Credits: 0"
+
+[node name="DebrisCountLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.45
+anchor_right = 0.95
+anchor_bottom = 0.65
+text = "Nearby Debris: 0"
+
+[node name="CollectionRangeLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.65
+anchor_right = 0.95
+anchor_bottom = 0.85
+text = "Collection Range: 80"
+
+[node name="ControlsPanel" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.75
+anchor_top = 0.1
+anchor_right = 0.98
+anchor_bottom = 0.4
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="ControlsTitle" type="Label" parent="UILayer/HUD/ControlsPanel"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.15
+text = "CONTROLS"
+horizontal_alignment = 1
+
+[node name="ControlsText" type="Label" parent="UILayer/HUD/ControlsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.2
+anchor_right = 0.95
+anchor_bottom = 1.0
+text = "WASD: Move
+E: Collect Debris
+F: Interact
+ESC: Menu"
+vertical_alignment = 1
+
+[node name="AIMessageOverlay" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.25
+anchor_top = 0.75
+anchor_right = 0.75
+anchor_bottom = 0.9
+color = Color(0.05, 0.05, 0.2, 0.9)
+visible = false
+
+[node name="AIMessageLabel" type="Label" parent="UILayer/HUD/AIMessageOverlay"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.1
+anchor_right = 0.95
+anchor_bottom = 0.9
+text = "AI MESSAGE WILL APPEAR HERE"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2

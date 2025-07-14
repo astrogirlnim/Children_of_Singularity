@@ -21,6 +21,16 @@ signal npc_hub_entered()
 @onready var debug_label: Label = $UILayer/HUD/DebugLabel
 @onready var log_label: Label = $UILayer/HUD/LogLabel
 
+# UI Components
+@onready var inventory_panel: Panel = $UILayer/HUD/InventoryPanel
+@onready var inventory_grid: GridContainer = $UILayer/HUD/InventoryPanel/InventoryGrid
+@onready var inventory_status: Label = $UILayer/HUD/InventoryPanel/InventoryStatus
+@onready var credits_label: Label = $UILayer/HUD/StatsPanel/CreditsLabel
+@onready var debris_count_label: Label = $UILayer/HUD/StatsPanel/DebrisCountLabel
+@onready var collection_range_label: Label = $UILayer/HUD/StatsPanel/CollectionRangeLabel
+@onready var ai_message_overlay: Panel = $UILayer/HUD/AIMessageOverlay
+@onready var ai_message_label: Label = $UILayer/HUD/AIMessageOverlay/AIMessageLabel
+
 var zone_name: String = "Zone Alpha"
 var zone_id: String = "zone_alpha_01"
 var max_debris_count: int = 50
@@ -37,10 +47,16 @@ var debris_types: Array[Dictionary] = [
 	{"type": "unknown_artifact", "value": 1000, "spawn_weight": 1, "color": Color.PURPLE}
 ]
 
+# UI Management
+var inventory_items: Array[Control] = []
+var ui_update_timer: float = 0.0
+var ui_update_interval: float = 0.1
+
 func _ready() -> void:
 	_log_message("ZoneMain: Initializing zone controller")
 	_initialize_zone()
 	_spawn_initial_debris()
+	_setup_ui_connections()
 	_update_debug_display()
 
 	# Connect player signals
@@ -50,6 +66,13 @@ func _ready() -> void:
 
 	_log_message("ZoneMain: Zone ready for gameplay")
 	zone_ready.emit()
+
+func _process(delta: float) -> void:
+	"""Update UI periodically"""
+	ui_update_timer += delta
+	if ui_update_timer >= ui_update_interval:
+		_update_ui()
+		ui_update_timer = 0.0
 
 func _initialize_zone() -> void:
 	"""Initialize the zone with basic settings and validate components"""
@@ -67,6 +90,113 @@ func _initialize_zone() -> void:
 		debug_label.text = "Children of the Singularity - %s [DEBUG]" % zone_name
 
 	_log_message("ZoneMain: Zone initialization complete")
+
+func _setup_ui_connections() -> void:
+	"""Set up UI connections and initial state"""
+	_log_message("ZoneMain: Setting up UI connections")
+
+	# Clear any existing inventory items
+	_clear_inventory_display()
+
+	# Initialize UI state
+	_update_ui()
+
+	_log_message("ZoneMain: UI connections established")
+
+func _update_ui() -> void:
+	"""Update all UI elements with current game state"""
+	if not player_ship:
+		return
+
+	var player_info = player_ship.get_player_info()
+
+	# Update inventory display
+	_update_inventory_display(player_info.inventory)
+
+	# Update stats
+	if credits_label:
+		credits_label.text = "Credits: %d" % player_info.credits
+
+	if debris_count_label:
+		debris_count_label.text = "Nearby Debris: %d" % player_info.nearby_debris_count
+
+	if collection_range_label:
+		collection_range_label.text = "Collection Range: %.0f" % player_ship.collection_range
+
+	# Update inventory status
+	if inventory_status:
+		inventory_status.text = "%d/%d Items" % [player_info.inventory.size(), player_info.inventory_capacity]
+
+func _update_inventory_display(inventory: Array[Dictionary]) -> void:
+	"""Update the inventory grid display"""
+	if not inventory_grid:
+		return
+
+	# Clear existing items
+	_clear_inventory_display()
+
+	# Add current inventory items
+	for item in inventory:
+		_add_inventory_item_to_display(item)
+
+func _clear_inventory_display() -> void:
+	"""Clear all items from the inventory display"""
+	if not inventory_grid:
+		return
+
+	for child in inventory_grid.get_children():
+		child.queue_free()
+
+	inventory_items.clear()
+
+func _add_inventory_item_to_display(item: Dictionary) -> void:
+	"""Add an item to the inventory display"""
+	if not inventory_grid:
+		return
+
+	# Create item container
+	var item_container = Panel.new()
+	item_container.custom_minimum_size = Vector2(80, 80)
+
+	# Get item color based on type
+	var item_color = _get_item_color(item.type)
+	item_container.color = item_color
+
+	# Create item label
+	var item_label = Label.new()
+	item_label.text = "%s\nVal: %d" % [_get_item_display_name(item.type), item.value]
+	item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	item_label.anchor_right = 1.0
+	item_label.anchor_bottom = 1.0
+
+	item_container.add_child(item_label)
+	inventory_grid.add_child(item_container)
+	inventory_items.append(item_container)
+
+func _get_item_color(item_type: String) -> Color:
+	"""Get the display color for an item type"""
+	for debris_type in debris_types:
+		if debris_type.type == item_type:
+			return debris_type.color
+	return Color.WHITE
+
+func _get_item_display_name(item_type: String) -> String:
+	"""Get a friendly display name for an item type"""
+	match item_type:
+		"scrap_metal":
+			return "Scrap\nMetal"
+		"broken_satellite":
+			return "Broken\nSatellite"
+		"bio_waste":
+			return "Bio\nWaste"
+		"ai_component":
+			return "AI\nComponent"
+		"unknown_artifact":
+			return "Unknown\nArtifact"
+		_:
+			return "Unknown\nItem"
 
 func _spawn_initial_debris() -> void:
 	"""Spawn initial debris objects in the zone"""
@@ -207,6 +337,18 @@ func _log_message(message: String) -> void:
 	# Update log display
 	if log_label:
 		log_label.text = "Console Log:\n" + "\n".join(game_logs)
+
+## Display AI message to player
+func show_ai_message(message: String, duration: float = 3.0) -> void:
+	"""Display an AI message to the player"""
+	if ai_message_overlay and ai_message_label:
+		ai_message_label.text = message
+		ai_message_overlay.visible = true
+
+		# Hide after duration
+		get_tree().create_timer(duration).timeout.connect(func(): ai_message_overlay.visible = false)
+
+		_log_message("ZoneMain: AI message displayed: %s" % message)
 
 ## Get debris object by ID
 func get_debris_by_id(debris_id: String) -> RigidBody2D:
