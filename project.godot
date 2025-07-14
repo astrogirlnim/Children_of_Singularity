@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Children of the Singularity"
 config/description="A 2D/2.5D multiplayer sci-fi salvage simulation inspired by Moebius, Planetes, and Nausicaä"
-run/main_scene="res://scenes/zones/ZoneMain.tscn"
+run/main_scene="res://scenes/zones/ZoneMain3D.tscn"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.png"
 
@@ -61,6 +61,14 @@ interact={
 ]
 }
 
+[input]
+
+jump={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":32,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+
 [layer_names]
 
 2d_physics/layer_1="player"
@@ -69,6 +77,24 @@ interact={
 2d_physics/layer_4="collectibles"
 2d_physics/layer_5="zone_boundaries"
 
+3d_physics/layer_1="player"
+3d_physics/layer_2="debris"
+3d_physics/layer_3="station"
+3d_physics/layer_4="collectibles"
+3d_physics/layer_5="boundaries"
+
+[physics]
+
+3d/default_gravity=9.8
+3d/default_gravity_vector=Vector3(0, -1, 0)
+
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
+anti_aliasing/quality/msaa_3d=2
+anti_aliasing/quality/fxaa=true
+occlusion_culling/use_occlusion_culling=true
+
+[environment]
+
+default_environment="res://scenes/environment/SpaceEnvironment.tres"
