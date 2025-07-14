@@ -73,9 +73,9 @@ shadow_bias = 0.05
 directional_shadow_mode = 2
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 20, 20)
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 25, 25)
 projection = 1
-size = 50.0
+size = 80.0
 near = 0.1
 far = 200.0
 
