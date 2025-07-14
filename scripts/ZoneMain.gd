@@ -20,11 +20,11 @@ signal npc_hub_entered()
 @onready var npc_hub_container: Node2D = $NPCHubContainer
 
 # Camera zoom settings
-var default_zoom: float = 1.0
-var min_zoom: float = 0.5
-var max_zoom: float = 2.0
+var default_zoom: float = 1.5
+var min_zoom: float = 0.8
+var max_zoom: float = 3.0
 var zoom_speed: float = 2.0
-var current_zoom: float = 1.0
+var current_zoom: float = 1.5
 @onready var hud: Control = $UILayer/HUD
 @onready var debug_label: Label = $UILayer/HUD/DebugLabel
 @onready var log_label: Label = $UILayer/HUD/LogLabel

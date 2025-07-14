@@ -12,9 +12,9 @@ extends Node3D
 @export var enable_smoothing: bool = true
 
 ## Zoom settings
-@export var default_zoom: float = 40.0
-@export var min_zoom: float = 15.0
-@export var max_zoom: float = 80.0
+@export var default_zoom: float = 25.0
+@export var min_zoom: float = 10.0
+@export var max_zoom: float = 60.0
 @export var zoom_speed: float = 20.0
 
 ## Camera shake settings

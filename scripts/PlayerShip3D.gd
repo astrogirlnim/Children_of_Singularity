@@ -77,6 +77,9 @@ func _setup_3d_components() -> void:
 		sprite_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		sprite_3d.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 
+		# Scale up the sprite for better visibility
+		sprite_3d.scale = Vector3(2.0, 2.0, 2.0)
+
 		# Create a sophisticated player ship texture (same as 2D version)
 		var texture = ImageTexture.new()
 		var image = Image.create(64, 32, false, Image.FORMAT_RGBA8)
