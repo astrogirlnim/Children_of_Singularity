@@ -1,0 +1,13 @@
+# Cursor rules
+.cursorrules
+.cursor/**
+.cursor/rules/**
+.cursor/rules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
