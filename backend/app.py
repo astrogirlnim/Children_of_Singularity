@@ -5,7 +5,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Any
 import logging
 from datetime import datetime
 import os
@@ -130,8 +130,8 @@ class ZoneData(BaseModel):
 
 # In-memory storage for fallback when database is unavailable
 players_db: Dict[str, PlayerData] = {}
-inventory_db: Dict[str, List[InventoryItem]] = {}
-zones_db: Dict[str, List[ZoneData]] = {}
+inventory_db: Dict[str, List[dict[str, Any]]] = {}
+zones_db: Dict[str, List[dict[str, Any]]] = {}
 
 
 @app.on_event("startup")
@@ -471,7 +471,7 @@ async def add_inventory_item(player_id: str, item: InventoryItem):
         if player_id not in inventory_db:
             inventory_db[player_id] = []
 
-        inventory_db[player_id].append(item)
+        inventory_db[player_id].append(item.model_dump())
         return {"message": "Item added to inventory (fallback)", "item": item}
 
 
