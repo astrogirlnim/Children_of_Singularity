@@ -71,7 +71,11 @@ var debris_types: Array[Dictionary] = [
 # UI Management
 var inventory_items: Array[Control] = []
 var ui_update_timer: float = 0.0
-var ui_update_interval: float = 0.1
+var ui_update_interval: float = 0.5
+var last_inventory_size: int = 0
+var last_inventory_hash: String = ""
+var network_update_timer: float = 0.0
+var network_update_interval: float = 0.1
 
 # Trading system
 var current_hub_type: String = ""
@@ -306,8 +310,7 @@ func _add_inventory_item_to_display(item: Dictionary) -> void:
 
 	# Create item label
 	item_button.text = "%s\nVal: %d" % [_get_item_display_name(item.type), item.value]
-	item_button.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	item_button.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	item_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	# Store item data in button
 	item_button.set_meta("item_data", item)
@@ -1336,9 +1339,12 @@ func _update_player_count_display() -> void:
 
 func _physics_process(delta: float) -> void:
 	"""Physics process - handle network updates"""
-	# Send position updates to network periodically
+	# Send position updates to network periodically (throttled)
 	if is_multiplayer_client or is_multiplayer_server:
-		_update_network_player_position()
+		network_update_timer += delta
+		if network_update_timer >= network_update_interval:
+			network_update_timer = 0.0
+			_update_network_player_position()
 
 	# Update UI timer
 	ui_update_timer += delta
@@ -1384,8 +1390,14 @@ func _update_ui_elements() -> void:
 			range_text += " (+%d)" % (player_ship.upgrades.get("collection_efficiency", 0) * 10)
 		collection_range_label.text = range_text
 
-	# Update inventory display
-	_update_inventory_display(player_ship.current_inventory)
+	# Update inventory display only if it changed
+	var current_inventory_size = player_ship.current_inventory.size()
+	var current_inventory_hash = str(player_ship.current_inventory.hash())
+	
+	if current_inventory_size != last_inventory_size or current_inventory_hash != last_inventory_hash:
+		_update_inventory_display(player_ship.current_inventory)
+		last_inventory_size = current_inventory_size
+		last_inventory_hash = current_inventory_hash
 
 	# Update upgrade status display
 	_update_upgrade_status_display()

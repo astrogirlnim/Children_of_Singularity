@@ -162,7 +162,11 @@ func _handle_successful_response(response_data: Dictionary) -> void:
 		player_data_loaded.emit(response_data)
 	elif (response_data is Dictionary and "inventory" in response_data) or (response_data is Array):
 		_log_message("APIClient: Inventory data received")
-		var inventory_data: Array = response_data.get("inventory", []) if response_data is Dictionary else response_data
+		var inventory_data
+		if response_data is Dictionary:
+			inventory_data = response_data.get("inventory", [])
+		else:
+			inventory_data = response_data
 		inventory_updated.emit(inventory_data)
 	elif response_data is Dictionary and "credits" in response_data:
 		_log_message("APIClient: Credits updated")
