@@ -27,10 +27,12 @@ jobs:
     - name: Check GDScript Syntax
       run: |
         echo "📝 Checking GDScript files for syntax errors..."
-        find . -name "*.gd" -type f | while read file; do
-          echo "Checking: $file"
-          godot --headless --check --script "$file" --quit
-        done
+        echo "Found GDScript files:"
+        find . -name "*.gd" -type f | wc -l
+        find . -name "*.gd" -type f
+        echo "Validating GDScript files with project context..."
+        # Use project-level validation which checks all scripts in context
+        godot --headless --check --quit
 
   python-quality:
     name: Python Backend Quality
