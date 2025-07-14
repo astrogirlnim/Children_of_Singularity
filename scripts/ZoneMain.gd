@@ -1393,7 +1393,7 @@ func _update_ui_elements() -> void:
 	# Update inventory display only if it changed
 	var current_inventory_size = player_ship.current_inventory.size()
 	var current_inventory_hash = str(player_ship.current_inventory.hash())
-	
+
 	if current_inventory_size != last_inventory_size or current_inventory_hash != last_inventory_hash:
 		_update_inventory_display(player_ship.current_inventory)
 		last_inventory_size = current_inventory_size
