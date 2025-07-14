@@ -38,16 +38,24 @@ python-multipart==0.0.6
 - **Database Tools**: PostgreSQL CLI tools
 - **Asset Pipeline**: Godot's built-in importer
 
+## Security Tools
+- **Secret Scanning**: Gitleaks v8.27.2
+- **Pre-commit Hooks**: Pre-commit framework v4.2.0
+- **Code Quality**: Black, Flake8, various pre-commit hooks
+- **CI/CD Security**: Integrated gitleaks in GitHub Actions
+
 ## Configuration Files
 - `project.godot`: Godot project configuration
 - `backend/requirements.txt`: Python dependencies
 - `data/postgres/schema.sql`: Database schema
 - `.gitignore`: Version control exclusions
+- `.gitleaks.toml`: Gitleaks secret detection configuration
+- `.pre-commit-config.yaml`: Pre-commit hooks configuration
 
 ## Build & Deployment
 - **Development**: Godot editor for client, uvicorn for backend
 - **Production**: Godot export templates, Docker containers (planned)
-- **CI/CD**: GitHub Actions (planned)
+- **CI/CD**: GitHub Actions with comprehensive quality checks including security scanning
 
 ## Key Technical Constraints
 - Cross-platform compatibility (Windows, macOS, Linux)
