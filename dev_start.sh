@@ -33,17 +33,53 @@ kill_port() {
     sleep 2
 }
 
+# Function to verify process is running
+verify_process() {
+    local pid=$1
+    local name=$2
+    if ps -p $pid > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ $name is running (PID: $pid)${NC}"
+        return 0
+    else
+        echo -e "${RED}❌ $name failed to start or crashed${NC}"
+        return 1
+    fi
+}
+
 # Function to cleanup on exit
 cleanup() {
     echo -e "\n${YELLOW}Shutting down development environment...${NC}"
+    
+    # Kill backend process
     if [[ -n $BACKEND_PID ]]; then
         echo -e "${YELLOW}Stopping backend API (PID: $BACKEND_PID)...${NC}"
         kill $BACKEND_PID 2>/dev/null || true
+        # Wait for graceful shutdown
+        sleep 2
+        # Force kill if still running
+        if ps -p $BACKEND_PID > /dev/null 2>&1; then
+            kill -9 $BACKEND_PID 2>/dev/null || true
+        fi
     fi
+    
+    # Kill Godot process
     if [[ -n $GODOT_PID ]]; then
         echo -e "${YELLOW}Stopping Godot game (PID: $GODOT_PID)...${NC}"  
         kill $GODOT_PID 2>/dev/null || true
+        # Wait for graceful shutdown
+        sleep 2
+        # Force kill if still running
+        if ps -p $GODOT_PID > /dev/null 2>&1; then
+            kill -9 $GODOT_PID 2>/dev/null || true
+        fi
     fi
+    
+    # Clean up any remaining processes on port 8000
+    if check_port $BACKEND_PORT; then
+        echo -e "${YELLOW}Cleaning up remaining processes on port $BACKEND_PORT...${NC}"
+        kill_port $BACKEND_PORT
+    fi
+    
     echo -e "${GREEN}Development environment stopped.${NC}"
 }
 
@@ -94,13 +130,26 @@ cd ..
 echo -e "${YELLOW}Waiting for backend to start...${NC}"
 sleep 3
 
-# Test backend health
-if curl -s http://localhost:$BACKEND_PORT/api/v1/health >/dev/null 2>&1; then
-    echo -e "${GREEN}✅ Backend API started successfully on port $BACKEND_PORT${NC}"
-else
-    echo -e "${RED}❌ Backend API failed to start${NC}"
+# Verify backend process is still running
+if ! verify_process $BACKEND_PID "Backend API"; then
+    echo -e "${RED}❌ Backend failed to start properly${NC}"
     exit 1
 fi
+
+# Test backend health
+HEALTH_RETRIES=5
+for i in $(seq 1 $HEALTH_RETRIES); do
+    echo -e "${YELLOW}Testing backend health (attempt $i/$HEALTH_RETRIES)...${NC}"
+    if curl -s http://localhost:$BACKEND_PORT/api/v1/health >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Backend API started successfully on port $BACKEND_PORT${NC}"
+        break
+    elif [ $i -eq $HEALTH_RETRIES ]; then
+        echo -e "${RED}❌ Backend API failed to respond after $HEALTH_RETRIES attempts${NC}"
+        exit 1
+    else
+        sleep 2
+    fi
+done
 
 echo -e "${BLUE}Step 3: Starting Godot game...${NC}"
 
@@ -108,6 +157,15 @@ echo -e "${BLUE}Step 3: Starting Godot game...${NC}"
 echo -e "${YELLOW}Launching Godot game...${NC}"
 godot --run-project . &
 GODOT_PID=$!
+
+# Wait a moment for Godot to start
+sleep 2
+
+# Verify Godot process is still running
+if ! verify_process $GODOT_PID "Godot Game"; then
+    echo -e "${RED}❌ Godot failed to start properly${NC}"
+    exit 1
+fi
 
 echo -e "${GREEN}✅ Development environment fully operational!${NC}"
 echo
@@ -123,5 +181,19 @@ echo -e "  Player: ${YELLOW}curl http://localhost:$BACKEND_PORT/api/v1/players/p
 echo
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
 
-# Wait for processes
-wait 
+# Monitor processes and wait
+while true; do
+    # Check if backend is still running
+    if ! ps -p $BACKEND_PID > /dev/null 2>&1; then
+        echo -e "${RED}❌ Backend process crashed! Exiting...${NC}"
+        exit 1
+    fi
+    
+    # Check if Godot is still running
+    if ! ps -p $GODOT_PID > /dev/null 2>&1; then
+        echo -e "${YELLOW}Godot process ended. Shutting down...${NC}"
+        break
+    fi
+    
+    sleep 5
+done 
