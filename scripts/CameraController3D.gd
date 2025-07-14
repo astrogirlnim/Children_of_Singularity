@@ -12,10 +12,10 @@ extends Node3D
 @export var enable_smoothing: bool = true
 
 ## Zoom settings
-@export var default_zoom: float = 80.0
-@export var min_zoom: float = 20.0
-@export var max_zoom: float = 120.0
-@export var zoom_speed: float = 5.0
+@export var default_zoom: float = 40.0
+@export var min_zoom: float = 15.0
+@export var max_zoom: float = 80.0
+@export var zoom_speed: float = 20.0
 
 ## Camera shake settings
 @export var shake_fade_speed: float = 5.0
@@ -117,10 +117,17 @@ func _update_camera_shake(delta: float) -> void:
 		camera.position = Vector3.ZERO
 
 func _handle_zoom_input(delta: float) -> void:
-	"""Handle zoom input controls - disabled for now"""
-	# TODO: Add zoom_in and zoom_out actions to input map
-	# For now, zoom will be controlled via mouse wheel and API calls
-	pass
+	"""Handle zoom input controls"""
+	var zoom_input = 0.0
+
+	if Input.is_action_pressed("zoom_in"):
+		zoom_input = -1.0
+	elif Input.is_action_pressed("zoom_out"):
+		zoom_input = 1.0
+
+	if zoom_input != 0.0:
+		set_zoom(current_zoom + zoom_input * zoom_speed * delta)
+		_log_message("CameraController3D: Zoom adjusted to %.1f" % current_zoom)
 
 func set_zoom(new_zoom: float) -> void:
 	"""Set camera zoom level"""
