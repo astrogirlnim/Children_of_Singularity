@@ -1,0 +1,337 @@
+[gd_scene load_steps=9 format=3 uid="uid://c8xvwgqjkm8nh"]
+
+[ext_resource type="Script" path="res://scripts/ZoneMain3D.gd" id="1_0k8x5"]
+[ext_resource type="Script" path="res://scripts/APIClient.gd" id="3_api_client"]
+[ext_resource type="Script" path="res://scripts/UpgradeSystem.gd" id="4_upgrade_system"]
+[ext_resource type="Script" path="res://scripts/AICommunicator.gd" id="5_ai_communicator"]
+[ext_resource type="Script" path="res://scripts/NetworkManager.gd" id="6_network_manager"]
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 1
+background_color = Color(0.05, 0.05, 0.1, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.2, 0.2, 0.3, 1)
+ambient_light_energy = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_1"]
+size = Vector3(200, 1, 200)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+albedo_color = Color(0.3, 0.3, 0.4, 1)
+metallic = 0.1
+roughness = 0.6
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(200, 1, 200)
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+size = Vector3(4, 2, 4)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2"]
+albedo_color = Color(0.8, 0.6, 0.2, 1)
+metallic = 0.1
+roughness = 0.7
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2"]
+size = Vector3(4, 2, 4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(5, 3, 5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3"]
+albedo_color = Color(0.2, 0.6, 0.8, 1)
+metallic = 0.1
+roughness = 0.7
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3"]
+size = Vector3(5, 3, 5)
+
+[node name="ZoneMain3D" type="Node3D"]
+script = ExtResource("1_0k8x5")
+
+[node name="APIClient" type="HTTPRequest" parent="."]
+script = ExtResource("3_api_client")
+
+[node name="UpgradeSystem" type="Node" parent="."]
+script = ExtResource("4_upgrade_system")
+
+[node name="AICommunicator" type="Node" parent="."]
+script = ExtResource("5_ai_communicator")
+
+[node name="NetworkManager" type="Node" parent="."]
+script = ExtResource("6_network_manager")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 10, 0)
+light_energy = 0.8
+light_color = Color(0.9, 0.9, 1, 1)
+shadow_enabled = true
+shadow_bias = 0.05
+directional_shadow_mode = 2
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 20, 20)
+projection = 1
+size = 50.0
+near = 0.1
+far = 200.0
+
+[node name="TestGeometry" type="Node3D" parent="."]
+
+[node name="OriginTestCube" type="MeshInstance3D" parent="TestGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+mesh = SubResource("BoxMesh_2")
+surface_material_override/0 = SubResource("StandardMaterial3D_2")
+
+[node name="FloorPlane" type="MeshInstance3D" parent="TestGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+mesh = SubResource("BoxMesh_1")
+surface_material_override/0 = SubResource("StandardMaterial3D_1")
+
+[node name="FloorCollision" type="StaticBody3D" parent="TestGeometry"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TestGeometry/FloorCollision"]
+shape = SubResource("BoxShape3D_1")
+
+[node name="DebrisContainer" type="Node3D" parent="."]
+
+[node name="NPCHubContainer" type="Node3D" parent="."]
+
+[node name="NPCHub1" type="StaticBody3D" parent="NPCHubContainer"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 20)
+collision_layer = 8
+collision_mask = 1
+
+[node name="HubMesh" type="MeshInstance3D" parent="NPCHubContainer/NPCHub1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("BoxMesh_2")
+surface_material_override/0 = SubResource("StandardMaterial3D_2")
+
+[node name="HubCollision" type="CollisionShape3D" parent="NPCHubContainer/NPCHub1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("BoxShape3D_2")
+
+[node name="NPCHub2" type="StaticBody3D" parent="NPCHubContainer"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -20)
+collision_layer = 8
+collision_mask = 1
+
+[node name="HubMesh" type="MeshInstance3D" parent="NPCHubContainer/NPCHub2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+mesh = SubResource("BoxMesh_3")
+surface_material_override/0 = SubResource("StandardMaterial3D_3")
+
+[node name="HubCollision" type="CollisionShape3D" parent="NPCHubContainer/NPCHub2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("BoxShape3D_3")
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="DebugLabel" type="Label" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.1
+text = "Debug: Zone Loading... (3D Mode)"
+horizontal_alignment = 1
+
+[node name="LogLabel" type="Label" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_top = 0.85
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "Logs: 3D System initializing..."
+vertical_alignment = 2
+
+[node name="InventoryPanel" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.02
+anchor_top = 0.1
+anchor_right = 0.25
+anchor_bottom = 0.4
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="InventoryTitle" type="Label" parent="UILayer/HUD/InventoryPanel"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.1
+text = "INVENTORY"
+horizontal_alignment = 1
+
+[node name="InventoryGrid" type="GridContainer" parent="UILayer/HUD/InventoryPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.1
+anchor_right = 0.95
+anchor_bottom = 0.85
+columns = 2
+
+[node name="InventoryStatus" type="Label" parent="UILayer/HUD/InventoryPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.85
+anchor_right = 0.95
+anchor_bottom = 1.0
+text = "0/10 Items"
+horizontal_alignment = 1
+
+[node name="StatsPanel" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.02
+anchor_top = 0.45
+anchor_right = 0.25
+anchor_bottom = 0.65
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="StatsTitle" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.2
+text = "PLAYER STATS"
+horizontal_alignment = 1
+
+[node name="CreditsLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.25
+anchor_right = 0.95
+anchor_bottom = 0.45
+text = "Credits: 0"
+
+[node name="DebrisCountLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.45
+anchor_right = 0.95
+anchor_bottom = 0.65
+text = "Nearby Debris: 0"
+
+[node name="CollectionRangeLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.65
+anchor_right = 0.95
+anchor_bottom = 0.85
+text = "Collection Range: 80"
+
+[node name="UpgradeStatusPanel" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.02
+anchor_top = 0.7
+anchor_right = 0.25
+anchor_bottom = 0.85
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="UpgradeStatusTitle" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.2
+text = "UPGRADES"
+horizontal_alignment = 1
+
+[node name="UpgradeStatusText" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.2
+anchor_right = 0.95
+anchor_bottom = 1.0
+text = "No upgrades purchased"
+vertical_alignment = 1
+
+[node name="ControlsPanel" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.75
+anchor_top = 0.1
+anchor_right = 0.98
+anchor_bottom = 0.4
+color = Color(0.1, 0.1, 0.1, 0.8)
+
+[node name="ControlsTitle" type="Label" parent="UILayer/HUD/ControlsPanel"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.15
+text = "CONTROLS"
+horizontal_alignment = 1
+
+[node name="ControlsText" type="Label" parent="UILayer/HUD/ControlsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.2
+anchor_right = 0.95
+anchor_bottom = 1.0
+text = "WASD: Move
+E: Collect Debris
+F: Interact
+ESC: Menu"
+vertical_alignment = 1
+
+[node name="AIMessageOverlay" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.25
+anchor_top = 0.75
+anchor_right = 0.75
+anchor_bottom = 0.9
+color = Color(0.05, 0.05, 0.2, 0.9)
+visible = false
+
+[node name="AIMessageLabel" type="Label" parent="UILayer/HUD/AIMessageOverlay"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.1
+anchor_right = 0.95
+anchor_bottom = 0.9
+text = "AI MESSAGE WILL APPEAR HERE"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="TradingInterface" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.3
+anchor_top = 0.2
+anchor_right = 0.7
+anchor_bottom = 0.8
+color = Color(0.1, 0.1, 0.1, 0.9)
+visible = false
+
+[node name="TradingTitle" type="Label" parent="UILayer/HUD/TradingInterface"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.1
+text = "TRADING TERMINAL"
+horizontal_alignment = 1
+
+[node name="TradingContent" type="VBoxContainer" parent="UILayer/HUD/TradingInterface"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.1
+anchor_right = 0.95
+anchor_bottom = 0.85
+
+[node name="TradingResult" type="Label" parent="UILayer/HUD/TradingInterface/TradingContent"]
+layout_mode = 2
+text = "Trading information will appear here"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="SellAllButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingContent"]
+layout_mode = 2
+text = "SELL ALL DEBRIS"
+
+[node name="TradingCloseButton" type="Button" parent="UILayer/HUD/TradingInterface"]
+layout_mode = 0
+anchor_left = 0.85
+anchor_top = 0.05
+anchor_right = 0.95
+anchor_bottom = 0.1
+text = "X"

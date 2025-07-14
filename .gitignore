@@ -51,3 +51,4 @@ export/
 builds/
 # Large design files
 documentation/design/banner*.png
+documentation/godot_summarized/repomix-output.md
