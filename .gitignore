@@ -46,3 +46,5 @@ logs/
 # Build outputs
 export/
 builds/
+# Large design files
+documentation/design/banner*.png
