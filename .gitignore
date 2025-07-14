@@ -4,6 +4,9 @@
 .cursor/rules/**
 .cursor/rules/
 
+# Documentation
+documentation/godot-summarized/repomix-output.md
+
 # Python
 __pycache__/
 *.pyc
