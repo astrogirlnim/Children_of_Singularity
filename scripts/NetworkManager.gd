@@ -28,7 +28,6 @@ var max_players: int = 32
 var current_players: Dictionary = {}
 
 func _ready() -> void:
-	super._ready()
 	_log_message("NetworkManager: Initializing networking system")
 	_setup_networking()
 	_log_message("NetworkManager: Networking system ready (stub implementation)")

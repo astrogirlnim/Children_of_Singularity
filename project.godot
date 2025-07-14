@@ -14,7 +14,7 @@ config/name="Children of the Singularity"
 config/description="A 2D/2.5D multiplayer sci-fi salvage simulation inspired by Moebius, Planetes, and Nausicaä"
 run/main_scene="res://scenes/zones/ZoneMain.tscn"
 config/features=PackedStringArray("4.4", "Forward Plus")
-config/icon="res://icon.svg"
+config/icon="res://icon.png"
 
 [debug]
 

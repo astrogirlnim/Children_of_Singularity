@@ -23,7 +23,6 @@ var voice_clips_available: bool = false
 var current_progression_path: String = "rogue"
 
 func _ready() -> void:
-	super._ready()
 	_log_message("AICommunicator: Initializing AI communication system")
 	_setup_milestones()
 	_initialize_ai_messages()

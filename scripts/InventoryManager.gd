@@ -22,7 +22,6 @@ var inventory_capacity: int = 10
 var max_stack_size: int = 99
 
 func _ready() -> void:
-	super._ready()
 	_log_message("InventoryManager: Initializing inventory system")
 	_initialize_inventory()
 	_log_message("InventoryManager: Inventory system ready")

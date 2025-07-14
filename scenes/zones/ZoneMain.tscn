@@ -1,0 +1,47 @@
+[gd_scene load_steps=4 format=3 uid="uid://b8xvwgqjkm8nh"]
+
+[ext_resource type="Script" path="res://scripts/ZoneMain.gd" id="1_0k8x5"]
+[ext_resource type="Script" path="res://scripts/PlayerShip.gd" id="2_1h3k2"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(64, 32)
+
+[node name="ZoneMain" type="Node2D"]
+script = ExtResource("1_0k8x5")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+enabled = true
+
+[node name="PlayerShip" type="CharacterBody2D" parent="."]
+script = ExtResource("2_1h3k2")
+
+[node name="Sprite2D" type="Sprite2D" parent="PlayerShip"]
+modulate = Color(0.5, 0.8, 1, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlayerShip"]
+shape = SubResource("RectangleShape2D_1")
+
+[node name="DebrisContainer" type="Node2D" parent="."]
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="DebugLabel" type="Label" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.1
+text = "Debug: Zone Loading..."
+horizontal_alignment = 1
+
+[node name="LogLabel" type="Label" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_top = 0.85
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "Logs: System initializing..."
+vertical_alignment = 2 
