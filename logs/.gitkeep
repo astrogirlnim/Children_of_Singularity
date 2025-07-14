@@ -1,0 +1,2 @@
+# This file ensures the logs directory exists for runtime log storage
+# The logs/ directory is gitignored but the directory structure is needed 
