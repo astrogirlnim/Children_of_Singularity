@@ -89,12 +89,22 @@ func _setup_interaction_area() -> void:
 
 func _configure_module_appearance() -> void:
 	"""Configure the visual appearance based on module type using detailed 3D model"""
-	_log_message("SpaceStationModule3D: Loading detailed 3D model for module type %s" % ModuleType.keys()[module_type])
+	_log_message("SpaceStationModule3D: Starting appearance configuration for module type %s" % ModuleType.keys()[module_type])
 
 	# Load the detailed space station model from Blender
-	var station_model_scene = preload("res://assets/models/space_station_module.gltf")
+	var station_model_scene = load("res://assets/models/space_station_module.gltf")
+	if not station_model_scene:
+		_log_message("SpaceStationModule3D: ERROR - Failed to load GLTF file!")
+		_create_fallback_appearance()
+		return
+
 	var station_model = station_model_scene.instantiate()
-	_log_message("SpaceStationModule3D: GLTF model instantiated successfully")
+	if not station_model:
+		_log_message("SpaceStationModule3D: ERROR - Failed to instantiate GLTF scene!")
+		_create_fallback_appearance()
+		return
+
+	_log_message("SpaceStationModule3D: GLTF model loaded and instantiated successfully")
 
 	# Remove any old mesh instance if it exists
 	if mesh_instance:
@@ -409,10 +419,77 @@ func _add_status_lights() -> void:
 		light_node.add_child(light_mesh)
 		lights_container.add_child(light_node)
 
+func _create_fallback_appearance() -> void:
+	"""Create fallback appearance using simple geometry if GLTF loading fails"""
+	_log_message("SpaceStationModule3D: Creating fallback appearance for module type %s" % ModuleType.keys()[module_type])
+
+	# Create a simple but attractive fallback using basic geometry
+	if not mesh_instance:
+		mesh_instance = MeshInstance3D.new()
+		mesh_instance.name = "MeshInstance3D"
+		add_child(mesh_instance)
+
+	# Create a cylindrical shape similar to the space station
+	var cylinder_mesh = CylinderMesh.new()
+	var material = StandardMaterial3D.new()
+
+	# Configure based on module type
+	match module_type:
+		ModuleType.HABITAT:
+			cylinder_mesh.height = 8.0 * module_scale.y
+			cylinder_mesh.top_radius = 4.0 * module_scale.x
+			cylinder_mesh.bottom_radius = 4.0 * module_scale.z
+			material.albedo_color = Color(0.7, 0.8, 0.6, 1.0)  # Soft green
+			material.emission_enabled = true
+			material.emission = Color(0.1, 0.2, 0.1)
+
+		ModuleType.INDUSTRIAL:
+			cylinder_mesh.height = 10.0 * module_scale.y
+			cylinder_mesh.top_radius = 6.0 * module_scale.x
+			cylinder_mesh.bottom_radius = 6.0 * module_scale.z
+			material.albedo_color = Color(0.8, 0.6, 0.4, 1.0)  # Industrial brown
+			material.metallic = 0.7
+			material.roughness = 0.3
+
+		ModuleType.TRADING:
+			cylinder_mesh.height = 6.0 * module_scale.y
+			cylinder_mesh.top_radius = 5.0 * module_scale.x
+			cylinder_mesh.bottom_radius = 5.0 * module_scale.z
+			material.albedo_color = Color(0.4, 0.7, 0.8, 1.0)  # Trading blue
+			material.emission_enabled = true
+			material.emission = Color(0.1, 0.1, 0.3)
+
+		_:  # Default for all other types
+			cylinder_mesh.height = 8.0 * module_scale.y
+			cylinder_mesh.top_radius = 4.5 * module_scale.x
+			cylinder_mesh.bottom_radius = 4.5 * module_scale.z
+			material.albedo_color = Color(0.6, 0.6, 0.7, 1.0)  # Neutral gray
+			material.metallic = 0.5
+			material.roughness = 0.4
+
+	mesh_instance.mesh = cylinder_mesh
+	mesh_instance.material_override = material
+
+	# Set up collision to match the cylinder
+	if not collision_shape:
+		collision_shape = CollisionShape3D.new()
+		collision_shape.name = "CollisionShape3D"
+		add_child(collision_shape)
+
+	var cylinder_collision = CylinderShape3D.new()
+	cylinder_collision.height = cylinder_mesh.height
+	cylinder_collision.radius = cylinder_mesh.top_radius
+	collision_shape.shape = cylinder_collision
+
+	_log_message("SpaceStationModule3D: Fallback cylinder appearance created - Height: %.1f, Radius: %.1f" % [cylinder_mesh.height, cylinder_mesh.top_radius])
+
 func _get_module_size() -> Vector3:
 	"""Get the module size from collision shape for consistent sizing"""
 	if collision_shape and collision_shape.shape is BoxShape3D:
 		return (collision_shape.shape as BoxShape3D).size
+	elif collision_shape and collision_shape.shape is CylinderShape3D:
+		var cylinder = collision_shape.shape as CylinderShape3D
+		return Vector3(cylinder.radius * 2, cylinder.height, cylinder.radius * 2)
 	return Vector3(10, 8, 12)  # Default size for detailed station model
 
 func _log_message(message: String) -> void:
