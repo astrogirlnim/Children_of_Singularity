@@ -29,6 +29,9 @@ var initial_position: Vector3
 var float_offset: float = 0.0
 var is_collected: bool = false
 
+## Texture storage for early assignment
+var pending_texture: Texture2D = null
+
 ## Signal for collection
 signal collected(debris_object: DebrisObject3D)
 
@@ -74,15 +77,13 @@ func _setup_3d_sprite() -> void:
 		# Set pixel size for proper scaling
 		sprite_3d.pixel_size = 0.01
 
-		# Set default texture if none provided
-		if not sprite_3d.texture:
-			# Create a temporary colored square texture (32x32)
-			var temp_texture = ImageTexture.new()
-			var temp_image = Image.create(32, 32, false, Image.FORMAT_RGBA8)
-			temp_image.fill(Color.WHITE)  # Will be modulated by debris color
-			temp_texture.set_image(temp_image)
-			sprite_3d.texture = temp_texture
-			_log_message("DebrisObject3D: Temporary texture created for debris visibility")
+		# Apply pending texture if it was set before _ready()
+		if pending_texture:
+			sprite_3d.texture = pending_texture
+			_log_message("DebrisObject3D: Applied pending texture for debris type: %s (size: %s)" % [debris_type, pending_texture.get_size()])
+			pending_texture = null  # Clear the pending texture
+		elif not sprite_3d.texture:
+			_log_message("DebrisObject3D: No texture set, will wait for debris manager to assign one")
 
 func _setup_collection_area() -> void:
 	"""Set up collection area for player interaction"""
@@ -264,9 +265,18 @@ func set_debris_data(type: String, val: int, color: Color) -> void:
 
 func set_debris_texture(texture: Texture2D) -> void:
 	"""Set debris texture"""
+	if not texture:
+		_log_message("DebrisObject3D: Warning - Null texture passed to set_debris_texture for type: %s" % debris_type)
+		return
+
 	if sprite_3d:
+		# Sprite is ready, apply texture immediately
 		sprite_3d.texture = texture
-		_log_message("DebrisObject3D: Texture set for debris type: %s" % debris_type)
+		_log_message("DebrisObject3D: Texture set immediately for debris type: %s (texture size: %s)" % [debris_type, texture.get_size()])
+	else:
+		# Sprite not ready yet, store texture for later application
+		pending_texture = texture
+		_log_message("DebrisObject3D: Texture stored as pending for debris type: %s (texture size: %s)" % [debris_type, texture.get_size()])
 
 func _log_message(message: String) -> void:
 	"""Log message with timestamp"""

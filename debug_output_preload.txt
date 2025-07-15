@@ -1,0 +1,81 @@
+Godot Engine v4.4.1.stable.official.49a5bc7b6 - https://godotengine.org
+TextServer: Added interface "Dummy"
+TextServer: Added interface "ICU / HarfBuzz / Graphite (Built-in)"
+Using "default" pen tablet driver...
+
+TextServer: Primary interface set to: "ICU / HarfBuzz / Graphite (Built-in)".
+CameraServer: Registered camera MacBook Pro Camera with ID 1 and position 0 at index 0
+CORE API HASH: 4052744068
+EDITOR API HASH: 910296392
+Loaded system CA certificates
+Loading resource: res://scenes/zones/ZoneMain3D.tscn
+Loading resource: res://scripts/ZoneMain3D.gd
+Loading resource: res://scenes/objects/Debris3D.tscn
+[1;35mSCRIPT ERROR:[0;95m Parse Error: Preload file "res://assets/sprites/debris/scrap_metal.png" has no resource loaders (unrecognized file extension).
+[0;90m          at: GDScript::reload (res://scripts/ZoneDebrisManager3D.gd:30)[0m
+[1;35mSCRIPT ERROR:[0;95m Parse Error: Preload file "res://assets/sprites/debris/broken_satellite.png" has no resource loaders (unrecognized file extension).
+[0;90m          at: GDScript::reload (res://scripts/ZoneDebrisManager3D.gd:31)[0m
+[1;35mSCRIPT ERROR:[0;95m Parse Error: Preload file "res://assets/sprites/debris/bio_waste.png" has no resource loaders (unrecognized file extension).
+[0;90m          at: GDScript::reload (res://scripts/ZoneDebrisManager3D.gd:32)[0m
+[1;35mSCRIPT ERROR:[0;95m Parse Error: Preload file "res://assets/sprites/debris/ai_component.png" has no resource loaders (unrecognized file extension).
+[0;90m          at: GDScript::reload (res://scripts/ZoneDebrisManager3D.gd:33)[0m
+[1;35mSCRIPT ERROR:[0;95m Parse Error: Preload file "res://assets/sprites/debris/unknown_artifact.png" has no resource loaders (unrecognized file extension).
+[0;90m          at: GDScript::reload (res://scripts/ZoneDebrisManager3D.gd:34)[0m
+[1;35mSCRIPT ERROR:[0;95m Compile Error: Failed to compile depended scripts.
+[0;90m          at: GDScript::reload (res://scripts/ZoneMain3D.gd:0)[0m
+[1;31mERROR:[0;91m Failed to load script "res://scripts/ZoneMain3D.gd" with error "Compilation failed".
+[0;90m   at: load (modules/gdscript/gdscript.cpp:3022)[0m
+Loading resource: res://scenes/player/PlayerShip3D.tscn
+Loading resource: res://scripts/PlayerShip3D.gd
+Loading resource: res://assets/sprites/ships/ship_right_vibrant.png
+Loading resource: res://.godot/imported/ship_right_vibrant.png-d4711e6df88d863b6c940c364b25b75c.s3tc.ctex
+Loading resource: res://assets/sprites/ships/ship_sprite_left_updated.png
+Loading resource: res://.godot/imported/ship_sprite_left_updated.png-251efff8d7fd4270147ecbc254f481fb.s3tc.ctex
+Loading resource: res://scripts/APIClient.gd
+Loading resource: res://scripts/UpgradeSystem.gd
+Loading resource: res://scripts/AICommunicator.gd
+Loading resource: res://scripts/NetworkManager.gd
+Loading resource: res://scripts/CameraController3D.gd
+[2025-07-14T23:48:10] APIClient: Initializing HTTP client
+[2025-07-14T23:48:10] APIClient: HTTP client ready
+[2025-07-14T23:48:10] UpgradeSystem: Initializing upgrade system
+[2025-07-14T23:48:10] UpgradeSystem: Loaded 6 upgrade types
+[2025-07-14T23:48:10] AICommunicator: Initializing AI communication system
+[2025-07-14T23:48:10] AICommunicator: Setting up milestone triggers
+[2025-07-14T23:48:10] AICommunicator: Milestone triggers configured: 5 milestones
+[2025-07-14T23:48:10] AICommunicator: Initializing AI message templates
+[2025-07-14T23:48:10] AICommunicator: AI message templates loaded: 4 messages
+[2025-07-14T23:48:10] AICommunicator: AI communication system ready
+[2025-07-14T23:48:10] NetworkManager: Initializing ENet networking system
+[2025-07-14T23:48:10] NetworkManager: ENet networking system ready
+[2025-07-14T23:48:10] CameraController3D: Setting up 3D camera
+[2025-07-14T23:48:10] CameraController3D: Camera configured with orthogonal projection, size: 25.0
+[2025-07-14T23:48:10] CameraController3D: Camera offset calculated - (0.0, 25.0, 25.0)
+[2025-07-14T23:48:10] CameraController3D: 3D camera controller initialized
+[2025-07-14T23:48:10] PlayerShip3D: Initializing 3D player ship
+[2025-07-14T23:48:10] PlayerShip3D: Setting up 3D components
+[2025-07-14T23:48:10] PlayerShip3D: 3D sprite texture created with billboard mode
+[2025-07-14T23:48:10] PlayerShip3D: Setting up 3D collision detection
+[2025-07-14T23:48:10] PlayerShip3D: Created wide collision box (4x2x4)
+[2025-07-14T23:48:10] PlayerShip3D: Setting up 3D collection area
+[2025-07-14T23:48:10] PlayerShip3D: Collection area signals connected
+[2025-07-14T23:48:10] PlayerShip3D: Setting up 3D interaction area
+[2025-07-14T23:48:10] PlayerShip3D: Interaction area signals connected
+[2025-07-14T23:48:10] PlayerShip3D: Initializing 3D player state
+[2025-07-14T23:48:10] PlayerShip3D: 3D player state initialized - Credits: 0, Capacity: 0/10
+[2025-07-14T23:48:10] PlayerShip3D: 3D player ship ready for gameplay
+[2025-07-14T23:48:10] ZoneMain3D: Initializing 3D zone controller
+[2025-07-14T23:48:10] ZoneMain3D: Setting up 3D zone environment
+[2025-07-14T23:48:10] CameraController3D: Target set to PlayerShip3D
+[2025-07-14T23:48:10] ZoneMain3D: CameraController3D configured to follow player
+[2025-07-14T23:48:10] ZoneMain3D: DirectionalLight3D configured with shadows
+[2025-07-14T23:48:10] ZoneMain3D: Player ship signals connected
+[2025-07-14T23:48:10] ZoneMain3D: Initializing 3D debris manager
+[1;35mSCRIPT ERROR:[0;95m Invalid call. Nonexistent function 'new' in base 'GDScript'.
+[0;90m          at: ZoneMain3D._initialize_debris_manager_3d (res://scripts/ZoneMain3D.gd:87)[0m
+[2025-07-14T23:48:10] ZoneMain3D: 3D zone initialization complete
+[2025-07-14T23:48:10] ZoneMain3D: 3D Zone ready for gameplay
+[2025-07-14T23:48:10] PlayerShip3D: Entered NPC hub in 3D - trading
+[2025-07-14T23:48:10] ZoneMain3D: Player entered NPC hub - trading
+[2025-07-14T23:48:10] PlayerShip3D: Entered NPC hub in 3D - trading
+[2025-07-14T23:48:10] ZoneMain3D: Player entered NPC hub - trading

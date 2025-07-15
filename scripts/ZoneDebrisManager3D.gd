@@ -77,15 +77,19 @@ func _load_debris_textures() -> void:
 		# Try to load texture from file
 		if texture_path != "" and ResourceLoader.exists(texture_path):
 			texture = load(texture_path)
-			_log_message("ZoneDebrisManager3D: Loaded texture for %s from %s" % [type_name, texture_path])
+			if texture:
+				_log_message("ZoneDebrisManager3D: Successfully loaded texture for %s from %s (size: %s)" % [type_name, texture_path, texture.get_size()])
+			else:
+				_log_message("ZoneDebrisManager3D: Failed to load texture for %s from %s, using fallback" % [type_name, texture_path])
+				texture = _create_fallback_texture(fallback_color)
 		else:
 			# Create fallback colored texture
 			texture = _create_fallback_texture(fallback_color)
-			_log_message("ZoneDebrisManager3D: Created fallback texture for %s (color: %s)" % [type_name, fallback_color])
+			_log_message("ZoneDebrisManager3D: Texture file not found for %s at %s, using fallback (color: %s)" % [type_name, texture_path, fallback_color])
 
 		debris_textures[type_name] = texture
 
-	_log_message("ZoneDebrisManager3D: Loaded %d debris textures" % debris_textures.size())
+	_log_message("ZoneDebrisManager3D: Loaded %d debris textures total" % debris_textures.size())
 
 func _create_fallback_texture(color: Color) -> Texture2D:
 	"""Create a fallback colored texture for debris"""
