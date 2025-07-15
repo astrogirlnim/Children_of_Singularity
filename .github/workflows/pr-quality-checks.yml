@@ -24,6 +24,18 @@ jobs:
         echo "🎮 Validating Godot project structure and scripts..."
         echo "Working directory: $(pwd)"
         echo "Project file exists: $(ls -la project.godot)"
+        echo "Project file size: $(wc -c project.godot)"
+        echo "Project file first 10 lines:"
+        head -10 project.godot
+        echo "Project file last 10 lines:"
+        tail -10 project.godot
+        echo "Checking project file validity..."
+        if [ $(wc -c < project.godot) -lt 1000 ]; then
+          echo "❌ Project file appears to be truncated or corrupted (< 1000 bytes)"
+          echo "Full project file contents:"
+          cat project.godot
+          exit 1
+        fi
         godot --headless --check --quit --path .
 
     - name: Check GDScript Syntax
