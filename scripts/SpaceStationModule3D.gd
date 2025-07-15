@@ -88,96 +88,136 @@ func _setup_interaction_area() -> void:
 	_log_message("SpaceStationModule3D: Interaction area configured with radius %.1f" % interaction_radius)
 
 func _configure_module_appearance() -> void:
-	"""Configure the visual appearance based on module type"""
-	if not mesh_instance:
-		mesh_instance = MeshInstance3D.new()
-		mesh_instance.name = "MeshInstance3D"
-		add_child(mesh_instance)
+	"""Configure the visual appearance based on module type using detailed 3D model"""
+	# Load the detailed space station model from Blender
+	var station_model_scene = preload("res://assets/models/space_station_module.gltf")
+	var station_model = station_model_scene.instantiate()
 
+	# Remove any old mesh instance if it exists
+	if mesh_instance:
+		mesh_instance.queue_free()
+
+	# Add the detailed 3D model as our mesh instance
+	add_child(station_model)
+	station_model.name = "DetailedStationModel"
+
+	# Find the mesh instance within the loaded model
+	mesh_instance = station_model.get_node("SpaceStationModule") as MeshInstance3D
+	if not mesh_instance:
+		# Fallback: look for any MeshInstance3D in the loaded model
+		for child in station_model.get_children():
+			if child is MeshInstance3D:
+				mesh_instance = child
+				break
+
+	# Set up collision shape if not exists
 	if not collision_shape:
 		collision_shape = CollisionShape3D.new()
 		collision_shape.name = "CollisionShape3D"
 		add_child(collision_shape)
 
-	# Create mesh and material based on module type
-	var box_mesh = BoxMesh.new()
+	# Create material variations based on module type
 	var material = StandardMaterial3D.new()
+	var model_scale = Vector3.ONE
+	var collision_size = Vector3(10, 8, 12)  # Default size for detailed model
 
 	match module_type:
 		ModuleType.HABITAT:
-			box_mesh.size = Vector3(8, 6, 12) * module_scale
+			model_scale = Vector3(1.0, 1.0, 1.2) * module_scale
 			material.albedo_color = Color(0.7, 0.8, 0.6, 1.0)  # Soft green
 			material.emission_enabled = true
 			material.emission = Color(0.1, 0.2, 0.1)
+			collision_size = Vector3(8, 6, 12) * module_scale
 			hub_type = "general"
 
 		ModuleType.INDUSTRIAL:
-			box_mesh.size = Vector3(12, 8, 10) * module_scale
+			model_scale = Vector3(1.2, 1.0, 1.0) * module_scale
 			material.albedo_color = Color(0.6, 0.6, 0.7, 1.0)  # Industrial gray
 			material.metallic = 0.7
 			material.roughness = 0.3
+			collision_size = Vector3(12, 8, 10) * module_scale
 			hub_type = "industrial"
 
 		ModuleType.DOCKING:
-			box_mesh.size = Vector3(15, 6, 8) * module_scale
+			model_scale = Vector3(1.5, 0.8, 1.0) * module_scale
 			material.albedo_color = Color(0.8, 0.7, 0.3, 1.0)  # Docking yellow
 			material.emission_enabled = true
 			material.emission = Color(0.2, 0.15, 0.05)
+			collision_size = Vector3(15, 6, 8) * module_scale
 			hub_type = "docking"
 
 		ModuleType.TRADING:
-			box_mesh.size = Vector3(10, 8, 10) * module_scale
+			model_scale = Vector3(1.1, 1.1, 1.1) * module_scale
 			material.albedo_color = Color(0.8, 0.6, 0.2, 1.0)  # Trading gold
 			material.emission_enabled = true
 			material.emission = Color(0.2, 0.1, 0.05)
 			material.metallic = 0.3
+			collision_size = Vector3(10, 8, 10) * module_scale
 			hub_type = "trading"
 
 		ModuleType.COMMAND:
-			box_mesh.size = Vector3(12, 10, 12) * module_scale
+			model_scale = Vector3(1.2, 1.3, 1.2) * module_scale
 			material.albedo_color = Color(0.3, 0.5, 0.8, 1.0)  # Command blue
 			material.emission_enabled = true
 			material.emission = Color(0.05, 0.1, 0.2)
+			collision_size = Vector3(12, 10, 12) * module_scale
 			hub_type = "command"
 
 		ModuleType.POWER:
-			box_mesh.size = Vector3(6, 12, 6) * module_scale
+			model_scale = Vector3(0.8, 1.5, 0.8) * module_scale
 			material.albedo_color = Color(0.9, 0.3, 0.2, 1.0)  # Power red
 			material.emission_enabled = true
 			material.emission = Color(0.3, 0.1, 0.1)
+			collision_size = Vector3(6, 12, 6) * module_scale
 			hub_type = "power"
 
 		ModuleType.STORAGE:
-			box_mesh.size = Vector3(14, 8, 16) * module_scale
+			model_scale = Vector3(1.4, 1.0, 1.6) * module_scale
 			material.albedo_color = Color(0.5, 0.5, 0.5, 1.0)  # Storage gray
 			material.metallic = 0.2
 			material.roughness = 0.8
+			collision_size = Vector3(14, 8, 16) * module_scale
 			hub_type = "storage"
 
 		ModuleType.RESEARCH:
-			box_mesh.size = Vector3(10, 8, 14) * module_scale
+			model_scale = Vector3(1.0, 1.0, 1.4) * module_scale
 			material.albedo_color = Color(0.6, 0.3, 0.8, 1.0)  # Research purple
 			material.emission_enabled = true
 			material.emission = Color(0.15, 0.05, 0.2)
+			collision_size = Vector3(10, 8, 14) * module_scale
 			hub_type = "research"
 
-	# Apply mesh and material
-	mesh_instance.mesh = box_mesh
-	mesh_instance.material_override = material
+	# Apply scale and material to the detailed model
+	station_model.scale = model_scale
 
-	# Create matching collision shape
+	# Apply material override to all mesh instances in the model
+	if mesh_instance:
+		mesh_instance.material_override = material
+		_log_message("SpaceStationModule3D: Applied %s material to detailed model" % ModuleType.keys()[module_type])
+
+	# Also apply to any child mesh instances
+	for child in station_model.get_children():
+		if child is MeshInstance3D:
+			child.material_override = material
+
+	# Create matching collision shape for the detailed model
 	var box_shape = BoxShape3D.new()
-	box_shape.size = box_mesh.size
+	box_shape.size = collision_size
 	collision_shape.shape = box_shape
 
-	_log_message("SpaceStationModule3D: Configured %s module with size %s" % [ModuleType.keys()[module_type], box_mesh.size])
+	_log_message("SpaceStationModule3D: Configured detailed %s module with scale %s and collision size %s" % [ModuleType.keys()[module_type], model_scale, collision_size])
 
 func _setup_module_data() -> void:
 	"""Set up module-specific data and functionality"""
+	# Get the collision size from our collision shape for consistent sizing data
+	var module_size = Vector3.ZERO
+	if collision_shape and collision_shape.shape is BoxShape3D:
+		module_size = (collision_shape.shape as BoxShape3D).size
+
 	module_data = {
 		"type": ModuleType.keys()[module_type],
 		"hub_type": hub_type,
-		"size": mesh_instance.mesh.size if mesh_instance and mesh_instance.mesh else Vector3.ZERO,
+		"size": module_size,
 		"can_interact": can_interact,
 		"interaction_radius": interaction_radius,
 		"is_active": is_active,
@@ -249,7 +289,7 @@ func _add_surface_details() -> void:
 		detail.mesh = detail_mesh
 
 		# Position randomly on module surface
-		var module_size = mesh_instance.mesh.size if mesh_instance and mesh_instance.mesh else Vector3(5, 5, 5)
+		var module_size = _get_module_size()
 		detail.position = Vector3(
 			randf_range(-module_size.x/2, module_size.x/2),
 			module_size.y/2 + detail_mesh.size.y/2,
@@ -274,7 +314,7 @@ func _add_connection_points() -> void:
 	connections_container.name = "ConnectionPoints"
 	add_child(connections_container)
 
-	var module_size = mesh_instance.mesh.size if mesh_instance and mesh_instance.mesh else Vector3(5, 5, 5)
+	var module_size = _get_module_size()
 
 	# Add 2-4 connection points on sides
 	for i in range(randi() % 3 + 2):
@@ -314,7 +354,7 @@ func _add_status_lights() -> void:
 	lights_container.name = "StatusLights"
 	add_child(lights_container)
 
-	var module_size = mesh_instance.mesh.size if mesh_instance and mesh_instance.mesh else Vector3(5, 5, 5)
+	var module_size = _get_module_size()
 
 	# Add 1-3 status lights
 	for i in range(randi() % 3 + 1):
@@ -347,6 +387,12 @@ func _add_status_lights() -> void:
 
 		light_node.add_child(light_mesh)
 		lights_container.add_child(light_node)
+
+func _get_module_size() -> Vector3:
+	"""Get the module size from collision shape for consistent sizing"""
+	if collision_shape and collision_shape.shape is BoxShape3D:
+		return (collision_shape.shape as BoxShape3D).size
+	return Vector3(10, 8, 12)  # Default size for detailed station model
 
 func _log_message(message: String) -> void:
 	"""Log a message with timestamp"""
