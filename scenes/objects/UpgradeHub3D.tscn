@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://c3lxvwgqjkm0nh"]
 
 [ext_resource type="Script" path="res://scripts/TradingHub3D.gd" id="1_trading_hub_3d"]
-[ext_resource type="Texture2D" uid="uid://b8kxvwgqjkm8nh" path="res://documentation/design/trading_hub/trading_hub.png" id="2_trading_hub_texture"]
+[ext_resource type="Texture2D" uid="uid://dquhxy01gxi51" path="res://documentation/design/trading_hub/trading_hub.png" id="2_trading_hub_texture"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(14, 10, 14)

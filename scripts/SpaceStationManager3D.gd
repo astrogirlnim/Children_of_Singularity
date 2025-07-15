@@ -40,9 +40,9 @@ enum ModuleType {
 ## Station layouts and configurations (simplified to 1 module per station)
 var station_templates: Array[Dictionary] = [
 	{
-		"name": "Trading Hub",
+		"name": "Space Station Alpha",
 		"modules": [
-			{"type": ModuleType.TRADING, "position": Vector3(0, 0, 0)}
+			{"type": ModuleType.COMMAND, "position": Vector3(0, 0, 0)}
 		]
 	},
 	{
@@ -96,7 +96,7 @@ func _calculate_station_positions() -> void:
 
 			position = Vector3(
 				player_spawn_position.x + cos(angle) * distance,
-				player_spawn_position.y + randf_range(1, 3),  # Just slightly above floor level (3-5 units total)
+				player_spawn_position.y + randf_range(10, 15),  # Much higher to float above floor (10-14 units total)
 				player_spawn_position.z + sin(angle) * distance
 			)
 

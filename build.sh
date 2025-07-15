@@ -135,7 +135,7 @@ build_dist() {
 
     # Export for macOS (current platform)
     print_status "INFO" "Building for macOS..."
-    if godot --headless --export "macOS" builds/macos/Children_of_Singularity.app 2>/dev/null; then
+    if godot --headless --export-release "macOS" builds/macos/Children_of_Singularity.app 2>/dev/null; then
         print_status "SUCCESS" "macOS build complete: builds/macos/Children_of_Singularity.app"
     else
         print_status "ERROR" "macOS build failed"
@@ -143,7 +143,7 @@ build_dist() {
 
     # Export for Windows
     print_status "INFO" "Building for Windows..."
-    if godot --headless --export "Windows Desktop" builds/windows/Children_of_Singularity.exe 2>/dev/null; then
+    if godot --headless --export-release "Windows Desktop" builds/windows/Children_of_Singularity.exe 2>/dev/null; then
         print_status "SUCCESS" "Windows build complete: builds/windows/Children_of_Singularity.exe"
     else
         print_status "WARNING" "Windows build failed (may need Windows export templates)"
@@ -151,7 +151,7 @@ build_dist() {
 
     # Export for Linux
     print_status "INFO" "Building for Linux..."
-    if godot --headless --export "Linux/X11" builds/linux/Children_of_Singularity.x86_64 2>/dev/null; then
+    if godot --headless --export-release "Linux/X11" builds/linux/Children_of_Singularity.x86_64 2>/dev/null; then
         print_status "SUCCESS" "Linux build complete: builds/linux/Children_of_Singularity.x86_64"
     else
         print_status "WARNING" "Linux build failed (may need Linux export templates)"
