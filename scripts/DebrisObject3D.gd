@@ -184,15 +184,16 @@ func _update_rotation_animation(delta: float) -> void:
 
 func _on_collection_area_entered(body: Node3D) -> void:
 	"""Handle player entering collection area"""
-	_log_message("DebrisObject3D: Player entered collection area")
-
+	# Only log once when player enters, avoid spam
 	if body.has_method("collect_debris") and not is_collected:
-		_log_message("DebrisObject3D: Notifying player of collectible debris")
+		_log_message("DebrisObject3D: Player entered collection area")
 		# Player will handle collection through their collection area
 
 func _on_collection_area_exited(body: Node3D) -> void:
 	"""Handle player exiting collection area"""
-	_log_message("DebrisObject3D: Player exited collection area")
+	# Only log for actual player, avoid spam
+	if body.has_method("collect_debris"):
+		_log_message("DebrisObject3D: Player exited collection area")
 
 func collect() -> void:
 	"""Handle debris collection"""

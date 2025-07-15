@@ -242,13 +242,13 @@ func _setup_module_data() -> void:
 func _on_interaction_area_entered(body: Node3D) -> void:
 	"""Handle player entering module interaction area"""
 	if body.has_method("collect_debris"):  # Check if it's the player
-		_log_message("SpaceStationModule3D: Player entered %s module - %s" % [ModuleType.keys()[module_type], module_id])
+		# Reduced logging to prevent spam
 		module_entered.emit(hub_type, self)
 
 func _on_interaction_area_exited(body: Node3D) -> void:
 	"""Handle player exiting module interaction area"""
 	if body.has_method("collect_debris"):  # Check if it's the player
-		_log_message("SpaceStationModule3D: Player exited %s module - %s" % [ModuleType.keys()[module_type], module_id])
+		# Reduced logging to prevent spam
 		module_exited.emit(hub_type, self)
 
 func get_hub_type() -> String:
