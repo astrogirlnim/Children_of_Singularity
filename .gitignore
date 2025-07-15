@@ -5,7 +5,9 @@
 .cursor/rules/
 
 # Documentation
-documentation/godot-summarized/repomix-output.md
+documentation/godot_summarized/repomix-output.md
+# Documentation assets are stored in S3, not tracked in git
+documentation/design/
 
 # Python
 __pycache__/
@@ -55,6 +57,4 @@ releases/
 *.dmg
 *.exe
 *.app
-# Large design files
-documentation/design/banner*.png
-documentation/godot_summarized/repomix-output.md
+# Large design files (legacy - now covered by documentation/design/ above)
