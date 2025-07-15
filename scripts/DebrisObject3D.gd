@@ -53,7 +53,7 @@ func _setup_3d_physics() -> void:
 	# Configure physics for space environment
 	gravity_scale = 0.0  # No gravity in space
 	linear_damp = linear_damping
-	angular_damp = angular_damping
+	angular_damp = 0.1  # Reduce angular damping for more visible rotation
 
 	# Set collision layers (debris on layer 4)
 	collision_layer = 4
@@ -108,12 +108,12 @@ func _setup_initial_animation() -> void:
 	"""Set up initial animation state"""
 	_log_message("DebrisObject3D: Setting up initial animation")
 
-	# Random initial spin for variety
+	# Random initial spin for variety - make it more visible
 	angular_velocity = Vector3(
-		randf_range(-1, 1),
-		randf_range(-1, 1),
-		randf_range(-1, 1)
-	) * rotation_speed
+		randf_range(-2, 2),
+		randf_range(-2, 2),
+		randf_range(-2, 2)
+	) * rotation_speed * 0.1  # Scale down for smooth rotation
 
 	# Random float offset for variation
 	float_offset = randf() * TAU
@@ -144,9 +144,19 @@ func _update_floating_animation(delta: float) -> void:
 
 func _update_rotation_animation(delta: float) -> void:
 	"""Update rotation animation"""
-	# Rotation is handled by initial angular_velocity
-	# Add subtle rotation variation if needed
-	pass
+	if not is_inside_tree() or is_collected:
+		return
+
+	# Maintain continuous rotation despite physics damping
+	# Apply rotational velocity to keep debris spinning
+	var rotation_force = Vector3(
+		sin(Time.get_unix_time_from_system() * 0.7) * rotation_speed,
+		cos(Time.get_unix_time_from_system() * 0.5) * rotation_speed,
+		sin(Time.get_unix_time_from_system() * 0.3) * rotation_speed
+	) * 0.1
+
+	# Apply the rotation force to maintain spin
+	apply_torque(rotation_force)
 
 func _on_collection_area_entered(body: Node3D) -> void:
 	"""Handle player entering collection area"""
