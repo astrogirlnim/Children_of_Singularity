@@ -30,6 +30,10 @@ signal npc_hub_exited()
 @onready var interaction_area: Area2D = $InteractionArea
 @onready var interaction_collision: CollisionShape2D = $InteractionArea/InteractionCollision
 
+## Sprite resources for directional movement
+var sprite_left: Texture2D = preload("res://assets/sprites/ships/ship_sprite_left.png")
+var sprite_normal: Texture2D  # Will be set during setup
+
 # Movement properties
 var speed: float = 200.0
 var acceleration: float = 800.0
@@ -116,6 +120,7 @@ func _setup_player_visuals() -> void:
 
 		texture.set_image(image)
 		sprite_2d.texture = texture
+		sprite_normal = texture  # Store the normal texture for sprite switching
 
 		_log_message("PlayerShip: Enhanced player ship texture created")
 
@@ -206,16 +211,21 @@ func _physics_process(delta: float) -> void:
 func _handle_movement(delta: float) -> void:
 	"""Handle player movement input and physics"""
 	var input_vector = Vector2.ZERO
+	var is_moving_left = false
 
 	# Get input from all movement actions
 	if Input.is_action_pressed("move_right"):
 		input_vector.x += 1
 	if Input.is_action_pressed("move_left"):
 		input_vector.x -= 1
+		is_moving_left = true
 	if Input.is_action_pressed("move_down"):
 		input_vector.y += 1
 	if Input.is_action_pressed("move_up"):
 		input_vector.y -= 1
+
+	# Update sprite based on movement direction
+	_update_sprite_direction(is_moving_left)
 
 	# Normalize diagonal movement
 	if input_vector != Vector2.ZERO:
@@ -511,3 +521,17 @@ func teleport_to(new_position: Vector2) -> void:
 	global_position = new_position
 	_log_message("PlayerShip: Teleported to %s" % new_position)
 	position_changed.emit(global_position)
+
+func _update_sprite_direction(is_moving_left: bool) -> void:
+	"""Update sprite texture based on movement direction"""
+	if not sprite_2d:
+		return
+
+	if is_moving_left:
+		if sprite_2d.texture != sprite_left:
+			sprite_2d.texture = sprite_left
+			_log_message("PlayerShip: Switched to left-facing sprite")
+	else:
+		if sprite_2d.texture != sprite_normal:
+			sprite_2d.texture = sprite_normal
+			_log_message("PlayerShip: Switched to normal sprite")

@@ -31,6 +31,10 @@ signal npc_hub_exited()
 @onready var interaction_area: Area3D = $InteractionArea
 @onready var interaction_collision: CollisionShape3D = $InteractionArea/InteractionCollision
 
+## Sprite resources for directional movement
+var sprite_normal: Texture2D = preload("res://assets/sprites/ships/player_ship_original.png")
+var sprite_left: Texture2D = preload("res://assets/sprites/ships/ship_sprite_left.png")
+
 ## Movement state
 var input_vector: Vector2 = Vector2.ZERO
 var movement_velocity: Vector3 = Vector3.ZERO
@@ -183,16 +187,21 @@ func _physics_process(delta: float) -> void:
 func _handle_input() -> void:
 	"""Handle input for 3D movement"""
 	input_vector = Vector2.ZERO
+	var is_moving_left = false
 
 	# Get input from all movement actions
 	if Input.is_action_pressed("move_right"):
 		input_vector.x += 1
 	if Input.is_action_pressed("move_left"):
 		input_vector.x -= 1
+		is_moving_left = true
 	if Input.is_action_pressed("move_down"):
 		input_vector.y += 1  # This will map to Z in 3D
 	if Input.is_action_pressed("move_up"):
 		input_vector.y -= 1  # This will map to Z in 3D
+
+	# Update sprite based on movement direction
+	_update_sprite_direction(is_moving_left)
 
 	# Normalize diagonal movement
 	if input_vector.length() > 1.0:
@@ -523,3 +532,17 @@ func teleport_to(new_position: Vector3) -> void:
 	global_position = new_position
 	_log_message("PlayerShip3D: Teleported to %s" % new_position)
 	position_changed.emit(global_position)
+
+func _update_sprite_direction(is_moving_left: bool) -> void:
+	"""Update sprite texture based on movement direction"""
+	if not sprite_3d:
+		return
+
+	if is_moving_left:
+		if sprite_3d.texture != sprite_left:
+			sprite_3d.texture = sprite_left
+			_log_message("PlayerShip3D: Switched to left-facing sprite")
+	else:
+		if sprite_3d.texture != sprite_normal:
+			sprite_3d.texture = sprite_normal
+			_log_message("PlayerShip3D: Switched to normal sprite")
