@@ -433,6 +433,32 @@ upload_dev_assets() {
     fi
 }
 
+# Function to download documentation assets from S3
+download_documentation_assets() {
+    if [ "$USE_S3_ASSETS" = "true" ]; then
+        print_status "INFO" "Downloading documentation assets from S3..."
+
+        if command -v "./scripts/s3-manager.sh" &> /dev/null; then
+            # Download documentation assets if they don't exist locally
+            if [ ! -d "documentation/design" ] || [ -z "$(ls -A documentation/design 2>/dev/null)" ]; then
+                ./scripts/s3-manager.sh download-assets documentation/ documentation/design/ 2>/dev/null || {
+                    print_status "WARNING" "Failed to download documentation assets from S3"
+                    print_status "INFO" "Documentation assets are stored in S3, not locally"
+                    return 1
+                }
+                print_status "SUCCESS" "Documentation assets downloaded from S3"
+            else
+                print_status "INFO" "Documentation assets already exist locally"
+            fi
+        else
+            print_status "WARNING" "S3 manager not found, cannot download documentation assets"
+            return 1
+        fi
+    else
+        print_status "INFO" "S3 assets disabled, documentation assets should be available locally"
+    fi
+}
+
 # Function to clean old releases (keep only latest N releases)
 clean_old_releases() {
     local keep_count=${1:-1}
@@ -485,6 +511,21 @@ case "${1:-help}" in
         fi
         download_assets_from_s3
         ;;
+    "upload-docs")
+        if command -v "./scripts/s3-manager.sh" &> /dev/null; then
+            ./scripts/s3-manager.sh upload-assets documentation/design/ documentation/
+            print_status "SUCCESS" "Documentation assets uploaded to S3"
+        else
+            print_status "ERROR" "S3 manager not found"
+            exit 1
+        fi
+        ;;
+    "download-docs")
+        if [ "$USE_S3_ASSETS" != "true" ]; then
+            export USE_S3_ASSETS=true
+        fi
+        download_documentation_assets
+        ;;
     "s3-status")
         if command -v "./scripts/s3-manager.sh" &> /dev/null; then
             ./scripts/s3-manager.sh storage-info
@@ -512,6 +553,8 @@ case "${1:-help}" in
         echo "  clean-releases    - Clean old releases (usage: clean-releases [keep_count])"
         echo "  upload-assets     - Upload development assets to S3"
         echo "  download-assets   - Download assets from S3"
+        echo "  upload-docs       - Upload documentation assets to S3"
+        echo "  download-docs     - Download documentation assets from S3"
         echo "  s3-status         - Show S3 storage information"
         echo "  status            - Show current build status"
         echo "  clean             - Remove build and release directories"
@@ -529,6 +572,8 @@ case "${1:-help}" in
         echo "  $0 dist                         # Build for distribution"
         echo "  USE_S3_STORAGE=true $0 release  # Build and upload to S3"
         echo "  $0 upload-assets                # Upload assets to S3"
+        echo "  $0 upload-docs                  # Upload documentation assets to S3"
+        echo "  $0 download-docs                # Download documentation assets from S3"
         echo "  $0 s3-status                    # Check S3 storage usage"
         ;;
 esac
