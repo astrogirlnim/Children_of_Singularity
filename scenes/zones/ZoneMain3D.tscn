@@ -1,10 +1,12 @@
 [gd_scene load_steps=9 format=3 uid="uid://c8xvwgqjkm8nh"]
 
 [ext_resource type="Script" path="res://scripts/ZoneMain3D.gd" id="1_0k8x5"]
+[ext_resource type="PackedScene" uid="uid://bq2j5gk8m7xdh" path="res://scenes/player/PlayerShip3D.tscn" id="2_player_ship"]
 [ext_resource type="Script" path="res://scripts/APIClient.gd" id="3_api_client"]
 [ext_resource type="Script" path="res://scripts/UpgradeSystem.gd" id="4_upgrade_system"]
 [ext_resource type="Script" path="res://scripts/AICommunicator.gd" id="5_ai_communicator"]
 [ext_resource type="Script" path="res://scripts/NetworkManager.gd" id="6_network_manager"]
+[ext_resource type="Script" path="res://scripts/CameraController3D.gd" id="7_camera_controller"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -72,19 +74,20 @@ shadow_enabled = true
 shadow_bias = 0.05
 directional_shadow_mode = 2
 
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 25, 25)
+[node name="CameraController3D" type="Node3D" parent="."]
+script = ExtResource("7_camera_controller")
+
+[node name="Camera3D" type="Camera3D" parent="CameraController3D"]
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 0, 0)
 projection = 1
 size = 80.0
 near = 0.1
 far = 200.0
 
-[node name="TestGeometry" type="Node3D" parent="."]
-
-[node name="OriginTestCube" type="MeshInstance3D" parent="TestGeometry"]
+[node name="PlayerShip3D" parent="." instance=ExtResource("2_player_ship")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
-mesh = SubResource("BoxMesh_2")
-surface_material_override/0 = SubResource("StandardMaterial3D_2")
+
+[node name="TestGeometry" type="Node3D" parent="."]
 
 [node name="FloorPlane" type="MeshInstance3D" parent="TestGeometry"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
@@ -271,6 +274,8 @@ anchor_bottom = 1.0
 text = "WASD: Move
 E: Collect Debris
 F: Interact
+Q/Mouse Wheel: Zoom In
+R/Mouse Wheel: Zoom Out
 ESC: Menu"
 vertical_alignment = 1
 

@@ -15,11 +15,13 @@ signal debris_collected(debris_type: String, value: int)
 signal npc_hub_entered()
 
 # Core system references
-@onready var camera_3d: Camera3D = $Camera3D
+@onready var camera_controller: Node3D = $CameraController3D
+@onready var camera_3d: Camera3D = $CameraController3D/Camera3D
 @onready var directional_light: DirectionalLight3D = $DirectionalLight3D
 @onready var world_environment: WorldEnvironment = $WorldEnvironment
 @onready var debris_container: Node3D = $DebrisContainer
 @onready var npc_hub_container: Node3D = $NPCHubContainer
+@onready var player_ship: CharacterBody3D = $PlayerShip3D
 
 # System nodes (shared with 2D version)
 @onready var hud: Control = $UILayer/HUD
@@ -47,19 +49,23 @@ func _initialize_3d_zone() -> void:
 	"""Initialize the 3D zone with basic settings"""
 	_log_message("ZoneMain3D: Setting up 3D zone environment")
 
-	# Configure camera
-	if camera_3d:
-		camera_3d.projection = Camera3D.PROJECTION_ORTHOGONAL
-		camera_3d.size = 10.0
-		camera_3d.position = Vector3(0, 10, 10)
-		camera_3d.look_at(Vector3.ZERO, Vector3.UP)
-		_log_message("ZoneMain3D: Camera3D configured with orthogonal projection")
+	# Configure camera controller
+	if camera_controller and player_ship:
+		camera_controller.set_target(player_ship)
+		_log_message("ZoneMain3D: CameraController3D configured to follow player")
 
 	# Configure lighting
 	if directional_light:
 		directional_light.light_energy = 0.8
 		directional_light.shadow_enabled = true
 		_log_message("ZoneMain3D: DirectionalLight3D configured with shadows")
+
+	# Connect player signals
+	if player_ship:
+		player_ship.debris_collected.connect(_on_debris_collected)
+		player_ship.npc_hub_entered.connect(_on_npc_hub_entered)
+		player_ship.npc_hub_exited.connect(_on_npc_hub_exited)
+		_log_message("ZoneMain3D: Player ship signals connected")
 
 	# Initialize HUD
 	if debug_label:
@@ -111,3 +117,39 @@ func test_3d_functionality() -> void:
 		_log_message("ZoneMain3D: WorldEnvironment is present and functional")
 
 	_log_message("ZoneMain3D: 3D functionality test complete")
+
+## Signal handlers for player ship events
+func _on_debris_collected(debris_type: String, value: int) -> void:
+	"""Handle debris collection from player ship"""
+	_log_message("ZoneMain3D: Player collected debris - %s (Value: %d)" % [debris_type, value])
+	debris_collected.emit(debris_type, value)
+
+func _on_npc_hub_entered(hub_type: String) -> void:
+	"""Handle player entering NPC hub"""
+	_log_message("ZoneMain3D: Player entered NPC hub - %s" % hub_type)
+	npc_hub_entered.emit()
+
+func _on_npc_hub_exited() -> void:
+	"""Handle player exiting NPC hub"""
+	_log_message("ZoneMain3D: Player exited NPC hub")
+
+## Camera and player access methods
+func get_player_ship() -> CharacterBody3D:
+	"""Get reference to the player ship"""
+	return player_ship
+
+func get_camera_controller() -> Node3D:
+	"""Get reference to the camera controller"""
+	return camera_controller
+
+func shake_camera(intensity: float, duration: float) -> void:
+	"""Apply camera shake effect"""
+	if camera_controller and camera_controller.has_method("shake"):
+		camera_controller.shake(intensity, duration)
+		_log_message("ZoneMain3D: Camera shake applied - Intensity: %.2f, Duration: %.2f" % [intensity, duration])
+
+func set_camera_zoom(zoom_level: float) -> void:
+	"""Set camera zoom level"""
+	if camera_controller and camera_controller.has_method("set_zoom"):
+		camera_controller.set_zoom(zoom_level)
+		_log_message("ZoneMain3D: Camera zoom set to %.1f" % zoom_level)

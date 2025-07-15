@@ -1,0 +1,41 @@
+[gd_scene load_steps=6 format=3 uid="uid://bq2j5gk8m7xdh"]
+
+[ext_resource type="Script" path="res://scripts/PlayerShip3D.gd" id="1_0k8x5"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ships/player_ship_original.png" id="2_player_ship"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(4, 2, 4)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_1"]
+radius = 80.0
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_2"]
+radius = 80.0
+
+[node name="PlayerShip3D" type="CharacterBody3D"]
+collision_layer = 1
+collision_mask = 9
+script = ExtResource("1_0k8x5")
+
+[node name="Sprite3D" type="Sprite3D" parent="."]
+billboard = 1
+texture_filter = 0
+texture = ExtResource("2_player_ship")
+pixel_size = 0.0055
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_1")
+
+[node name="CollectionArea" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 4
+
+[node name="CollectionCollision" type="CollisionShape3D" parent="CollectionArea"]
+shape = SubResource("SphereShape3D_1")
+
+[node name="InteractionArea" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 8
+
+[node name="InteractionCollision" type="CollisionShape3D" parent="InteractionArea"]
+shape = SubResource("SphereShape3D_2")
