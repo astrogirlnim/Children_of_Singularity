@@ -187,25 +187,31 @@ show_status() {
 build_release() {
     print_status "INFO" "Building release packages for all platforms..."
     print_status "INFO" "Version: $VERSION (Build #$BUILD_NUMBER, Commit: $COMMIT_HASH)"
-    
+
     # Check for export templates
     check_export_templates
-    
+
     # Create release directory structure
     local release_dir="releases/$VERSION"
     mkdir -p "$release_dir"
-    
+
+    # Download assets from S3 if available
+    download_assets_from_s3
+
     # Build for all platforms
     build_platform "Windows Desktop" "windows" "$release_dir/windows" ".exe"
     build_platform "macOS" "macos" "$release_dir/macos" ".app"
     build_platform "Linux/X11" "linux" "$release_dir/linux" ""
-    
+
     # Create compressed archives
     create_release_archives "$release_dir"
-    
+
     # Generate release notes
     generate_release_notes "$release_dir"
-    
+
+    # Upload release to S3 if configured
+    upload_release_to_s3 "$VERSION" "$release_dir"
+
     print_status "SUCCESS" "Release build completed: $release_dir"
 }
 
@@ -215,16 +221,16 @@ build_platform() {
     local preset_name="$2"
     local output_dir="$3"
     local extension="$4"
-    
+
     print_status "INFO" "Building for $platform_name..."
-    
+
     mkdir -p "$output_dir"
     local output_file="$output_dir/Children_of_Singularity$extension"
-    
+
     # Export the game
     if godot --headless --export-release "$preset_name" "$output_file" .; then
         print_status "SUCCESS" "Built for $platform_name: $output_file"
-        
+
         # Copy additional assets if needed
         if [ -f "README.md" ]; then
             cp "README.md" "$output_dir/"
@@ -232,7 +238,7 @@ build_platform() {
         if [ -f "LICENSE" ]; then
             cp "LICENSE" "$output_dir/"
         fi
-        
+
     else
         print_status "ERROR" "Failed to build for $platform_name"
         return 1
@@ -242,27 +248,27 @@ build_platform() {
 # Function to create compressed release archives
 create_release_archives() {
     local release_dir="$1"
-    
+
     print_status "INFO" "Creating release archives..."
-    
+
     cd "$release_dir"
-    
+
     # Create zip archives for each platform
     if [ -d "windows" ]; then
         zip -r "Children_of_Singularity_${VERSION}_Windows.zip" windows/
         print_status "SUCCESS" "Created Windows archive"
     fi
-    
+
     if [ -d "macos" ]; then
         zip -r "Children_of_Singularity_${VERSION}_macOS.zip" macos/
         print_status "SUCCESS" "Created macOS archive"
     fi
-    
+
     if [ -d "linux" ]; then
         tar -czf "Children_of_Singularity_${VERSION}_Linux.tar.gz" linux/
         print_status "SUCCESS" "Created Linux archive"
     fi
-    
+
     cd - > /dev/null
 }
 
@@ -270,15 +276,15 @@ create_release_archives() {
 generate_release_notes() {
     local release_dir="$1"
     local notes_file="$release_dir/RELEASE_NOTES.md"
-    
+
     print_status "INFO" "Generating release notes..."
-    
+
     cat > "$notes_file" << EOF
 # Children of the Singularity - Release $VERSION
 
 **Build Information:**
 - Version: $VERSION
-- Build Number: $BUILD_NUMBER  
+- Build Number: $BUILD_NUMBER
 - Commit: $COMMIT_HASH
 - Build Date: $(date)
 
@@ -296,7 +302,7 @@ generate_release_notes() {
 1. Download and extract the Windows zip file
 2. Run \`Children_of_Singularity.exe\`
 
-### macOS  
+### macOS
 1. Download and extract the macOS zip file
 2. Run \`Children_of_Singularity.app\`
 3. If blocked by security, right-click and select "Open"
@@ -316,7 +322,7 @@ generate_release_notes() {
 
 ## System Requirements
 
-- **Minimum**: 
+- **Minimum**:
   - OS: Windows 10 / macOS 10.15 / Ubuntu 18.04
   - CPU: 2 GHz dual-core processor
   - Memory: 4 GB RAM
@@ -325,7 +331,7 @@ generate_release_notes() {
 
 - **Recommended**:
   - OS: Windows 11 / macOS 12+ / Ubuntu 20.04+
-  - CPU: 3 GHz quad-core processor  
+  - CPU: 3 GHz quad-core processor
   - Memory: 8 GB RAM
   - Graphics: Dedicated GPU with 2GB VRAM
   - Storage: 1 GB available space
@@ -333,7 +339,7 @@ generate_release_notes() {
 ## Controls
 
 - **WASD** / **Arrow Keys**: Move ship
-- **Mouse**: Camera control  
+- **Mouse**: Camera control
 - **Space**: Collect debris (when near)
 - **Escape**: Pause/Menu
 
@@ -354,20 +360,102 @@ EOF
     print_status "SUCCESS" "Generated release notes: $notes_file"
 }
 
+# Function to download assets from S3 if available
+download_assets_from_s3() {
+    if [ "$USE_S3_ASSETS" = "true" ]; then
+        print_status "INFO" "Checking for assets in S3..."
+
+        if command -v "./scripts/s3-manager.sh" &> /dev/null; then
+            # Download latest assets from S3
+            ./scripts/s3-manager.sh download-assets latest-assets assets/ 2>/dev/null || {
+                print_status "WARNING" "Failed to download assets from S3, using local assets"
+            }
+        else
+            print_status "WARNING" "S3 manager not found, using local assets only"
+        fi
+    fi
+}
+
+# Function to upload release to S3 if configured
+upload_release_to_s3() {
+    local version="$1"
+    local release_dir="$2"
+
+    if [ "$USE_S3_STORAGE" = "true" ]; then
+        print_status "INFO" "Uploading release to S3..."
+
+        if command -v "./scripts/s3-manager.sh" &> /dev/null; then
+            # Set environment variables for S3 manager
+            export BUILD_NUMBER="$BUILD_NUMBER"
+            export COMMIT_HASH="$COMMIT_HASH"
+
+            if ./scripts/s3-manager.sh upload-release "$version" "$release_dir"; then
+                print_status "SUCCESS" "Release uploaded to S3"
+
+                # Generate download URLs
+                print_status "INFO" "Generating download URLs..."
+                ./scripts/s3-manager.sh get-urls "$version" 86400 > "$release_dir/download-urls.txt"
+
+            else
+                print_status "WARNING" "Failed to upload release to S3"
+            fi
+        else
+            print_status "WARNING" "S3 manager not found, skipping S3 upload"
+        fi
+    fi
+}
+
+# Function to upload development assets to S3
+upload_dev_assets() {
+    if [ "$USE_S3_ASSETS" = "true" ]; then
+        print_status "INFO" "Uploading development assets to S3..."
+
+        if command -v "./scripts/s3-manager.sh" &> /dev/null; then
+            # Upload key asset directories
+            for asset_dir in assets/sprites assets/textures; do
+                if [ -d "$asset_dir" ]; then
+                    local asset_key=$(basename "$asset_dir")
+                    ./scripts/s3-manager.sh upload-assets "$asset_dir/" "dev/$asset_key/" || {
+                        print_status "WARNING" "Failed to upload $asset_dir to S3"
+                    }
+                fi
+            done
+
+            # Mark as latest assets
+            ./scripts/s3-manager.sh upload-assets assets/ latest-assets/ || {
+                print_status "WARNING" "Failed to upload latest assets marker"
+            }
+
+            print_status "SUCCESS" "Development assets uploaded to S3"
+        else
+            print_status "WARNING" "S3 manager not found, skipping asset upload"
+        fi
+    fi
+}
+
 # Function to clean old releases (keep only latest N releases)
 clean_old_releases() {
     local keep_count=${1:-1}
-    
+
     print_status "INFO" "Cleaning old releases (keeping latest $keep_count)..."
-    
+
+    # Clean local releases
     if [ -d "releases" ]; then
         # List releases by modification time and remove old ones
         cd releases
         ls -1t | tail -n +$((keep_count + 1)) | xargs -r rm -rf
         cd - > /dev/null
-        print_status "SUCCESS" "Cleaned old releases"
+        print_status "SUCCESS" "Cleaned local old releases"
     else
-        print_status "INFO" "No releases directory found"
+        print_status "INFO" "No local releases directory found"
+    fi
+
+    # Clean S3 releases if configured
+    if [ "$USE_S3_STORAGE" = "true" ] && command -v "./scripts/s3-manager.sh" &> /dev/null; then
+        print_status "INFO" "Cleaning old development builds in S3..."
+        ./scripts/s3-manager.sh cleanup-dev 7 || {
+            print_status "WARNING" "Failed to clean S3 development builds"
+        }
     fi
 }
 
@@ -388,6 +476,23 @@ case "${1:-help}" in
     "clean-releases")
         clean_old_releases "${2:-1}"
         ;;
+    "upload-assets")
+        upload_dev_assets
+        ;;
+    "download-assets")
+        if [ "$USE_S3_ASSETS" != "true" ]; then
+            export USE_S3_ASSETS=true
+        fi
+        download_assets_from_s3
+        ;;
+    "s3-status")
+        if command -v "./scripts/s3-manager.sh" &> /dev/null; then
+            ./scripts/s3-manager.sh storage-info
+        else
+            print_status "ERROR" "S3 manager not found"
+            exit 1
+        fi
+        ;;
     "status")
         show_status
         ;;
@@ -400,19 +505,30 @@ case "${1:-help}" in
         echo "Usage: $0 [command] [options]"
         echo ""
         echo "Commands:"
-        echo "  dev, run       - Run the game in development mode (default)"
-        echo "  debug, test    - Validate game logic without graphics"
-        echo "  dist, build    - Build distribution packages (requires export templates)"
-        echo "  release        - Build complete release packages for all platforms"
-        echo "  clean-releases - Clean old releases (usage: clean-releases [keep_count])"
-        echo "  status         - Show current build status"
-        echo "  clean          - Remove build and release directories"
-        echo "  help           - Show this help message"
+        echo "  dev, run          - Run the game in development mode (default)"
+        echo "  debug, test       - Validate game logic without graphics"
+        echo "  dist, build       - Build distribution packages (requires export templates)"
+        echo "  release           - Build complete release packages for all platforms"
+        echo "  clean-releases    - Clean old releases (usage: clean-releases [keep_count])"
+        echo "  upload-assets     - Upload development assets to S3"
+        echo "  download-assets   - Download assets from S3"
+        echo "  s3-status         - Show S3 storage information"
+        echo "  status            - Show current build status"
+        echo "  clean             - Remove build and release directories"
+        echo "  help              - Show this help message"
+        echo ""
+        echo "S3 Environment Variables:"
+        echo "  USE_S3_STORAGE=true    - Enable S3 upload for releases"
+        echo "  USE_S3_ASSETS=true     - Enable S3 download/upload for assets"
+        echo "  S3_BUCKET_NAME         - S3 bucket name (default: children-of-singularity-releases)"
+        echo "  AWS_REGION             - AWS region (default: us-west-2)"
         echo ""
         echo "Examples:"
-        echo "  $0 dev      # Run the game for development/testing"
-        echo "  $0 debug    # Test game logic"
-        echo "  $0 dist     # Build for distribution"
-        echo "  $0 status   # Check build status"
+        echo "  $0 dev                          # Run the game for development/testing"
+        echo "  $0 debug                        # Test game logic"
+        echo "  $0 dist                         # Build for distribution"
+        echo "  USE_S3_STORAGE=true $0 release  # Build and upload to S3"
+        echo "  $0 upload-assets                # Upload assets to S3"
+        echo "  $0 s3-status                    # Check S3 storage usage"
         ;;
 esac
