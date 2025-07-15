@@ -142,10 +142,11 @@ async def startup_event():
     # Validate database configuration
     if not DATABASE_CONFIG["password"]:
         logger.error(
-            "DB_PASSWORD environment variable not set. Database connection requires a password."
+            "DB_PASSWORD environment variable not set. "
+            "Database connection requires a password."
         )
         logger.error(
-            "Please set DB_PASSWORD environment variable for secure database access."
+            "Please set DB_PASSWORD environment variable for " "secure database access."
         )
         logger.info("Continuing with fallback mode...")
     else:
