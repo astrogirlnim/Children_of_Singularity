@@ -52,7 +52,7 @@ var zone_boundary_manager: ZoneBoundaryManager3D
 # Zone properties
 var zone_name: String = "Zone Alpha 3D"
 var zone_id: String = "zone_alpha_3d_01"
-var zone_bounds: Vector3 = Vector3(100, 50, 100)  # 3D bounds
+var zone_bounds: Vector3 = Vector3(400, 50, 400)  # 3D bounds - expanded playable area
 var game_logs: Array[String] = []
 
 func _ready() -> void:

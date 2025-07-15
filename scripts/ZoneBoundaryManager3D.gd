@@ -15,10 +15,10 @@ signal boundary_collision(position: Vector3, boundary_type: String)
 signal boundary_safe()
 
 ## Export properties for configuration
-@export var zone_bounds: Vector3 = Vector3(100, 50, 100)  # Zone dimensions (X, Y, Z)
+@export var zone_bounds: Vector3 = Vector3(400, 50, 400)  # Zone dimensions (X, Y, Z)
 @export var wall_height: float = 30.0  # Height of boundary walls
 @export var wall_thickness: float = 5.0  # Thickness of boundary walls
-@export var warning_distance: float = 20.0  # Distance from boundary to trigger warning
+@export var warning_distance: float = 40.0  # Distance from boundary to trigger warning
 @export var enable_warnings: bool = true
 @export var enable_visual_indicators: bool = false  # For debugging, show boundary walls
 

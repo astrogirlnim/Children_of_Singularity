@@ -23,9 +23,9 @@ signal debris_despawned(debris: DebrisObject3D)
 @export var debris_spawn_height_range: Vector2 = Vector2(-5, 5)  # Y-axis range for debris spawning
 @export var max_debris_count: int = 50
 @export var spawn_interval: float = 2.0
-@export var despawn_distance: float = 150.0
+@export var despawn_distance: float = 220.0
 @export var spawn_distance_min: float = 30.0  # Minimum distance from player to spawn debris
-@export var spawn_distance_max: float = 120.0  # Maximum distance from player to spawn debris
+@export var spawn_distance_max: float = 180.0  # Maximum distance from player to spawn debris
 
 ## Debris types configuration (using high-quality PNG files with proper import files)
 var debris_types: Array[Dictionary] = [
