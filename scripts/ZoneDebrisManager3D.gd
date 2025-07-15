@@ -25,7 +25,7 @@ signal debris_despawned(debris: DebrisObject3D)
 @export var spawn_interval: float = 2.0
 @export var despawn_distance: float = 150.0
 
-## Debris types configuration (same as 2D version)
+## Debris types configuration (using high-quality PNG files with proper import files)
 var debris_types: Array[Dictionary] = [
 	{"type": "scrap_metal", "value": 5, "spawn_weight": 40, "color": Color.GRAY, "texture_path": "res://assets/sprites/debris/scrap_metal.png"},
 	{"type": "broken_satellite", "value": 150, "spawn_weight": 10, "color": Color.SILVER, "texture_path": "res://assets/sprites/debris/broken_satellite.png"},
