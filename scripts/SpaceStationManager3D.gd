@@ -96,7 +96,7 @@ func _calculate_station_positions() -> void:
 
 			position = Vector3(
 				player_spawn_position.x + cos(angle) * distance,
-				player_spawn_position.y + randf_range(8, 15),  # Keep stations floating high above floor (10-17)
+				player_spawn_position.y + randf_range(10, 15),  # Keep stations floating high above floor (10-17)
 				player_spawn_position.z + sin(angle) * distance
 			)
 
