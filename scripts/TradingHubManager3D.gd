@@ -54,35 +54,54 @@ func _setup_hub_container() -> void:
 		_log_message("TradingHubManager3D: Created hub container")
 
 func _calculate_hub_positions() -> void:
-	"""Calculate positions for trading hubs near player spawn, avoiding space stations"""
-	_log_message("TradingHubManager3D: Calculating trading hub positions away from space stations")
+	"""Calculate positions for trading hubs randomly within floor boundaries, avoiding overlaps"""
+	_log_message("TradingHubManager3D: Calculating random trading hub positions within floor boundaries")
 	hub_positions.clear()
 
-	# Player spawn position is at (0, 2, 0) - place hubs nearby but away from space stations
+	# Player spawn position is at (0, 2, 0) - place hubs anywhere on floor but with constraints
 	var player_spawn_position = Vector3(0, 2, 0)
-	var min_distance_from_player = 15.0   # Increased minimum distance from player for larger sprites
-	var max_distance_from_player = 22.0  # Increased maximum distance from player
-	var min_distance_from_stations = 30.0  # Increased minimum distance from space stations
+	var min_distance_from_player = 15.0   # Minimum distance from player for larger sprites
+	var max_distance_from_player = 45.0   # Maximum distance from player (reasonable walking distance)
+	var min_distance_from_stations = 30.0  # Minimum distance from space stations
+
+	# Floor boundaries (zone_bounds is from center, so floor goes from -bounds to +bounds)
+	var floor_min_x = -zone_bounds.x + 5.0  # Add 5 unit buffer from edge
+	var floor_max_x = zone_bounds.x - 5.0
+	var floor_min_z = -zone_bounds.z + 5.0
+	var floor_max_z = zone_bounds.z - 5.0
+
+	_log_message("TradingHubManager3D: Floor boundaries: X(%.1f to %.1f), Z(%.1f to %.1f)" % [floor_min_x, floor_max_x, floor_min_z, floor_max_z])
 
 	for i in range(hub_count):
 		var position: Vector3
 		var attempts = 0
-		var max_attempts = 30
+		var max_attempts = 50  # Increased attempts for random positioning
 
-		# Try to find a good position away from space stations
+		# Try to find a good random position within floor boundaries
 		while attempts < max_attempts:
-			# Generate position around player spawn
-			var angle = (PI * 2 * i / hub_count) + randf_range(-PI/2, PI/2)  # Spread hubs around player
-			var distance = randf_range(min_distance_from_player, max_distance_from_player)
-
+			# Generate completely random position within floor boundaries
 			position = Vector3(
-				player_spawn_position.x + cos(angle) * distance,
-				player_spawn_position.y + 0.5,  # Just above floor level
-				player_spawn_position.z + sin(angle) * distance
+				randf_range(floor_min_x, floor_max_x),  # Random X within floor
+				player_spawn_position.y + 0.5,         # Just above floor level
+				randf_range(floor_min_z, floor_max_z)   # Random Z within floor
 			)
 
-			# Check distance from space stations (if they exist)
+			# Check distance constraints
+			var distance_from_player = position.distance_to(player_spawn_position)
 			var valid_position = true
+
+			# Validate player distance constraints
+			if distance_from_player < min_distance_from_player:
+				valid_position = false
+				attempts += 1
+				continue
+
+			if distance_from_player > max_distance_from_player:
+				valid_position = false
+				attempts += 1
+				continue
+
+			# Check distance from space stations (if they exist)
 			var space_station_manager = get_node_or_null("../SpaceStationManager3D")
 			if space_station_manager and space_station_manager.has_method("get_all_modules"):
 				var station_modules = space_station_manager.get_all_modules()
@@ -91,18 +110,32 @@ func _calculate_hub_positions() -> void:
 						valid_position = false
 						break
 
+			# Check distance from other hubs
+			for existing_pos in hub_positions:
+				if position.distance_to(existing_pos) < 20.0:  # Minimum distance between hubs
+					valid_position = false
+					break
+
 			if valid_position:
 				break
 
 			attempts += 1
 
-		# If no valid position found, place it on opposite side of player
+		# If no valid position found after many attempts, use fallback
 		if attempts >= max_attempts:
-			_log_message("TradingHubManager3D: No ideal position found, using fallback")
-			position = Vector3(-12, player_spawn_position.y + 0.5, -12)
+			_log_message("TradingHubManager3D: Max attempts reached, using fallback position")
+			# Try a few fallback positions around the edges
+			var fallback_positions = [
+				Vector3(-30, player_spawn_position.y + 0.5, -30),
+				Vector3(30, player_spawn_position.y + 0.5, -30),
+				Vector3(-30, player_spawn_position.y + 0.5, 30),
+				Vector3(30, player_spawn_position.y + 0.5, 30)
+			]
+			position = fallback_positions[i % fallback_positions.size()]
 
 		hub_positions.append(position)
-		_log_message("TradingHubManager3D: Trading hub %d positioned at: %s (distance from player: %.1f)" % [i, position, position.distance_to(player_spawn_position)])
+		var distance_from_player = position.distance_to(player_spawn_position)
+		_log_message("TradingHubManager3D: Trading hub %d positioned randomly at: %s (distance from player: %.1f)" % [i, position, distance_from_player])
 
 func _generate_trading_hubs() -> void:
 	"""Generate all trading hubs using templates"""
