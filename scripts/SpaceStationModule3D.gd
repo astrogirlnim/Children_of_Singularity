@@ -177,10 +177,10 @@ func _configure_module_appearance() -> void:
 
 		ModuleType.TRADING:
 			sprite_scale = Vector3(1.1, 1.1, 1.1) * module_scale
-			sprite_color = Color(1.0, 0.8, 0.4, 1.0)  # Trading gold tint
+			sprite_color = Color.WHITE  # No tint - original sprite colors
 			collision_size = Vector3(9, 7, 9) * module_scale
 			hub_type = "trading"
-			_log_message("SpaceStationModule3D: Applied TRADING appearance - Gold tint")
+			_log_message("SpaceStationModule3D: Applied TRADING appearance - No tint")
 
 		ModuleType.COMMAND:
 			sprite_scale = Vector3(1.2, 1.3, 1.2) * module_scale
