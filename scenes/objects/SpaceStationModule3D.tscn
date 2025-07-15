@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3 uid="uid://dq8r5tmf6pvtx"]
+
+[ext_resource type="Script" path="res://scripts/SpaceStationModule3D.gd" id="1_module_script"]
+
+[node name="SpaceStationModule3D" type="StaticBody3D"]
+collision_layer = 8
+collision_mask = 1
+script = ExtResource("1_module_script")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+
+[node name="InteractionArea" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionArea"]

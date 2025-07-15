@@ -32,8 +32,15 @@ signal npc_hub_entered()
 @onready var ai_communicator: Node = $AICommunicator
 @onready var network_manager: Node = $NetworkManager
 
+# Preloaded scripts for 3D systems
+const SpaceStationModule3DScript = preload("res://scripts/SpaceStationModule3D.gd")
+const SpaceStationManager3DScript = preload("res://scripts/SpaceStationManager3D.gd")
+
 # 3D Debris system
 var debris_manager_3d: ZoneDebrisManager3D
+
+# 3D Space Station system
+var space_station_manager: Node3D
 
 # Zone properties
 var zone_name: String = "Zone Alpha 3D"
@@ -73,6 +80,9 @@ func _initialize_3d_zone() -> void:
 	# Initialize 3D debris manager
 	_initialize_debris_manager_3d()
 
+	# Initialize 3D space station system
+	_initialize_space_station_manager()
+
 	# Initialize HUD
 	if debug_label:
 		debug_label.text = "Children of the Singularity - %s [3D DEBUG]" % zone_name
@@ -106,6 +116,38 @@ func _initialize_debris_manager_3d() -> void:
 	add_child(debris_manager_3d)
 
 	_log_message("ZoneMain3D: 3D debris manager initialized and ready")
+
+func _initialize_space_station_manager() -> void:
+	"""Initialize the 3D space station manager system"""
+	_log_message("ZoneMain3D: Initializing 3D space station manager")
+
+	# Create space station manager instance
+	space_station_manager = Node3D.new()
+	space_station_manager.set_script(SpaceStationManager3DScript)
+	space_station_manager.name = "SpaceStationManager3D"
+
+	# Configure space station manager
+	space_station_manager.station_container = npc_hub_container
+	space_station_manager.zone_bounds = zone_bounds
+	space_station_manager.station_count = 3
+	space_station_manager.modules_per_station = 5
+
+	# Connect space station manager signals
+	space_station_manager.player_entered_module.connect(_on_player_entered_module)
+	space_station_manager.player_exited_module.connect(_on_player_exited_module)
+	space_station_manager.module_created.connect(_on_module_created)
+
+	# Add to scene
+	add_child(space_station_manager)
+
+	# Remove old simple NPC hubs and replace with modular stations
+	await get_tree().process_frame  # Wait for station manager to initialize
+	space_station_manager.remove_simple_npc_hubs()
+
+	# Add connecting structures between modules for visual appeal
+	space_station_manager.add_connecting_structures()
+
+	_log_message("ZoneMain3D: 3D space station manager initialized with %d stations and %d modules" % [space_station_manager.get_station_count(), space_station_manager.get_module_count()])
 
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
@@ -198,6 +240,20 @@ func _on_debris_spawned(debris: DebrisObject3D) -> void:
 	if debris:
 		_log_message("ZoneMain3D: Debris spawned - Type: %s, Position: %s" % [debris.get_debris_type(), debris.global_position])
 
+## Signal handlers for space station manager
+func _on_player_entered_module(module_type: String, module: Node3D) -> void:
+	"""Handle player entering space station module"""
+	_log_message("ZoneMain3D: Player entered space station module - %s" % module_type)
+	npc_hub_entered.emit()
+
+func _on_player_exited_module(module_type: String, module: Node3D) -> void:
+	"""Handle player exiting space station module"""
+	_log_message("ZoneMain3D: Player exited space station module - %s" % module_type)
+
+func _on_module_created(module: Node3D) -> void:
+	"""Handle space station module creation"""
+	_log_message("ZoneMain3D: Space station module created at %s" % module.global_position)
+
 ## Debris manager access methods
 func get_debris_manager() -> ZoneDebrisManager3D:
 	"""Get reference to the debris manager"""
@@ -214,3 +270,32 @@ func get_debris_stats() -> Dictionary:
 	if debris_manager_3d:
 		return debris_manager_3d.get_debris_stats()
 	return {}
+
+## Space station manager access methods
+func get_space_station_manager() -> Node3D:
+	"""Get reference to the space station manager"""
+	return space_station_manager
+
+func get_station_count() -> int:
+	"""Get the number of space stations"""
+	if space_station_manager and space_station_manager.has_method("get_station_count"):
+		return space_station_manager.get_station_count()
+	return 0
+
+func get_module_count() -> int:
+	"""Get the total number of station modules"""
+	if space_station_manager and space_station_manager.has_method("get_module_count"):
+		return space_station_manager.get_module_count()
+	return 0
+
+func get_trading_modules() -> Array:
+	"""Get all trading modules for compatibility with existing systems"""
+	if space_station_manager and space_station_manager.has_method("get_trading_modules"):
+		return space_station_manager.get_trading_modules()
+	return []
+
+func get_station_data() -> Array[Dictionary]:
+	"""Get comprehensive data about all space stations"""
+	if space_station_manager and space_station_manager.has_method("get_station_data"):
+		return space_station_manager.get_station_data()
+	return []
