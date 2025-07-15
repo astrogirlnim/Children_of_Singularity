@@ -80,8 +80,8 @@ func _calculate_station_positions() -> void:
 
 	# Player spawn position is at (0, 2, 0) - place stations nearby
 	var player_spawn_position = Vector3(0, 2, 0)
-	var station_radius = 25.0  # Close radius around player spawn
-	var min_distance_between_stations = 15.0
+	var station_radius = 12.0  # Much closer to player for easy access
+	var min_distance_between_stations = 8.0  # Reduced since we only have 1 station
 
 	for i in range(station_count):
 		var position: Vector3
@@ -92,11 +92,11 @@ func _calculate_station_positions() -> void:
 		while attempts < max_attempts:
 			# Generate position in a circle around player spawn
 			var angle = (PI * 2 * i / station_count) + randf_range(-PI/4, PI/4)  # Spread stations around player
-			var distance = randf_range(10.0, station_radius)  # Very close to player
+			var distance = randf_range(6.0, station_radius)  # Close to player (6-12 units)
 
 			position = Vector3(
 				player_spawn_position.x + cos(angle) * distance,
-				player_spawn_position.y + randf_range(10, 15),  # Keep stations floating high above floor (10-17)
+				player_spawn_position.y + randf_range(1, 3),  # Just slightly above floor level (3-5 units total)
 				player_spawn_position.z + sin(angle) * distance
 			)
 
