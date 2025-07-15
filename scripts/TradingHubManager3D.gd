@@ -60,9 +60,9 @@ func _calculate_hub_positions() -> void:
 
 	# Player spawn position is at (0, 2, 0) - place hubs nearby but away from space stations
 	var player_spawn_position = Vector3(0, 2, 0)
-	var min_distance_from_player = 8.0   # Minimum distance from player
-	var max_distance_from_player = 15.0  # Maximum distance from player
-	var min_distance_from_stations = 25.0  # Minimum distance from space stations
+	var min_distance_from_player = 15.0   # Increased minimum distance from player for larger sprites
+	var max_distance_from_player = 22.0  # Increased maximum distance from player
+	var min_distance_from_stations = 30.0  # Increased minimum distance from space stations
 
 	for i in range(hub_count):
 		var position: Vector3
