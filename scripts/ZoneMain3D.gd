@@ -87,7 +87,7 @@ func _initialize_3d_zone() -> void:
 	_initialize_debris_manager_3d()
 
 	# Initialize NPC hubs (space stations near player spawn)
-	await _initialize_npc_hubs()
+	_initialize_npc_hubs()
 
 	# Initialize HUD
 	if debug_label:
@@ -137,17 +137,14 @@ func _initialize_npc_hubs() -> void:
 	"""Initialize the 3D NPC hub system with separate managers for space stations and trading hubs"""
 	_log_message("ZoneMain3D: Initializing 3D space station and trading hub systems with proper separation")
 
-	# Wait a frame for the scene to fully load
-	await get_tree().process_frame
-
 	# Remove old static hubs that are positioned far from player
 	_remove_old_static_hubs()
 
 	# Create and initialize the SpaceStationManager3D system (for UFO-like space stations ONLY)
-	await _initialize_space_station_manager()
+	_initialize_space_station_manager()
 
 	# Create and initialize the TradingHubManager3D system (for mechanical trading devices ONLY)
-	await _initialize_trading_hub_manager()
+	_initialize_trading_hub_manager()
 
 	_log_message("ZoneMain3D: Both space station (UFO) and trading hub (mechanical) systems initialized with proper separation")
 
@@ -193,20 +190,10 @@ func _initialize_space_station_manager() -> void:
 	# Add to scene tree
 	add_child(space_station_manager)
 
-	# Wait for initialization to complete
-	await get_tree().process_frame
-	await get_tree().process_frame
-
 	_log_message("ZoneMain3D: SpaceStationManager3D initialized - 1 space station will spawn near player at (0, 2, 0)")
 
-	# Log station position for debugging
-	var station_positions = space_station_manager.station_positions
-	if station_positions.size() > 0:
-		var pos = station_positions[0]
-		var distance_from_player = pos.distance_to(Vector3(0, 2, 0))
-		_log_message("ZoneMain3D: Space station will be at %s (%.1f units from player spawn)" % [pos, distance_from_player])
-	else:
-		_log_message("ZoneMain3D: WARNING - No station positions calculated")
+	# Log station position for debugging (deferred to next frame)
+	call_deferred("_log_space_station_positions")
 
 func _initialize_trading_hub_manager() -> void:
 	"""Initialize the TradingHubManager3D system to spawn trading hubs near player"""
@@ -231,20 +218,10 @@ func _initialize_trading_hub_manager() -> void:
 	# Add to scene tree
 	add_child(trading_hub_manager)
 
-	# Wait for initialization to complete
-	await get_tree().process_frame
-	await get_tree().process_frame
-
 	_log_message("ZoneMain3D: TradingHubManager3D initialized - 1 trading hub will spawn near player at (0, 2, 0)")
 
-	# Log hub position for debugging
-	var hub_positions = trading_hub_manager.hub_positions
-	if hub_positions.size() > 0:
-		var pos = hub_positions[0]
-		var distance_from_player = pos.distance_to(Vector3(0, 2, 0))
-		_log_message("ZoneMain3D: Trading hub will be at %s (%.1f units from player spawn)" % [pos, distance_from_player])
-	else:
-		_log_message("ZoneMain3D: WARNING - No hub positions calculated")
+	# Log hub position for debugging (deferred to next frame)
+	call_deferred("_log_trading_hub_positions")
 
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
@@ -373,6 +350,28 @@ func _on_player_entered_hub(hub_type: String, hub: Node3D) -> void:
 func _on_player_exited_hub(hub_type: String, hub: Node3D) -> void:
 	"""Handle player exiting trading hub"""
 	_log_message("ZoneMain3D: Player exited trading hub: %s" % hub_type)
+
+func _log_space_station_positions() -> void:
+	"""Log space station positions after initialization"""
+	if space_station_manager and space_station_manager.has_method("get_station_count"):
+		var station_positions = space_station_manager.station_positions
+		if station_positions.size() > 0:
+			var pos = station_positions[0]
+			var distance_from_player = pos.distance_to(Vector3(0, 2, 0))
+			_log_message("ZoneMain3D: Space station positioned at %s (%.1f units from player spawn)" % [pos, distance_from_player])
+		else:
+			_log_message("ZoneMain3D: WARNING - No station positions calculated")
+
+func _log_trading_hub_positions() -> void:
+	"""Log trading hub positions after initialization"""
+	if trading_hub_manager and trading_hub_manager.has_method("get_hub_count"):
+		var hub_positions = trading_hub_manager.hub_positions
+		if hub_positions.size() > 0:
+			var pos = hub_positions[0]
+			var distance_from_player = pos.distance_to(Vector3(0, 2, 0))
+			_log_message("ZoneMain3D: Trading hub positioned at %s (%.1f units from player spawn)" % [pos, distance_from_player])
+		else:
+			_log_message("ZoneMain3D: WARNING - No trading hub positions calculated")
 
 ## Debris manager access methods
 func get_debris_manager() -> ZoneDebrisManager3D:
