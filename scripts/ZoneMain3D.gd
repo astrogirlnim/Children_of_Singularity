@@ -165,7 +165,7 @@ func _remove_old_static_hubs() -> void:
 
 func _initialize_space_station_manager() -> void:
 	"""Initialize the SpaceStationManager3D system to spawn stations near player"""
-	_log_message("ZoneMain3D: Creating SpaceStationManager3D system")
+	_log_message("ZoneMain3D: Creating SpaceStationManager3D system for single trading station")
 
 	# Create the space station manager instance
 	space_station_manager = SpaceStationManager3DScript.new()
@@ -174,10 +174,10 @@ func _initialize_space_station_manager() -> void:
 	# Set up station container reference
 	space_station_manager.station_container = npc_hub_container
 
-	# Configure station spawning parameters
+	# Configure station spawning parameters for exactly 1 trading station
 	space_station_manager.zone_bounds = zone_bounds
-	space_station_manager.station_count = 2  # Trading and upgrade stations
-	space_station_manager.modules_per_station = 1  # Simple stations for now
+	space_station_manager.station_count = 1  # Exactly 1 space station
+	space_station_manager.modules_per_station = 1  # 1 trading module per station
 
 	# Connect space station manager signals
 	space_station_manager.module_created.connect(_on_module_created)
@@ -191,14 +191,16 @@ func _initialize_space_station_manager() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	_log_message("ZoneMain3D: SpaceStationManager3D initialized - Stations will spawn near player at (0, 2, 0)")
+	_log_message("ZoneMain3D: SpaceStationManager3D initialized - 1 trading station will spawn near player at (0, 2, 0)")
 
-	# Log station positions for debugging
+	# Log station position for debugging
 	var station_positions = space_station_manager.station_positions
-	for i in range(station_positions.size()):
-		var pos = station_positions[i]
+	if station_positions.size() > 0:
+		var pos = station_positions[0]
 		var distance_from_player = pos.distance_to(Vector3(0, 2, 0))
-		_log_message("ZoneMain3D: Station %d will be at %s (%.1f units from player spawn)" % [i, pos, distance_from_player])
+		_log_message("ZoneMain3D: Trading station will be at %s (%.1f units from player spawn)" % [pos, distance_from_player])
+	else:
+		_log_message("ZoneMain3D: WARNING - No station positions calculated")
 
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
