@@ -191,7 +191,13 @@ func _spawn_debris_at_position_3d(position: Vector3) -> void:
 	var debris_node = _create_debris_node_3d(debris_type, position)
 
 	if debris_node:
+		# Add to scene tree first before setting position
 		debris_container.add_child(debris_node)
+
+		# Now set position after node is in scene tree
+		debris_node.global_position = position
+		debris_node.initial_position = position
+
 		active_debris.append(debris_node)
 		current_debris_count += 1
 
@@ -223,8 +229,7 @@ func _create_debris_node_3d(debris_type: Dictionary, position: Vector3) -> Debri
 		push_error("ZoneDebrisManager3D: Failed to instantiate debris scene!")
 		return null
 
-	# Set position
-	debris_node.global_position = position
+	# Set node name
 	debris_node.name = "Debris3D_%s_%d" % [debris_type.get("type", "unknown"), Time.get_ticks_msec()]
 
 	# Set debris properties
@@ -260,7 +265,7 @@ func _cleanup_distant_debris() -> void:
 	var debris_to_remove: Array[DebrisObject3D] = []
 
 	for debris in active_debris:
-		if not is_instance_valid(debris):
+		if not is_instance_valid(debris) or not debris.is_inside_tree():
 			debris_to_remove.append(debris)
 			continue
 
@@ -320,7 +325,7 @@ func get_debris_in_3d_range(center: Vector3, radius: float) -> Array[DebrisObjec
 	var debris_in_range: Array[DebrisObject3D] = []
 
 	for debris in active_debris:
-		if not is_instance_valid(debris):
+		if not is_instance_valid(debris) or not debris.is_inside_tree():
 			continue
 
 		if center.distance_to(debris.global_position) <= radius:
@@ -349,7 +354,13 @@ func force_spawn_debris_3d(debris_type_name: String, position: Vector3) -> Debri
 
 	var debris_node = _create_debris_node_3d(debris_type, position)
 	if debris_node and debris_container:
+		# Add to scene tree first before setting position
 		debris_container.add_child(debris_node)
+
+		# Now set position after node is in scene tree
+		debris_node.global_position = position
+		debris_node.initial_position = position
+
 		active_debris.append(debris_node)
 		current_debris_count += 1
 

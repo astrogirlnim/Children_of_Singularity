@@ -120,7 +120,7 @@ func _setup_initial_animation() -> void:
 
 func _physics_process(delta: float) -> void:
 	"""Handle physics and animation updates"""
-	if is_collected:
+	if is_collected or not is_inside_tree():
 		return
 
 	_update_floating_animation(delta)
@@ -128,6 +128,9 @@ func _physics_process(delta: float) -> void:
 
 func _update_floating_animation(delta: float) -> void:
 	"""Update gentle floating motion"""
+	if not is_inside_tree() or is_collected:
+		return
+
 	float_offset += delta * float_speed
 	var float_y = sin(float_offset) * float_amplitude
 
@@ -187,6 +190,19 @@ func get_debris_value() -> int:
 
 func get_debris_data() -> Dictionary:
 	"""Get complete debris data for network sync"""
+	# Check if the node is still in the scene tree before accessing transform data
+	if not is_inside_tree():
+		_log_message("DebrisObject3D: Warning - get_debris_data() called on node not in scene tree")
+		return {
+			"id": debris_id,
+			"type": debris_type,
+			"value": value,
+			"position": Vector3.ZERO,
+			"rotation": Vector3.ZERO,
+			"linear_velocity": Vector3.ZERO,
+			"angular_velocity": Vector3.ZERO
+		}
+
 	return {
 		"id": debris_id,
 		"type": debris_type,
@@ -199,6 +215,15 @@ func get_debris_data() -> Dictionary:
 
 func apply_network_state(state_data: Dictionary) -> void:
 	"""Apply network state to debris object"""
+	# Check if the node is still in the scene tree before applying state
+	if not is_inside_tree():
+		_log_message("DebrisObject3D: Warning - apply_network_state() called on node not in scene tree")
+		return
+
+	if is_collected:
+		_log_message("DebrisObject3D: Warning - apply_network_state() called on already collected debris")
+		return
+
 	_log_message("DebrisObject3D: Applying network state")
 
 	if "position" in state_data:
