@@ -45,9 +45,5 @@
 *.dll filter=lfs diff=lfs merge=lfs -text
 *.so filter=lfs diff=lfs merge=lfs -text
 *.dylib filter=lfs diff=lfs merge=lfs -text
-# Godot-specific large files
-*.godot filter=lfs diff=lfs merge=lfs -text
-*.import filter=lfs diff=lfs merge=lfs -text
-*.remap filter=lfs diff=lfs merge=lfs -text
-*.tres filter=lfs diff=lfs merge=lfs -text
-*.res filter=lfs diff=lfs merge=lfs -text
+# Godot-specific large files (excluding project.godot and small config files)
+# Note: project.godot, .import, .remap, .tres, .res are small config files and should not be in LFS
