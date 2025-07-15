@@ -30,6 +30,10 @@ signal npc_hub_exited()
 @onready var interaction_area: Area2D = $InteractionArea
 @onready var interaction_collision: CollisionShape2D = $InteractionArea/InteractionCollision
 
+## Sprite resources for directional movement
+var sprite_left: Texture2D = preload("res://assets/sprites/ships/ship_sprite_left_updated.png")
+var sprite_normal: Texture2D = preload("res://assets/sprites/ships/ship_right_vibrant.png")
+
 # Movement properties
 var speed: float = 200.0
 var acceleration: float = 800.0
@@ -67,57 +71,10 @@ func _setup_player_visuals() -> void:
 	"""Set up visual appearance for the player ship"""
 	_log_message("PlayerShip: Setting up player ship visuals")
 
-	# Create a sophisticated player ship texture
-	if sprite_2d:
-		var texture = ImageTexture.new()
-		var image = Image.create(64, 32, false, Image.FORMAT_RGBA8)
-
-		# Fill with base color
-		var base_color = Color(0.4, 0.7, 1.0, 1.0)  # Light blue
-		image.fill(base_color)
-
-		# Create ship body (rounded rectangle)
-		for x in range(8, 48):
-			for y in range(8, 24):
-				var distance_from_center = Vector2(x - 28, y - 16).length()
-				var color_intensity = 1.0 - (distance_from_center * 0.01)
-				var pixel_color = base_color * color_intensity
-				pixel_color.a = 1.0
-				image.set_pixel(x, y, pixel_color)
-
-		# Create ship nose (triangle pointing right)
-		for x in range(48, 64):
-			var triangle_width = int((64 - x) * 0.5)
-			for y in range(16 - triangle_width, 16 + triangle_width + 1):
-				if y >= 0 and y < 32:
-					image.set_pixel(x, y, Color(0.6, 0.8, 1.0, 1.0))
-
-		# Add engine glow at the back
-		for x in range(4, 12):
-			for y in range(12, 20):
-				image.set_pixel(x, y, Color(1.0, 0.5, 0.2, 1.0))  # Orange glow
-
-		# Add some details and highlights
-		for x in range(16, 40):
-			image.set_pixel(x, 14, Color(0.8, 0.9, 1.0, 1.0))  # Top highlight
-			image.set_pixel(x, 18, Color(0.8, 0.9, 1.0, 1.0))  # Bottom highlight
-
-		# Add border for better visibility
-		for x in range(64):
-			for y in range(32):
-				if x == 0 or x == 63 or y == 0 or y == 31:
-					if image.get_pixel(x, y).a > 0.5:
-						image.set_pixel(x, y, Color(0.2, 0.4, 0.8, 1.0))
-
-		# Add cockpit
-		for x in range(32, 44):
-			for y in range(12, 20):
-				image.set_pixel(x, y, Color(0.8, 0.9, 1.0, 1.0))
-
-		texture.set_image(image)
-		sprite_2d.texture = texture
-
-		_log_message("PlayerShip: Enhanced player ship texture created")
+	# Use preloaded sprite texture instead of programmatic generation
+	if sprite_2d and sprite_normal:
+		sprite_2d.texture = sprite_normal
+		_log_message("PlayerShip: Right-facing vibrant ship sprite loaded")
 
 func _setup_collision() -> void:
 	"""Set up collision detection for the player ship"""
@@ -206,16 +163,21 @@ func _physics_process(delta: float) -> void:
 func _handle_movement(delta: float) -> void:
 	"""Handle player movement input and physics"""
 	var input_vector = Vector2.ZERO
+	var is_moving_left = false
 
 	# Get input from all movement actions
 	if Input.is_action_pressed("move_right"):
 		input_vector.x += 1
 	if Input.is_action_pressed("move_left"):
 		input_vector.x -= 1
+		is_moving_left = true
 	if Input.is_action_pressed("move_down"):
 		input_vector.y += 1
 	if Input.is_action_pressed("move_up"):
 		input_vector.y -= 1
+
+	# Update sprite based on movement direction
+	_update_sprite_direction(is_moving_left)
 
 	# Normalize diagonal movement
 	if input_vector != Vector2.ZERO:
@@ -511,3 +473,17 @@ func teleport_to(new_position: Vector2) -> void:
 	global_position = new_position
 	_log_message("PlayerShip: Teleported to %s" % new_position)
 	position_changed.emit(global_position)
+
+func _update_sprite_direction(is_moving_left: bool) -> void:
+	"""Update sprite texture based on movement direction"""
+	if not sprite_2d:
+		return
+
+	if is_moving_left:
+		if sprite_2d.texture != sprite_left:
+			sprite_2d.texture = sprite_left
+			_log_message("PlayerShip: Switched to left-facing sprite")
+	else:
+		if sprite_2d.texture != sprite_normal:
+			sprite_2d.texture = sprite_normal
+			_log_message("PlayerShip: Switched to normal sprite")

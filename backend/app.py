@@ -37,7 +37,7 @@ DATABASE_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
     "database": os.getenv("DB_NAME", "children_of_singularity"),
     "user": os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD", "password"),
+    "password": os.getenv("DB_PASSWORD"),
     "port": os.getenv("DB_PORT", "5432"),
 }
 
@@ -138,6 +138,19 @@ zones_db: Dict[str, List[dict[str, Any]]] = {}
 async def startup_event():
     """Initialize the application on startup"""
     logger.info("Children of the Singularity API starting up...")
+
+    # Validate database configuration
+    if not DATABASE_CONFIG["password"]:
+        logger.error(
+            "DB_PASSWORD environment variable not set. "
+            "Database connection requires a password."
+        )
+        logger.error(
+            "Please set DB_PASSWORD environment variable for " "secure database access."
+        )
+        logger.info("Continuing with fallback mode...")
+    else:
+        logger.info("Database configuration validated")
 
     # Try to initialize database
     initialize_database()
