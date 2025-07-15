@@ -59,6 +59,9 @@ func _initialize_3d_zone() -> void:
 	"""Initialize the 3D zone with basic settings"""
 	_log_message("ZoneMain3D: Setting up 3D zone environment")
 
+	# Ensure player ship is at the expected spawn position
+	_ensure_player_spawn_position()
+
 	# Configure camera controller
 	if camera_controller and player_ship:
 		camera_controller.set_target(player_ship)
@@ -80,14 +83,24 @@ func _initialize_3d_zone() -> void:
 	# Initialize 3D debris manager
 	_initialize_debris_manager_3d()
 
-	# Initialize NPC hubs (new billboard-style hubs)
-	_initialize_npc_hubs()
+	# Initialize NPC hubs (space stations near player spawn)
+	await _initialize_npc_hubs()
 
 	# Initialize HUD
 	if debug_label:
 		debug_label.text = "Children of the Singularity - %s [3D DEBUG]" % zone_name
 
 	_log_message("ZoneMain3D: 3D zone initialization complete")
+
+func _ensure_player_spawn_position() -> void:
+	"""Ensure the player ship spawns at the expected position for space station coordination"""
+	var expected_spawn_position = Vector3(0, 2, 0)
+
+	if player_ship:
+		player_ship.global_position = expected_spawn_position
+		_log_message("ZoneMain3D: Player ship positioned at spawn point: %s" % expected_spawn_position)
+	else:
+		_log_message("ZoneMain3D: WARNING - Player ship not found, cannot set spawn position")
 
 func _initialize_debris_manager_3d() -> void:
 	"""Initialize the 3D debris manager"""
@@ -118,31 +131,74 @@ func _initialize_debris_manager_3d() -> void:
 	_log_message("ZoneMain3D: 3D debris manager initialized and ready")
 
 func _initialize_npc_hubs() -> void:
-	"""Initialize the 3D NPC hub system with billboard-style hubs"""
-	_log_message("ZoneMain3D: Initializing 3D NPC hub system")
+	"""Initialize the 3D NPC hub system with dynamically spawned space stations near player"""
+	_log_message("ZoneMain3D: Initializing 3D space station system near player spawn")
 
 	# Wait a frame for the scene to fully load
 	await get_tree().process_frame
 
-	# Find and connect to trading hub
-	var trading_hub = npc_hub_container.get_node_or_null("TradingHub")
-	if trading_hub and trading_hub.has_signal("hub_entered"):
-		trading_hub.hub_entered.connect(_on_hub_entered)
-		trading_hub.hub_exited.connect(_on_hub_exited)
-		_log_message("ZoneMain3D: Connected to TradingHub signals")
-	else:
-		_log_message("ZoneMain3D: WARNING - TradingHub not found or missing signals")
+	# Remove old static hubs that are positioned far from player
+	_remove_old_static_hubs()
 
-	# Find and connect to upgrade hub
-	var upgrade_hub = npc_hub_container.get_node_or_null("UpgradeHub")
-	if upgrade_hub and upgrade_hub.has_signal("hub_entered"):
-		upgrade_hub.hub_entered.connect(_on_hub_entered)
-		upgrade_hub.hub_exited.connect(_on_hub_exited)
-		_log_message("ZoneMain3D: Connected to UpgradeHub signals")
-	else:
-		_log_message("ZoneMain3D: WARNING - UpgradeHub not found or missing signals")
+	# Create and initialize the SpaceStationManager3D system
+	await _initialize_space_station_manager()
 
-	_log_message("ZoneMain3D: 3D NPC hub system initialized with billboard-style hubs")
+	_log_message("ZoneMain3D: 3D space station system initialized with stations near player spawn")
+
+func _remove_old_static_hubs() -> void:
+	"""Remove the old static trading and upgrade hubs that are positioned far from player"""
+	_log_message("ZoneMain3D: Removing old static hubs positioned far from player")
+
+	# Remove old trading hub
+	var old_trading_hub = npc_hub_container.get_node_or_null("TradingHub")
+	if old_trading_hub:
+		_log_message("ZoneMain3D: Removing old TradingHub at position: %s" % old_trading_hub.global_position)
+		old_trading_hub.queue_free()
+
+	# Remove old upgrade hub
+	var old_upgrade_hub = npc_hub_container.get_node_or_null("UpgradeHub")
+	if old_upgrade_hub:
+		_log_message("ZoneMain3D: Removing old UpgradeHub at position: %s" % old_upgrade_hub.global_position)
+		old_upgrade_hub.queue_free()
+
+	_log_message("ZoneMain3D: Old static hubs removed")
+
+func _initialize_space_station_manager() -> void:
+	"""Initialize the SpaceStationManager3D system to spawn stations near player"""
+	_log_message("ZoneMain3D: Creating SpaceStationManager3D system")
+
+	# Create the space station manager instance
+	space_station_manager = SpaceStationManager3DScript.new()
+	space_station_manager.name = "SpaceStationManager3D"
+
+	# Set up station container reference
+	space_station_manager.station_container = npc_hub_container
+
+	# Configure station spawning parameters
+	space_station_manager.zone_bounds = zone_bounds
+	space_station_manager.station_count = 2  # Trading and upgrade stations
+	space_station_manager.modules_per_station = 1  # Simple stations for now
+
+	# Connect space station manager signals
+	space_station_manager.module_created.connect(_on_module_created)
+	space_station_manager.player_entered_module.connect(_on_player_entered_module)
+	space_station_manager.player_exited_module.connect(_on_player_exited_module)
+
+	# Add to scene tree
+	add_child(space_station_manager)
+
+	# Wait for initialization to complete
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	_log_message("ZoneMain3D: SpaceStationManager3D initialized - Stations will spawn near player at (0, 2, 0)")
+
+	# Log station positions for debugging
+	var station_positions = space_station_manager.station_positions
+	for i in range(station_positions.size()):
+		var pos = station_positions[i]
+		var distance_from_player = pos.distance_to(Vector3(0, 2, 0))
+		_log_message("ZoneMain3D: Station %d will be at %s (%.1f units from player spawn)" % [i, pos, distance_from_player])
 
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
