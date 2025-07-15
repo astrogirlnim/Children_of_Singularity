@@ -32,6 +32,9 @@ signal npc_hub_entered()
 @onready var ai_communicator: Node = $AICommunicator
 @onready var network_manager: Node = $NetworkManager
 
+# 3D Debris system
+var debris_manager_3d: ZoneDebrisManager3D
+
 # Zone properties
 var zone_name: String = "Zone Alpha 3D"
 var zone_id: String = "zone_alpha_3d_01"
@@ -67,11 +70,42 @@ func _initialize_3d_zone() -> void:
 		player_ship.npc_hub_exited.connect(_on_npc_hub_exited)
 		_log_message("ZoneMain3D: Player ship signals connected")
 
+	# Initialize 3D debris manager
+	_initialize_debris_manager_3d()
+
 	# Initialize HUD
 	if debug_label:
 		debug_label.text = "Children of the Singularity - %s [3D DEBUG]" % zone_name
 
 	_log_message("ZoneMain3D: 3D zone initialization complete")
+
+func _initialize_debris_manager_3d() -> void:
+	"""Initialize the 3D debris manager"""
+	_log_message("ZoneMain3D: Initializing 3D debris manager")
+
+	# Create debris manager instance
+	debris_manager_3d = ZoneDebrisManager3D.new()
+	debris_manager_3d.name = "ZoneDebrisManager3D"
+
+	# Set debris container reference
+	debris_manager_3d.debris_container = debris_container
+
+	# Set zone bounds
+	debris_manager_3d.zone_bounds = zone_bounds
+
+	# Set player reference
+	if player_ship:
+		debris_manager_3d.set_player_reference(player_ship)
+
+	# Connect debris manager signals
+	debris_manager_3d.debris_collected.connect(_on_debris_collected)
+	debris_manager_3d.debris_count_changed.connect(_on_debris_count_changed)
+	debris_manager_3d.debris_spawned.connect(_on_debris_spawned)
+
+	# Add to scene
+	add_child(debris_manager_3d)
+
+	_log_message("ZoneMain3D: 3D debris manager initialized and ready")
 
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
@@ -153,3 +187,30 @@ func set_camera_zoom(zoom_level: float) -> void:
 	if camera_controller and camera_controller.has_method("set_zoom"):
 		camera_controller.set_zoom(zoom_level)
 		_log_message("ZoneMain3D: Camera zoom set to %.1f" % zoom_level)
+
+## Signal handlers for debris manager
+func _on_debris_count_changed(count: int) -> void:
+	"""Handle debris count changes"""
+	_log_message("ZoneMain3D: Debris count changed - Current: %d" % count)
+
+func _on_debris_spawned(debris: DebrisObject3D) -> void:
+	"""Handle debris spawning"""
+	if debris:
+		_log_message("ZoneMain3D: Debris spawned - Type: %s, Position: %s" % [debris.get_debris_type(), debris.global_position])
+
+## Debris manager access methods
+func get_debris_manager() -> ZoneDebrisManager3D:
+	"""Get reference to the debris manager"""
+	return debris_manager_3d
+
+func get_debris_count() -> int:
+	"""Get current debris count"""
+	if debris_manager_3d:
+		return debris_manager_3d.get_debris_count()
+	return 0
+
+func get_debris_stats() -> Dictionary:
+	"""Get debris statistics"""
+	if debris_manager_3d:
+		return debris_manager_3d.get_debris_stats()
+	return {}
