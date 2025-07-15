@@ -11,6 +11,43 @@ The release pipeline consists of:
 - **GitHub Actions**: Automated multi-platform builds and release creation with S3 upload
 - **Release Cleanup**: Automatic deletion of old releases (keeps only the latest)
 
+## Documentation Management
+
+The documentation system is fully integrated with the S3 release pipeline:
+
+### Upload Documentation
+
+```bash
+# Upload all documentation
+./scripts/s3-manager.sh upload-doc
+
+# Upload specific sections
+./scripts/s3-manager.sh upload-doc documentation/core_concept/ core_concept/
+./scripts/s3-manager.sh upload-doc documentation/design/ design/
+
+# List uploaded documentation
+./scripts/s3-manager.sh list-doc
+```
+
+### Documentation Structure in S3
+
+```
+s3://children-of-singularity-releases/documentation/
+├── BrainLift/                   # AI learning and concepts
+├── core_concept/                # Project rules and guidelines
+├── design/                      # Visual assets and design docs
+├── godot_summarized/            # Godot engine documentation
+├── security/                    # Security setup guides
+└── README.md                    # Auto-generated index
+```
+
+### Documentation Features
+
+- **Automatic Indexing**: README.md is auto-generated with structure overview
+- **Version Control**: Documentation versioned alongside releases
+- **Metadata Tracking**: Upload timestamps and content types
+- **Access Control**: Same security model as release artifacts
+
 ## Quick Start
 
 ### 1. Create a New Release
@@ -42,6 +79,9 @@ aws configure
 
 # Test S3 connection
 ./scripts/s3-manager.sh check
+
+# Upload documentation to S3
+./scripts/s3-manager.sh upload-doc
 ```
 
 ### 2. Monitor Release Progress

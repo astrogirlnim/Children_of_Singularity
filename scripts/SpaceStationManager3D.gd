@@ -40,9 +40,9 @@ enum ModuleType {
 ## Station layouts and configurations (simplified to 1 module per station)
 var station_templates: Array[Dictionary] = [
 	{
-		"name": "Trading Hub",
+		"name": "Space Station Alpha",
 		"modules": [
-			{"type": ModuleType.TRADING, "position": Vector3(0, 0, 0)}
+			{"type": ModuleType.COMMAND, "position": Vector3(0, 0, 0)}
 		]
 	},
 	{
@@ -80,8 +80,8 @@ func _calculate_station_positions() -> void:
 
 	# Player spawn position is at (0, 2, 0) - place stations nearby
 	var player_spawn_position = Vector3(0, 2, 0)
-	var station_radius = 25.0  # Close radius around player spawn
-	var min_distance_between_stations = 15.0
+	var station_radius = 20.0  # Increased for larger sprite clearance
+	var min_distance_between_stations = 15.0  # Increased spacing between stations
 
 	for i in range(station_count):
 		var position: Vector3
@@ -92,11 +92,11 @@ func _calculate_station_positions() -> void:
 		while attempts < max_attempts:
 			# Generate position in a circle around player spawn
 			var angle = (PI * 2 * i / station_count) + randf_range(-PI/4, PI/4)  # Spread stations around player
-			var distance = randf_range(10.0, station_radius)  # Very close to player
+			var distance = randf_range(15.0, station_radius)  # Safer distance from player (15-20 units)
 
 			position = Vector3(
 				player_spawn_position.x + cos(angle) * distance,
-				player_spawn_position.y + randf_range(10, 15),  # Keep stations floating high above floor (10-17)
+				player_spawn_position.y + randf_range(10, 15),  # Much higher to float above floor (10-14 units total)
 				player_spawn_position.z + sin(angle) * distance
 			)
 

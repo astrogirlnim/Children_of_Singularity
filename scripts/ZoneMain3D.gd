@@ -39,8 +39,11 @@ const SpaceStationManager3DScript = preload("res://scripts/SpaceStationManager3D
 # 3D Debris system
 var debris_manager_3d: ZoneDebrisManager3D
 
-# 3D Space Station system
+# 3D Space Station system (UFO structures only)
 var space_station_manager: Node3D
+
+# 3D Trading Hub system (mechanical trading devices only)
+var trading_hub_manager: Node3D
 
 # Zone properties
 var zone_name: String = "Zone Alpha 3D"
@@ -58,6 +61,9 @@ func _ready() -> void:
 func _initialize_3d_zone() -> void:
 	"""Initialize the 3D zone with basic settings"""
 	_log_message("ZoneMain3D: Setting up 3D zone environment")
+
+	# Ensure player ship is at the expected spawn position
+	_ensure_player_spawn_position()
 
 	# Configure camera controller
 	if camera_controller and player_ship:
@@ -80,14 +86,24 @@ func _initialize_3d_zone() -> void:
 	# Initialize 3D debris manager
 	_initialize_debris_manager_3d()
 
-	# Initialize 3D space station system
-	_initialize_space_station_manager()
+	# Initialize NPC hubs (space stations near player spawn)
+	_initialize_npc_hubs()
 
 	# Initialize HUD
 	if debug_label:
 		debug_label.text = "Children of the Singularity - %s [3D DEBUG]" % zone_name
 
 	_log_message("ZoneMain3D: 3D zone initialization complete")
+
+func _ensure_player_spawn_position() -> void:
+	"""Ensure the player ship spawns at the expected position for space station coordination"""
+	var expected_spawn_position = Vector3(0, 2, 0)
+
+	if player_ship:
+		player_ship.global_position = expected_spawn_position
+		_log_message("ZoneMain3D: Player ship positioned at spawn point: %s" % expected_spawn_position)
+	else:
+		_log_message("ZoneMain3D: WARNING - Player ship not found, cannot set spawn position")
 
 func _initialize_debris_manager_3d() -> void:
 	"""Initialize the 3D debris manager"""
@@ -117,37 +133,95 @@ func _initialize_debris_manager_3d() -> void:
 
 	_log_message("ZoneMain3D: 3D debris manager initialized and ready")
 
-func _initialize_space_station_manager() -> void:
-	"""Initialize the 3D space station manager system"""
-	_log_message("ZoneMain3D: Initializing 3D space station manager")
+func _initialize_npc_hubs() -> void:
+	"""Initialize the 3D NPC hub system with separate managers for space stations and trading hubs"""
+	_log_message("ZoneMain3D: Initializing 3D space station and trading hub systems with proper separation")
 
-	# Create space station manager instance
-	space_station_manager = Node3D.new()
-	space_station_manager.set_script(SpaceStationManager3DScript)
+	# Remove old static hubs that are positioned far from player
+	_remove_old_static_hubs()
+
+	# Create and initialize the SpaceStationManager3D system (for UFO-like space stations ONLY)
+	_initialize_space_station_manager()
+
+	# Create and initialize the TradingHubManager3D system (for mechanical trading devices ONLY)
+	_initialize_trading_hub_manager()
+
+	_log_message("ZoneMain3D: Both space station (UFO) and trading hub (mechanical) systems initialized with proper separation")
+
+func _remove_old_static_hubs() -> void:
+	"""Remove the old static trading and upgrade hubs that are positioned far from player"""
+	_log_message("ZoneMain3D: Removing old static hubs positioned far from player")
+
+	# Remove old trading hub
+	var old_trading_hub = npc_hub_container.get_node_or_null("TradingHub")
+	if old_trading_hub:
+		_log_message("ZoneMain3D: Removing old TradingHub at position: %s" % old_trading_hub.global_position)
+		old_trading_hub.queue_free()
+
+	# Remove old upgrade hub
+	var old_upgrade_hub = npc_hub_container.get_node_or_null("UpgradeHub")
+	if old_upgrade_hub:
+		_log_message("ZoneMain3D: Removing old UpgradeHub at position: %s" % old_upgrade_hub.global_position)
+		old_upgrade_hub.queue_free()
+
+	_log_message("ZoneMain3D: Old static hubs removed")
+
+func _initialize_space_station_manager() -> void:
+	"""Initialize the SpaceStationManager3D system to spawn stations near player"""
+	_log_message("ZoneMain3D: Creating SpaceStationManager3D system for single space station")
+
+	# Create the space station manager instance
+	space_station_manager = SpaceStationManager3DScript.new()
 	space_station_manager.name = "SpaceStationManager3D"
 
-	# Configure space station manager
+	# Set up station container reference
 	space_station_manager.station_container = npc_hub_container
+
+	# Configure station spawning parameters for exactly 1 space station
 	space_station_manager.zone_bounds = zone_bounds
-	space_station_manager.station_count = 1
-	space_station_manager.modules_per_station = 1
+	space_station_manager.station_count = 1  # Exactly 1 space station
+	space_station_manager.modules_per_station = 1  # 1 module per station
 
 	# Connect space station manager signals
+	space_station_manager.module_created.connect(_on_module_created)
 	space_station_manager.player_entered_module.connect(_on_player_entered_module)
 	space_station_manager.player_exited_module.connect(_on_player_exited_module)
-	space_station_manager.module_created.connect(_on_module_created)
 
-	# Add to scene
+	# Add to scene tree
 	add_child(space_station_manager)
 
-	# Remove old simple NPC hubs and replace with modular stations
-	await get_tree().process_frame  # Wait for station manager to initialize
-	space_station_manager.remove_simple_npc_hubs()
+	_log_message("ZoneMain3D: SpaceStationManager3D initialized - 1 space station will spawn near player at (0, 2, 0)")
 
-	# Add connecting structures between modules for visual appeal
-	space_station_manager.add_connecting_structures()
+	# Log station position for debugging (deferred to next frame)
+	call_deferred("_log_space_station_positions")
 
-	_log_message("ZoneMain3D: 3D space station manager initialized with %d stations and %d modules" % [space_station_manager.get_station_count(), space_station_manager.get_module_count()])
+func _initialize_trading_hub_manager() -> void:
+	"""Initialize the TradingHubManager3D system to spawn trading hubs near player"""
+	_log_message("ZoneMain3D: Creating TradingHubManager3D system for single trading hub")
+
+	# Create the trading hub manager instance
+	trading_hub_manager = preload("res://scripts/TradingHubManager3D.gd").new()
+	trading_hub_manager.name = "TradingHubManager3D"
+
+	# Set up hub container reference
+	trading_hub_manager.hub_container = npc_hub_container
+
+	# Configure hub spawning parameters for exactly 1 trading hub
+	trading_hub_manager.zone_bounds = zone_bounds
+	trading_hub_manager.hub_count = 1  # Exactly 1 trading hub
+
+	# Connect hub manager signals
+	trading_hub_manager.hub_created.connect(_on_hub_created)
+	trading_hub_manager.player_entered_hub.connect(_on_player_entered_hub)
+	trading_hub_manager.player_exited_hub.connect(_on_player_exited_hub)
+
+	# Add to scene tree
+	add_child(trading_hub_manager)
+
+	_log_message("ZoneMain3D: TradingHubManager3D initialized - 1 trading hub will spawn near player at (0, 2, 0)")
+
+	# Log hub position for debugging (deferred to next frame)
+	call_deferred("_log_trading_hub_positions")
 
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
@@ -240,7 +314,17 @@ func _on_debris_spawned(debris: DebrisObject3D) -> void:
 	if debris:
 		_log_message("ZoneMain3D: Debris spawned - Type: %s, Position: %s" % [debris.get_debris_type(), debris.global_position])
 
-## Signal handlers for space station manager
+## Signal handlers for NPC hubs
+func _on_hub_entered(hub_type: String, hub: Node3D) -> void:
+	"""Handle player entering NPC hub"""
+	_log_message("ZoneMain3D: Player entered %s hub" % hub_type)
+	npc_hub_entered.emit()
+
+func _on_hub_exited(hub_type: String, hub: Node3D) -> void:
+	"""Handle player exiting NPC hub"""
+	_log_message("ZoneMain3D: Player exited %s hub" % hub_type)
+
+## Signal handlers for space station manager (legacy - may be unused now)
 func _on_player_entered_module(module_type: String, module: Node3D) -> void:
 	"""Handle player entering space station module"""
 	_log_message("ZoneMain3D: Player entered space station module - %s" % module_type)
@@ -253,6 +337,41 @@ func _on_player_exited_module(module_type: String, module: Node3D) -> void:
 func _on_module_created(module: Node3D) -> void:
 	"""Handle space station module creation"""
 	_log_message("ZoneMain3D: Space station module created at %s" % module.global_position)
+
+func _on_hub_created(hub: Node3D) -> void:
+	"""Handle trading hub creation"""
+	_log_message("ZoneMain3D: Trading hub created at %s" % hub.global_position)
+
+func _on_player_entered_hub(hub_type: String, hub: Node3D) -> void:
+	"""Handle player entering trading hub"""
+	_log_message("ZoneMain3D: Player entered trading hub: %s" % hub_type)
+	npc_hub_entered.emit()
+
+func _on_player_exited_hub(hub_type: String, hub: Node3D) -> void:
+	"""Handle player exiting trading hub"""
+	_log_message("ZoneMain3D: Player exited trading hub: %s" % hub_type)
+
+func _log_space_station_positions() -> void:
+	"""Log space station positions after initialization"""
+	if space_station_manager and space_station_manager.has_method("get_station_count"):
+		var station_positions = space_station_manager.station_positions
+		if station_positions.size() > 0:
+			var pos = station_positions[0]
+			var distance_from_player = pos.distance_to(Vector3(0, 2, 0))
+			_log_message("ZoneMain3D: Space station positioned at %s (%.1f units from player spawn)" % [pos, distance_from_player])
+		else:
+			_log_message("ZoneMain3D: WARNING - No station positions calculated")
+
+func _log_trading_hub_positions() -> void:
+	"""Log trading hub positions after initialization"""
+	if trading_hub_manager and trading_hub_manager.has_method("get_hub_count"):
+		var hub_positions = trading_hub_manager.hub_positions
+		if hub_positions.size() > 0:
+			var pos = hub_positions[0]
+			var distance_from_player = pos.distance_to(Vector3(0, 2, 0))
+			_log_message("ZoneMain3D: Trading hub positioned at %s (%.1f units from player spawn)" % [pos, distance_from_player])
+		else:
+			_log_message("ZoneMain3D: WARNING - No trading hub positions calculated")
 
 ## Debris manager access methods
 func get_debris_manager() -> ZoneDebrisManager3D:
