@@ -76,8 +76,13 @@ func _setup_3d_sprite() -> void:
 
 		# Set default texture if none provided
 		if not sprite_3d.texture:
-			# Will be set by debris type configuration
-			pass
+			# Create a temporary colored square texture (32x32)
+			var temp_texture = ImageTexture.new()
+			var temp_image = Image.create(32, 32, false, Image.FORMAT_RGBA8)
+			temp_image.fill(Color.WHITE)  # Will be modulated by debris color
+			temp_texture.set_image(temp_image)
+			sprite_3d.texture = temp_texture
+			_log_message("DebrisObject3D: Temporary texture created for debris visibility")
 
 func _setup_collection_area() -> void:
 	"""Set up collection area for player interaction"""

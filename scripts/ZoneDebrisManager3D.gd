@@ -27,11 +27,11 @@ signal debris_despawned(debris: DebrisObject3D)
 
 ## Debris types configuration (same as 2D version)
 var debris_types: Array[Dictionary] = [
-	{"type": "scrap_metal", "value": 5, "spawn_weight": 40, "color": Color.GRAY},
-	{"type": "broken_satellite", "value": 150, "spawn_weight": 10, "color": Color.SILVER},
-	{"type": "bio_waste", "value": 25, "spawn_weight": 25, "color": Color.GREEN},
-	{"type": "ai_component", "value": 500, "spawn_weight": 5, "color": Color.CYAN},
-	{"type": "unknown_artifact", "value": 1000, "spawn_weight": 1, "color": Color.PURPLE}
+	{"type": "scrap_metal", "value": 5, "spawn_weight": 40, "color": Color.GRAY, "texture_path": "res://assets/sprites/debris/scrap_metal.png"},
+	{"type": "broken_satellite", "value": 150, "spawn_weight": 10, "color": Color.SILVER, "texture_path": "res://assets/sprites/debris/broken_satellite.png"},
+	{"type": "bio_waste", "value": 25, "spawn_weight": 25, "color": Color.GREEN, "texture_path": "res://assets/sprites/debris/bio_waste.png"},
+	{"type": "ai_component", "value": 500, "spawn_weight": 5, "color": Color.CYAN, "texture_path": "res://assets/sprites/debris/ai_component.png"},
+	{"type": "unknown_artifact", "value": 1000, "spawn_weight": 1, "color": Color.PURPLE, "texture_path": "res://assets/sprites/debris/unknown_artifact.png"}
 ]
 
 ## Internal state
@@ -40,6 +40,9 @@ var active_debris: Array[DebrisObject3D] = []
 var spawn_timer: float = 0.0
 var weighted_spawn_table: Array[String] = []
 
+## Debris texture cache
+var debris_textures: Dictionary = {}
+
 ## References
 var player_ship: CharacterBody3D
 var debris_3d_scene: PackedScene
@@ -47,6 +50,7 @@ var debris_3d_scene: PackedScene
 func _ready() -> void:
 	_log_message("ZoneDebrisManager3D: Initializing 3D debris manager")
 	_load_debris_scene()
+	_load_debris_textures()
 	_build_weighted_spawn_table()
 	_spawn_initial_debris()
 	_log_message("ZoneDebrisManager3D: 3D debris manager initialized")
@@ -58,6 +62,38 @@ func _load_debris_scene() -> void:
 		_log_message("ZoneDebrisManager3D: Debris3D scene loaded successfully")
 	else:
 		push_error("ZoneDebrisManager3D: Failed to load Debris3D scene!")
+
+func _load_debris_textures() -> void:
+	"""Load debris textures from files or create fallback textures"""
+	_log_message("ZoneDebrisManager3D: Loading debris textures")
+
+	for debris_type in debris_types:
+		var type_name = debris_type.get("type", "unknown")
+		var texture_path = debris_type.get("texture_path", "")
+		var fallback_color = debris_type.get("color", Color.WHITE)
+
+		var texture: Texture2D = null
+
+		# Try to load texture from file
+		if texture_path != "" and ResourceLoader.exists(texture_path):
+			texture = load(texture_path)
+			_log_message("ZoneDebrisManager3D: Loaded texture for %s from %s" % [type_name, texture_path])
+		else:
+			# Create fallback colored texture
+			texture = _create_fallback_texture(fallback_color)
+			_log_message("ZoneDebrisManager3D: Created fallback texture for %s (color: %s)" % [type_name, fallback_color])
+
+		debris_textures[type_name] = texture
+
+	_log_message("ZoneDebrisManager3D: Loaded %d debris textures" % debris_textures.size())
+
+func _create_fallback_texture(color: Color) -> Texture2D:
+	"""Create a fallback colored texture for debris"""
+	var texture = ImageTexture.new()
+	var image = Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	image.fill(color)
+	texture.set_image(image)
+	return texture
 
 func _process(delta: float) -> void:
 	"""Handle debris spawning and cleanup"""
@@ -192,11 +228,19 @@ func _create_debris_node_3d(debris_type: Dictionary, position: Vector3) -> Debri
 	debris_node.name = "Debris3D_%s_%d" % [debris_type.get("type", "unknown"), Time.get_ticks_msec()]
 
 	# Set debris properties
+	var type_name = debris_type.get("type", "unknown")
 	debris_node.set_debris_data(
-		debris_type.get("type", "unknown"),
+		type_name,
 		debris_type.get("value", 1),
 		debris_type.get("color", Color.WHITE)
 	)
+
+	# Set debris texture
+	if debris_textures.has(type_name):
+		debris_node.set_debris_texture(debris_textures[type_name])
+		_log_message("ZoneDebrisManager3D: Assigned texture to debris type: %s" % type_name)
+	else:
+		_log_message("ZoneDebrisManager3D: No texture available for debris type: %s" % type_name)
 
 	# Add random rotation for variety
 	debris_node.rotation_degrees = Vector3(
