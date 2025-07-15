@@ -32,8 +32,8 @@ signal npc_hub_exited()
 @onready var interaction_collision: CollisionShape3D = $InteractionArea/InteractionCollision
 
 ## Sprite resources for directional movement
-var sprite_normal: Texture2D = preload("res://assets/sprites/ships/player_ship_original.png")
-var sprite_left: Texture2D = preload("res://assets/sprites/ships/ship_sprite_left.png")
+var sprite_normal: Texture2D = preload("res://assets/sprites/ships/ship_right_vibrant.png")
+var sprite_left: Texture2D = preload("res://assets/sprites/ships/ship_sprite_left_updated.png")
 
 ## Movement state
 var input_vector: Vector2 = Vector2.ZERO
