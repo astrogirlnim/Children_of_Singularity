@@ -77,57 +77,8 @@ func _setup_3d_components() -> void:
 		sprite_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		sprite_3d.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 
-		# Scale up the sprite for better visibility
-		sprite_3d.scale = Vector3(2.0, 2.0, 2.0)
-
-		# Create a sophisticated player ship texture (same as 2D version)
-		var texture = ImageTexture.new()
-		var image = Image.create(64, 32, false, Image.FORMAT_RGBA8)
-
-		# Fill with base color
-		var base_color = Color(0.4, 0.7, 1.0, 1.0)  # Light blue
-		image.fill(base_color)
-
-		# Create ship body (rounded rectangle)
-		for x in range(8, 48):
-			for y in range(8, 24):
-				var distance_from_center = Vector2(x - 28, y - 16).length()
-				var color_intensity = 1.0 - (distance_from_center * 0.01)
-				var pixel_color = base_color * color_intensity
-				pixel_color.a = 1.0
-				image.set_pixel(x, y, pixel_color)
-
-		# Create ship nose (triangle pointing right)
-		for x in range(48, 64):
-			var triangle_width = int((64 - x) * 0.5)
-			for y in range(16 - triangle_width, 16 + triangle_width + 1):
-				if y >= 0 and y < 32:
-					image.set_pixel(x, y, Color(0.6, 0.8, 1.0, 1.0))
-
-		# Add engine glow at the back
-		for x in range(4, 12):
-			for y in range(12, 20):
-				image.set_pixel(x, y, Color(1.0, 0.5, 0.2, 1.0))  # Orange glow
-
-		# Add some details and highlights
-		for x in range(16, 40):
-			image.set_pixel(x, 14, Color(0.8, 0.9, 1.0, 1.0))  # Top highlight
-			image.set_pixel(x, 18, Color(0.8, 0.9, 1.0, 1.0))  # Bottom highlight
-
-		# Add border for better visibility
-		for x in range(64):
-			for y in range(32):
-				if x == 0 or x == 63 or y == 0 or y == 31:
-					if image.get_pixel(x, y).a > 0.5:
-						image.set_pixel(x, y, Color(0.2, 0.4, 0.8, 1.0))
-
-		# Add cockpit
-		for x in range(32, 44):
-			for y in range(12, 20):
-				image.set_pixel(x, y, Color(0.8, 0.9, 1.0, 1.0))
-
-		texture.set_image(image)
-		sprite_3d.texture = texture
+		# Note: Ship sprite texture is loaded from the scene file (player_ship.png)
+		# No need to create programmatic texture - using imported sprite instead
 		_log_message("PlayerShip3D: 3D sprite texture created with billboard mode")
 
 	# Configure floor settings (important for 3D physics)
