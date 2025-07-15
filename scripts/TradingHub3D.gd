@@ -40,7 +40,7 @@ func _setup_hub() -> void:
 	# Configure sprite billboard mode for 2.5D aesthetic
 	if hub_sprite_3d:
 		hub_sprite_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		hub_sprite_3d.pixel_size = 0.01  # Scale for proper size in 3D
+		hub_sprite_3d.pixel_size = 0.02  # Scale for proper size in 3D
 		_log_message("TradingHub3D: Sprite3D configured with billboard mode")
 
 	# Configure label
