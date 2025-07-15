@@ -32,6 +32,7 @@ jobs:
         echo "Checking project file validity..."
         if [ $(wc -c < project.godot) -lt 1000 ]; then
           echo "❌ Project file appears to be truncated or corrupted (< 1000 bytes)"
+          echo "This usually indicates the file is tracked by Git LFS without proper CI setup"
           echo "Full project file contents:"
           cat project.godot
           exit 1
