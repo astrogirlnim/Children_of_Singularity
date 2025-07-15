@@ -24,6 +24,8 @@ signal debris_despawned(debris: DebrisObject3D)
 @export var max_debris_count: int = 50
 @export var spawn_interval: float = 2.0
 @export var despawn_distance: float = 150.0
+@export var spawn_distance_min: float = 30.0  # Minimum distance from player to spawn debris
+@export var spawn_distance_max: float = 120.0  # Maximum distance from player to spawn debris
 
 ## Debris types configuration (using high-quality PNG files with proper import files)
 var debris_types: Array[Dictionary] = [
@@ -39,6 +41,10 @@ var current_debris_count: int = 0
 var active_debris: Array[DebrisObject3D] = []
 var spawn_timer: float = 0.0
 var weighted_spawn_table: Array[String] = []
+var last_player_position: Vector3 = Vector3.ZERO
+var player_movement_threshold: float = 10.0  # Only update debris when player moves this far
+var cleanup_timer: float = 0.0
+var cleanup_interval: float = 1.0  # Only cleanup debris every second, not every frame
 
 ## Debris texture cache
 var debris_textures: Dictionary = {}
@@ -46,6 +52,7 @@ var debris_textures: Dictionary = {}
 ## References
 var player_ship: CharacterBody3D
 var debris_3d_scene: PackedScene
+var last_emitted_count: int = -1  # Track last emitted count to prevent spam
 
 func _ready() -> void:
 	_log_message("ZoneDebrisManager3D: Initializing 3D debris manager")
@@ -102,7 +109,21 @@ func _create_fallback_texture(color: Color) -> Texture2D:
 func _process(delta: float) -> void:
 	"""Handle debris spawning and cleanup"""
 	_update_spawn_timer(delta)
-	_cleanup_distant_debris()
+	_update_cleanup_timer(delta)
+
+func _update_cleanup_timer(delta: float) -> void:
+	"""Update cleanup timer to prevent excessive cleanup calls"""
+	cleanup_timer += delta
+
+	if cleanup_timer >= cleanup_interval:
+		cleanup_timer = 0.0
+		_cleanup_distant_debris()
+
+func _emit_count_change_if_needed() -> void:
+	"""Only emit count change signal if count actually changed"""
+	if current_debris_count != last_emitted_count:
+		last_emitted_count = current_debris_count
+		debris_count_changed.emit(current_debris_count)
 
 func _update_spawn_timer(delta: float) -> void:
 	"""Update spawn timer and attempt spawning"""
@@ -166,7 +187,6 @@ func _get_spawn_position_away_from_player_3d() -> Vector3:
 		return Vector3.ZERO
 
 	var player_pos = player_ship.global_position
-	var min_distance = 30.0  # Minimum distance from player
 	var max_attempts = 10
 
 	for attempt in range(max_attempts):
@@ -176,7 +196,10 @@ func _get_spawn_position_away_from_player_3d() -> Vector3:
 			randf_range(-zone_bounds.z / 2, zone_bounds.z / 2)
 		)
 
-		if player_pos.distance_to(random_pos) >= min_distance:
+		var distance = player_pos.distance_to(random_pos)
+
+		# Ensure debris spawns within the proper distance range
+		if distance >= spawn_distance_min and distance <= spawn_distance_max:
 			return random_pos
 
 	return Vector3.ZERO  # Failed to find suitable position
@@ -209,7 +232,7 @@ func _spawn_debris_at_position_3d(position: Vector3) -> void:
 		debris_node.collected.connect(_on_debris_collected_3d)
 
 		debris_spawned.emit(debris_node)
-		debris_count_changed.emit(current_debris_count)
+		_emit_count_change_if_needed()
 
 		_log_message("ZoneDebrisManager3D: Spawned %s at 3D position %s" % [debris_type.get("type", "unknown"), position])
 
@@ -288,7 +311,7 @@ func _remove_debris_3d(debris: DebrisObject3D) -> void:
 		current_debris_count -= 1
 
 		debris_despawned.emit(debris)
-		debris_count_changed.emit(current_debris_count)
+		_emit_count_change_if_needed()
 
 		if is_instance_valid(debris):
 			debris.queue_free()
@@ -309,7 +332,7 @@ func _on_debris_collected_3d(debris_object: DebrisObject3D) -> void:
 	if debris_object in active_debris:
 		active_debris.erase(debris_object)
 		current_debris_count -= 1
-		debris_count_changed.emit(current_debris_count)
+		_emit_count_change_if_needed()
 
 	# Emit collection signal
 	debris_collected.emit(debris_type, debris_value)
@@ -373,7 +396,7 @@ func force_spawn_debris_3d(debris_type_name: String, position: Vector3) -> Debri
 		debris_node.collected.connect(_on_debris_collected_3d)
 
 		debris_spawned.emit(debris_node)
-		debris_count_changed.emit(current_debris_count)
+		_emit_count_change_if_needed()
 
 		_log_message("ZoneDebrisManager3D: Force spawned %s at 3D position %s" % [debris_type_name, position])
 		return debris_node
@@ -395,7 +418,7 @@ func clear_all_debris() -> void:
 
 	active_debris.clear()
 	current_debris_count = 0
-	debris_count_changed.emit(current_debris_count)
+	_emit_count_change_if_needed()
 
 	_log_message("ZoneDebrisManager3D: All debris cleared from 3D zone")
 

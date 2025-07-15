@@ -1,0 +1,351 @@
+name: 🚀 Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags (v1.0.0, v1.1.0, etc.)
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  GODOT_VERSION: 4.4.1
+  EXPORT_NAME: Children_of_Singularity
+
+jobs:
+  # Clean up old releases first
+  cleanup-releases:
+    name: 🧹 Cleanup Old Releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🗑️ Delete Previous Releases
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            console.log('🔍 Fetching existing releases...');
+
+            const releases = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            console.log(`📋 Found ${releases.data.length} existing releases`);
+
+            // Keep only the latest release, delete all others
+            for (let i = 0; i < releases.data.length; i++) {
+              const release = releases.data[i];
+              console.log(`🗑️ Deleting release: ${release.tag_name} (${release.name})`);
+
+              try {
+                await github.rest.repos.deleteRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                });
+                console.log(`✅ Deleted release: ${release.tag_name}`);
+              } catch (error) {
+                console.log(`❌ Failed to delete release ${release.tag_name}:`, error.message);
+              }
+            }
+
+            console.log('🧹 Cleanup completed');
+
+  # Build the game for all platforms
+  build-game:
+    name: 🎮 Build Game
+    runs-on: ubuntu-latest
+    needs: cleanup-releases
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - name: 📥 Checkout Source
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: 📋 Setup Build Environment
+        run: |
+          echo "🔧 Setting up build environment..."
+          mkdir -v -p ~/.local/share/godot/export_templates/
+          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      - name: 🖥️ Build for Windows
+        run: |
+          echo "🖥️ Building for Windows..."
+          mkdir -v -p build/windows
+          godot --headless --verbose --export-release "Windows Desktop" build/windows/$EXPORT_NAME.exe
+
+      - name: 🍎 Build for macOS
+        run: |
+          echo "🍎 Building for macOS..."
+          mkdir -v -p build/macos
+          godot --headless --verbose --export-release "macOS" build/macos/$EXPORT_NAME.zip
+
+      - name: 🐧 Build for Linux
+        run: |
+          echo "🐧 Building for Linux..."
+          mkdir -v -p build/linux
+          godot --headless --verbose --export-release "Linux/X11" build/linux/$EXPORT_NAME.x86_64
+
+      - name: 📁 Copy Additional Files
+        run: |
+          echo "📁 Copying additional files..."
+          for platform in windows macos linux; do
+            if [ -d "build/$platform" ]; then
+              cp README.md build/$platform/ 2>/dev/null || echo "⚠️ README.md not found"
+              cp LICENSE build/$platform/ 2>/dev/null || echo "⚠️ LICENSE not found"
+            fi
+          done
+
+      - name: 📦 Create Release Archives
+        run: |
+          echo "📦 Creating release archives..."
+          cd build
+
+          # Get version from tag or input
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          echo "📋 Version: $VERSION"
+
+          # Windows - ZIP archive
+          if [ -d "windows" ]; then
+            echo "📦 Creating Windows archive..."
+            cd windows
+            zip -r "../${EXPORT_NAME}_${VERSION}_Windows.zip" .
+            cd ..
+          fi
+
+          # macOS - ZIP archive
+          if [ -d "macos" ]; then
+            echo "📦 Creating macOS archive..."
+            cd macos
+            zip -r "../${EXPORT_NAME}_${VERSION}_macOS.zip" .
+            cd ..
+          fi
+
+          # Linux - TAR.GZ archive
+          if [ -d "linux" ]; then
+            echo "📦 Creating Linux archive..."
+            cd linux
+            tar -czf "../${EXPORT_NAME}_${VERSION}_Linux.tar.gz" .
+            cd ..
+          fi
+
+          echo "📋 Archive contents:"
+          ls -la *.zip *.tar.gz 2>/dev/null || echo "No archives found"
+
+      - name: 📝 Generate Release Notes
+        run: |
+          echo "📝 Generating release notes..."
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          BUILD_NUMBER="${{ github.run_number }}"
+          COMMIT_HASH="${{ github.sha }}"
+
+          cat > build/RELEASE_NOTES.md << EOF
+          # Children of the Singularity - Release $VERSION
+
+          **Build Information:**
+          - Version: $VERSION
+          - Build Number: $BUILD_NUMBER
+          - Commit: ${COMMIT_HASH:0:8}
+          - Build Date: $(date)
+
+          ## Platform Downloads
+
+          | Platform | Download | Notes |
+          |----------|----------|--------|
+          | Windows | ${EXPORT_NAME}_${VERSION}_Windows.zip | Windows 10+ (64-bit) |
+          | macOS | ${EXPORT_NAME}_${VERSION}_macOS.zip | macOS 10.15+ (Universal) |
+          | Linux | ${EXPORT_NAME}_${VERSION}_Linux.tar.gz | Linux (64-bit) |
+
+          ## Installation
+
+          ### Windows
+          1. Download and extract the Windows zip file
+          2. Run \`${EXPORT_NAME}.exe\`
+
+          ### macOS
+          1. Download and extract the macOS zip file
+          2. Run \`${EXPORT_NAME}.app\`
+          3. If blocked by security, right-click and select "Open"
+
+          ### Linux
+          1. Download and extract the Linux tar.gz file
+          2. Make executable: \`chmod +x ${EXPORT_NAME}.x86_64\`
+          3. Run: \`./${EXPORT_NAME}.x86_64\`
+
+          ## Game Features
+
+          - **3D Space Exploration**: Navigate through procedurally populated space zones
+          - **Debris Collection**: Collect valuable space debris and artifacts
+          - **Space Station Trading**: Interact with modular space stations
+          - **Resource Management**: Manage collected resources and ship upgrades
+          - **Dynamic Environment**: Real-time debris spawning and despawning system
+
+          ## System Requirements
+
+          - **Minimum**:
+            - OS: Windows 10 / macOS 10.15 / Ubuntu 18.04
+            - CPU: 2 GHz dual-core processor
+            - Memory: 4 GB RAM
+            - Graphics: Integrated graphics or dedicated GPU
+            - Storage: 500 MB available space
+
+          - **Recommended**:
+            - OS: Windows 11 / macOS 12+ / Ubuntu 20.04+
+            - CPU: 3 GHz quad-core processor
+            - Memory: 8 GB RAM
+            - Graphics: Dedicated GPU with 2GB VRAM
+            - Storage: 1 GB available space
+
+          ## Controls
+
+          - **WASD** / **Arrow Keys**: Move ship
+          - **Mouse**: Camera control
+          - **Space**: Collect debris (when near)
+          - **Escape**: Pause/Menu
+
+          ## Known Issues
+
+          - Export templates required for building from source
+          - Some debris may occasionally flicker during collection
+
+          ## Support
+
+          For issues or feedback, please visit our GitHub repository.
+
+          ---
+
+          *Built with Godot $GODOT_VERSION*
+          EOF
+
+      - name: ☁️ Upload to S3 (if configured)
+        if: ${{ vars.USE_S3_STORAGE == 'true' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-west-2' }}
+          S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME || 'children-of-singularity-releases' }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          COMMIT_HASH: ${{ github.sha }}
+        run: |
+          # Install AWS CLI
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+
+          # Make S3 manager executable
+          chmod +x scripts/s3-manager.sh
+
+          # Setup S3 bucket (will skip if exists)
+          ./scripts/s3-manager.sh setup
+
+          # Get version from tag or input
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+
+          # Upload release to S3
+          echo "📤 Uploading release $VERSION to S3..."
+          if ./scripts/s3-manager.sh upload-release "$VERSION" "build/"; then
+            echo "✅ Release uploaded to S3 successfully"
+
+            # Generate download URLs and save to file
+            echo "🔗 Generating download URLs..."
+            ./scripts/s3-manager.sh get-urls "$VERSION" 604800 > build/s3-download-urls.txt
+
+            echo "📋 S3 Release Information:"
+            ./scripts/s3-manager.sh list-releases "$VERSION"
+          else
+            echo "❌ Failed to upload to S3"
+            exit 1
+          fi
+
+      - name: 📤 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-builds
+          path: build/
+          retention-days: 1
+
+  # Create GitHub Release
+  create-release:
+    name: 🏷️ Create Release
+    runs-on: ubuntu-latest
+    needs: build-game
+    steps:
+      - name: 📥 Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-builds
+          path: build/
+
+      - name: 📋 List Build Contents
+        run: |
+          echo "📋 Build contents:"
+          find build/ -type f -name "*.zip" -o -name "*.tar.gz" -o -name "RELEASE_NOTES.md" | sort
+
+      - name: 🏷️ Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          name: "Children of the Singularity ${{ github.event.inputs.version || github.ref_name }}"
+          body_path: build/RELEASE_NOTES.md
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          files: |
+            build/*.zip
+            build/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ☁️ S3 Release Summary (if configured)
+        if: ${{ vars.USE_S3_STORAGE == 'true' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-west-2' }}
+          S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME || 'children-of-singularity-releases' }}
+        run: |
+          # Install AWS CLI
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+
+          echo "☁️ S3 Release Summary:"
+          echo "📋 Version: $VERSION"
+          echo "🪣 Bucket: $S3_BUCKET_NAME"
+          echo "🌍 Region: $AWS_REGION"
+          echo ""
+
+          # Show S3 release information
+          chmod +x scripts/s3-manager.sh
+          if ./scripts/s3-manager.sh check; then
+            echo "📊 S3 Storage Information:"
+            ./scripts/s3-manager.sh storage-info
+
+            echo ""
+            echo "🔗 Download URLs (valid for 7 days):"
+            ./scripts/s3-manager.sh get-urls "$VERSION" 604800
+          else
+            echo "⚠️ Could not connect to S3"
+          fi
+
+      - name: 🎉 Release Summary
+        run: |
+          echo "🎉 Release pipeline completed successfully!"
+          echo "📋 Release: ${{ github.event.inputs.version || github.ref_name }}"
+          echo "🔗 Check the releases page for download links"
+
+          if [ "${{ vars.USE_S3_STORAGE }}" = "true" ]; then
+            echo "☁️ S3 storage also available with extended retention"
+            echo "🪣 S3 Bucket: ${{ vars.S3_BUCKET_NAME || 'children-of-singularity-releases' }}"
+          fi
