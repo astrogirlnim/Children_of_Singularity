@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://c8xvwgqjkm8nh"]
+[gd_scene load_steps=11 format=3 uid="uid://c8xvwgqjkm8nh"]
 
 [ext_resource type="Script" path="res://scripts/ZoneMain3D.gd" id="1_0k8x5"]
 [ext_resource type="PackedScene" uid="uid://bq2j5gk8m7xdh" path="res://scenes/player/PlayerShip3D.tscn" id="2_player_ship"]
@@ -7,6 +7,8 @@
 [ext_resource type="Script" path="res://scripts/AICommunicator.gd" id="5_ai_communicator"]
 [ext_resource type="Script" path="res://scripts/NetworkManager.gd" id="6_network_manager"]
 [ext_resource type="Script" path="res://scripts/CameraController3D.gd" id="7_camera_controller"]
+[ext_resource type="PackedScene" uid="uid://b2kxvwgqjkm9nh" path="res://scenes/objects/TradingHub3D.tscn" id="8_trading_hub"]
+[ext_resource type="PackedScene" uid="uid://c3lxvwgqjkm0nh" path="res://scenes/objects/UpgradeHub3D.tscn" id="9_upgrade_hub"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -104,33 +106,11 @@ shape = SubResource("BoxShape3D_1")
 
 [node name="NPCHubContainer" type="Node3D" parent="."]
 
-[node name="NPCHub1" type="StaticBody3D" parent="NPCHubContainer"]
+[node name="TradingHub" parent="NPCHubContainer" instance=ExtResource("8_trading_hub")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 20)
-collision_layer = 8
-collision_mask = 1
 
-[node name="HubMesh" type="MeshInstance3D" parent="NPCHubContainer/NPCHub1"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
-mesh = SubResource("BoxMesh_2")
-surface_material_override/0 = SubResource("StandardMaterial3D_2")
-
-[node name="HubCollision" type="CollisionShape3D" parent="NPCHubContainer/NPCHub1"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
-shape = SubResource("BoxShape3D_2")
-
-[node name="NPCHub2" type="StaticBody3D" parent="NPCHubContainer"]
+[node name="UpgradeHub" parent="NPCHubContainer" instance=ExtResource("9_upgrade_hub")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -20)
-collision_layer = 8
-collision_mask = 1
-
-[node name="HubMesh" type="MeshInstance3D" parent="NPCHubContainer/NPCHub2"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-mesh = SubResource("BoxMesh_3")
-surface_material_override/0 = SubResource("StandardMaterial3D_3")
-
-[node name="HubCollision" type="CollisionShape3D" parent="NPCHubContainer/NPCHub2"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
-shape = SubResource("BoxShape3D_3")
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 

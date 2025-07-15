@@ -80,8 +80,8 @@ func _initialize_3d_zone() -> void:
 	# Initialize 3D debris manager
 	_initialize_debris_manager_3d()
 
-	# Initialize 3D space station system
-	_initialize_space_station_manager()
+	# Initialize NPC hubs (new billboard-style hubs)
+	_initialize_npc_hubs()
 
 	# Initialize HUD
 	if debug_label:
@@ -117,37 +117,32 @@ func _initialize_debris_manager_3d() -> void:
 
 	_log_message("ZoneMain3D: 3D debris manager initialized and ready")
 
-func _initialize_space_station_manager() -> void:
-	"""Initialize the 3D space station manager system"""
-	_log_message("ZoneMain3D: Initializing 3D space station manager")
+func _initialize_npc_hubs() -> void:
+	"""Initialize the 3D NPC hub system with billboard-style hubs"""
+	_log_message("ZoneMain3D: Initializing 3D NPC hub system")
 
-	# Create space station manager instance
-	space_station_manager = Node3D.new()
-	space_station_manager.set_script(SpaceStationManager3DScript)
-	space_station_manager.name = "SpaceStationManager3D"
+	# Wait a frame for the scene to fully load
+	await get_tree().process_frame
 
-	# Configure space station manager
-	space_station_manager.station_container = npc_hub_container
-	space_station_manager.zone_bounds = zone_bounds
-	space_station_manager.station_count = 1
-	space_station_manager.modules_per_station = 1
+	# Find and connect to trading hub
+	var trading_hub = npc_hub_container.get_node_or_null("TradingHub")
+	if trading_hub and trading_hub.has_signal("hub_entered"):
+		trading_hub.hub_entered.connect(_on_hub_entered)
+		trading_hub.hub_exited.connect(_on_hub_exited)
+		_log_message("ZoneMain3D: Connected to TradingHub signals")
+	else:
+		_log_message("ZoneMain3D: WARNING - TradingHub not found or missing signals")
 
-	# Connect space station manager signals
-	space_station_manager.player_entered_module.connect(_on_player_entered_module)
-	space_station_manager.player_exited_module.connect(_on_player_exited_module)
-	space_station_manager.module_created.connect(_on_module_created)
+	# Find and connect to upgrade hub
+	var upgrade_hub = npc_hub_container.get_node_or_null("UpgradeHub")
+	if upgrade_hub and upgrade_hub.has_signal("hub_entered"):
+		upgrade_hub.hub_entered.connect(_on_hub_entered)
+		upgrade_hub.hub_exited.connect(_on_hub_exited)
+		_log_message("ZoneMain3D: Connected to UpgradeHub signals")
+	else:
+		_log_message("ZoneMain3D: WARNING - UpgradeHub not found or missing signals")
 
-	# Add to scene
-	add_child(space_station_manager)
-
-	# Remove old simple NPC hubs and replace with modular stations
-	await get_tree().process_frame  # Wait for station manager to initialize
-	space_station_manager.remove_simple_npc_hubs()
-
-	# Add connecting structures between modules for visual appeal
-	space_station_manager.add_connecting_structures()
-
-	_log_message("ZoneMain3D: 3D space station manager initialized with %d stations and %d modules" % [space_station_manager.get_station_count(), space_station_manager.get_module_count()])
+	_log_message("ZoneMain3D: 3D NPC hub system initialized with billboard-style hubs")
 
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
@@ -240,7 +235,17 @@ func _on_debris_spawned(debris: DebrisObject3D) -> void:
 	if debris:
 		_log_message("ZoneMain3D: Debris spawned - Type: %s, Position: %s" % [debris.get_debris_type(), debris.global_position])
 
-## Signal handlers for space station manager
+## Signal handlers for NPC hubs
+func _on_hub_entered(hub_type: String, hub: Node3D) -> void:
+	"""Handle player entering NPC hub"""
+	_log_message("ZoneMain3D: Player entered %s hub" % hub_type)
+	npc_hub_entered.emit()
+
+func _on_hub_exited(hub_type: String, hub: Node3D) -> void:
+	"""Handle player exiting NPC hub"""
+	_log_message("ZoneMain3D: Player exited %s hub" % hub_type)
+
+## Signal handlers for space station manager (legacy - may be unused now)
 func _on_player_entered_module(module_type: String, module: Node3D) -> void:
 	"""Handle player entering space station module"""
 	_log_message("ZoneMain3D: Player entered space station module - %s" % module_type)
