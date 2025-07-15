@@ -84,6 +84,9 @@ func _setup_3d_components() -> void:
 		# Note: Ship sprite texture is loaded from the scene file (player_ship.png)
 		# No need to create programmatic texture - using imported sprite instead
 		_log_message("PlayerShip3D: 3D sprite texture created with billboard mode")
+		_log_message("PlayerShip3D: Ship sprite pixel_size: %s" % sprite_3d.pixel_size)
+		if sprite_3d.texture:
+			_log_message("PlayerShip3D: Ship texture size: %s" % sprite_3d.texture.get_size())
 
 	# Configure floor settings (important for 3D physics)
 	floor_stop_on_slope = true
