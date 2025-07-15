@@ -77,7 +77,7 @@ func _setup_3d_sprite() -> void:
 
 	# Configure sprite properties
 	sprite_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sprite_3d.pixel_size = 0.01  # Start with same scale as player ship
+	sprite_3d.pixel_size = 0.05  # Increased for better visibility in 3D
 	sprite_3d.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 
 	print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Sprite3D configured - pixel_size: ", sprite_3d.pixel_size)
