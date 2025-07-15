@@ -89,26 +89,47 @@ func _setup_interaction_area() -> void:
 
 func _configure_module_appearance() -> void:
 	"""Configure the visual appearance based on module type using detailed 3D model"""
+	_log_message("SpaceStationModule3D: Loading detailed 3D model for module type %s" % ModuleType.keys()[module_type])
+
 	# Load the detailed space station model from Blender
 	var station_model_scene = preload("res://assets/models/space_station_module.gltf")
 	var station_model = station_model_scene.instantiate()
+	_log_message("SpaceStationModule3D: GLTF model instantiated successfully")
 
 	# Remove any old mesh instance if it exists
 	if mesh_instance:
 		mesh_instance.queue_free()
+		_log_message("SpaceStationModule3D: Removed old mesh instance")
 
 	# Add the detailed 3D model as our mesh instance
 	add_child(station_model)
 	station_model.name = "DetailedStationModel"
+	_log_message("SpaceStationModule3D: Added detailed model to scene tree")
 
-	# Find the mesh instance within the loaded model
-	mesh_instance = station_model.get_node("SpaceStationModule") as MeshInstance3D
-	if not mesh_instance:
+	# Debug: Log all children of the loaded model
+	_log_message("SpaceStationModule3D: Inspecting GLTF model structure:")
+	for i in range(station_model.get_child_count()):
+		var child = station_model.get_child(i)
+		_log_message("  Child %d: %s (Type: %s)" % [i, child.name, child.get_class()])
+
+	# Find the mesh instance within the loaded model - try direct name first
+	if station_model.has_node("SpaceStationModule"):
+		mesh_instance = station_model.get_node("SpaceStationModule") as MeshInstance3D
+		_log_message("SpaceStationModule3D: Found mesh by name 'SpaceStationModule'")
+	else:
+		_log_message("SpaceStationModule3D: No 'SpaceStationModule' node found, searching for MeshInstance3D...")
 		# Fallback: look for any MeshInstance3D in the loaded model
 		for child in station_model.get_children():
+			_log_message("  Checking child: %s (Type: %s)" % [child.name, child.get_class()])
 			if child is MeshInstance3D:
 				mesh_instance = child
+				_log_message("SpaceStationModule3D: Found MeshInstance3D: %s" % child.name)
 				break
+
+	if mesh_instance:
+		_log_message("SpaceStationModule3D: Successfully found mesh instance: %s" % mesh_instance.name)
+	else:
+		_log_message("SpaceStationModule3D: ERROR - No MeshInstance3D found in GLTF model!")
 
 	# Set up collision shape if not exists
 	if not collision_shape:

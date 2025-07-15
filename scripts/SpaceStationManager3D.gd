@@ -149,9 +149,11 @@ func _create_space_station(template: Dictionary, base_position: Vector3, station
 			station_modules.append(module)
 			all_modules.append(module)
 
-			# Connect module signals
-			module.module_entered.connect(_on_module_entered)
-			module.module_exited.connect(_on_module_exited)
+			# Connect module signals if they exist
+			if module.has_signal("module_entered"):
+				module.module_entered.connect(_on_module_entered)
+			if module.has_signal("module_exited"):
+				module.module_exited.connect(_on_module_exited)
 
 	var station_data = {
 		"id": station_id,
@@ -166,8 +168,8 @@ func _create_space_station(template: Dictionary, base_position: Vector3, station
 
 func _create_station_module(module_type: ModuleType, relative_position: Vector3, parent: Node3D, module_index: int) -> Node3D:
 	"""Create a single station module"""
-	# Create a Node3D and set the script manually to avoid type issues
-	var module = Node3D.new()
+	# Create a StaticBody3D as required by SpaceStationModule3D script
+	var module = StaticBody3D.new()
 	module.set_script(SpaceStationModule3DScript)
 	module.name = "Module_%d_%s" % [module_index, ModuleType.keys()[module_type]]
 
@@ -181,8 +183,15 @@ func _create_station_module(module_type: ModuleType, relative_position: Vector3,
 
 	parent.add_child(module)
 
+	# Wait for script to fully initialize
+	await get_tree().process_frame
+	await get_tree().process_frame  # Extra frame to ensure full initialization
+
+	# Force script initialization by calling _ready if it hasn't been called
+	if module.has_method("_ready"):
+		module._ready()
+
 	# Add visual details to make modules more interesting
-	await get_tree().process_frame  # Wait for module to initialize
 	if module.has_method("add_module_details"):
 		module.add_module_details()
 
