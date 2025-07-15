@@ -68,45 +68,36 @@ func _setup_3d_physics() -> void:
 
 func _setup_3d_sprite() -> void:
 	"""Configure 3D sprite properties"""
-	print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Setting up 3D sprite")
+	_log_message("DebrisObject3D: Setting up 3D sprite with billboard configuration")
 
 	if not sprite_3d:
 		sprite_3d = Sprite3D.new()
 		add_child(sprite_3d)
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Created new Sprite3D node")
+		_log_message("DebrisObject3D: Created new Sprite3D node")
 
 	# Configure sprite properties
 	sprite_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	sprite_3d.pixel_size = 0.0055  # Same size as player ship for visual consistency
 	sprite_3d.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 
-	print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Sprite3D configured - pixel_size: ", sprite_3d.pixel_size)
-	print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Sprite3D billboard mode: ", sprite_3d.billboard)
-	print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Sprite3D texture_filter: ", sprite_3d.texture_filter)
+	_log_message("DebrisObject3D: Sprite3D configured - pixel_size: %.10f, billboard: %d, filter: %d" % [sprite_3d.pixel_size, sprite_3d.billboard, sprite_3d.texture_filter])
 
 	# Apply pending texture if available
 	if pending_texture and pending_debris_type:
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Applying pending texture for debris type: ", pending_debris_type)
 		sprite_3d.texture = pending_texture
-
-		# Log detailed texture information
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Applied texture size: ", pending_texture.get_size())
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Applied texture resource path: ", pending_texture.resource_path)
 		var world_size = pending_texture.get_size() * sprite_3d.pixel_size
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: World render size: ", world_size)
 
-		# Check if texture is too large and needs scaling
+		# Check if texture is too large and auto-adjust pixel_size for performance
 		if pending_texture.get_size().x > 128 or pending_texture.get_size().y > 128:
-			print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: WARNING - Large texture detected, may need pixel_size adjustment")
-			# Calculate suggested pixel_size for reasonable world size
+			# Calculate and apply optimal pixel_size for reasonable world size (target ~3 units)
+			var original_pixel_size = sprite_3d.pixel_size
 			var suggested_pixel_size = 3.0 / max(pending_texture.get_size().x, pending_texture.get_size().y)
-			print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Suggested pixel_size: ", suggested_pixel_size)
+			sprite_3d.pixel_size = suggested_pixel_size
+			_log_message("DebrisObject3D: Auto-adjusted pixel_size from %.10f to %.10f for texture size %s" % [original_pixel_size, suggested_pixel_size, pending_texture.get_size()])
 
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Applied pending texture for debris type: ", pending_debris_type, " (size: ", pending_texture.get_size(), ")")
+		_log_message("DebrisObject3D: Applied pending texture for debris type: %s (size: %s, world size: %s)" % [pending_debris_type, pending_texture.get_size(), world_size])
 		pending_texture = null
 		pending_debris_type = ""
-	else:
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: No pending texture to apply")
 
 func _setup_collection_area() -> void:
 	"""Set up collection area for player interaction"""
@@ -288,32 +279,23 @@ func set_debris_data(type: String, val: int, color: Color) -> void:
 	set_meta("debris_id", debris_id)
 
 func set_debris_texture(texture: Texture2D, debris_type: String) -> void:
-	print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Setting texture for debris type: ", debris_type)
-	print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Texture valid: ", texture != null)
+	_log_message("DebrisObject3D: Setting texture for debris type: %s (valid: %s)" % [debris_type, texture != null])
 	if texture:
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Texture size: ", texture.get_size())
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Texture resource path: ", texture.resource_path)
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Texture class: ", texture.get_class())
+		# Log texture details only in debug mode
+		_log_message("DebrisObject3D: Texture loaded - size: %s, class: %s" % [texture.get_size(), texture.get_class()])
 
 	if sprite_3d:
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Sprite3D available - applying texture immediately")
 		sprite_3d.texture = texture
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Sprite3D texture applied")
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Sprite3D pixel_size: ", sprite_3d.pixel_size)
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Sprite3D billboard mode: ", sprite_3d.billboard)
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Sprite3D texture_filter: ", sprite_3d.texture_filter)
-
 		# Log actual rendered size
 		var actual_size = texture.get_size() * sprite_3d.pixel_size
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Calculated world size: ", actual_size)
+		_log_message("DebrisObject3D: Texture applied immediately - world size: %s" % actual_size)
 
 		pending_texture = null
 		pending_debris_type = ""
 	else:
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Sprite3D not available - storing as pending")
 		pending_texture = texture
 		pending_debris_type = debris_type
-		print("[", Time.get_datetime_string_from_system(), "] DebrisObject3D: Texture stored as pending for debris type: ", debris_type, " (texture size: ", texture.get_size(), ")")
+		_log_message("DebrisObject3D: Texture stored as pending for debris type: %s (size: %s)" % [debris_type, texture.get_size()])
 
 func _log_message(message: String) -> void:
 	"""Log message with timestamp"""

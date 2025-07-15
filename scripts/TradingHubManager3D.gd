@@ -166,11 +166,13 @@ func _create_trading_hub(template: Dictionary, position: Vector3, hub_id: int) -
 
 	# Configure the hub
 	trading_hub.name = "TradingHub_%d_%s" % [hub_id, template.name.replace(" ", "_")]
-	trading_hub.global_position = position
 	trading_hub.hub_type = template.get("type", "trading")
 
-	# Add to container
+	# Add to container first (required before setting global_position)
 	hub_container.add_child(trading_hub)
+
+	# Set position after adding to scene tree
+	trading_hub.global_position = position
 
 	# Connect signals if they exist
 	if trading_hub.has_signal("hub_entered"):
