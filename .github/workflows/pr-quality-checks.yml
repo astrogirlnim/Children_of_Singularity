@@ -22,7 +22,9 @@ jobs:
     - name: Validate Godot Project
       run: |
         echo "🎮 Validating Godot project structure and scripts..."
-        godot --headless --check --quit
+        echo "Working directory: $(pwd)"
+        echo "Project file exists: $(ls -la project.godot)"
+        godot --headless --check --quit --path .
 
     - name: Check GDScript Syntax
       run: |
@@ -32,7 +34,7 @@ jobs:
         find . -name "*.gd" -type f
         echo "Validating GDScript files with project context..."
         # Use project-level validation which checks all scripts in context
-        godot --headless --check --quit
+        godot --headless --check --quit --path .
 
   python-quality:
     name: Python Backend Quality
@@ -414,7 +416,7 @@ jobs:
         curl -f http://localhost:8000/api/v1/health
 
         # Test Godot project
-        godot --headless --check --quit
+        godot --headless --check --quit --path .
 
         # Clean up
         kill $BACKEND_PID
