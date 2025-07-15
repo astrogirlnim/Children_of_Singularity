@@ -74,26 +74,46 @@ func _setup_station_container() -> void:
 		_log_message("SpaceStationManager3D: Created station container")
 
 func _calculate_station_positions() -> void:
-	"""Calculate positions for space stations within zone bounds"""
-	_log_message("SpaceStationManager3D: Calculating station positions")
+	"""Calculate positions for space stations near player spawn location"""
+	_log_message("SpaceStationManager3D: Calculating station positions near player spawn")
 	station_positions.clear()
 
-	# Calculate grid layout for stations
-	var stations_per_side = ceil(sqrt(station_count))
-	var grid_spacing = min(zone_bounds.x, zone_bounds.z) / stations_per_side * 0.8
+	# Player spawn position is at (0, 2, 0) - place stations nearby
+	var player_spawn_position = Vector3(0, 2, 0)
+	var station_radius = 25.0  # Close radius around player spawn
+	var min_distance_between_stations = 15.0
 
 	for i in range(station_count):
-		var grid_x = i % int(stations_per_side)
-		var grid_z = i / int(stations_per_side)
+		var position: Vector3
+		var attempts = 0
+		var max_attempts = 20
 
-		var position = Vector3(
-			(grid_x - stations_per_side/2) * grid_spacing + randf_range(-10, 10),
-			randf_range(15, zone_bounds.y/2),  # Always above ground with collision clearance
-			(grid_z - stations_per_side/2) * grid_spacing + randf_range(-10, 10)
-		)
+		# Find a valid position near player spawn that doesn't overlap with other stations
+		while attempts < max_attempts:
+			# Generate position in a circle around player spawn
+			var angle = (PI * 2 * i / station_count) + randf_range(-PI/4, PI/4)  # Spread stations around player
+			var distance = randf_range(10.0, station_radius)  # Very close to player
+
+			position = Vector3(
+				player_spawn_position.x + cos(angle) * distance,
+				player_spawn_position.y + randf_range(8, 15),  # Keep stations floating high above floor (10-17)
+				player_spawn_position.z + sin(angle) * distance
+			)
+
+			# Check distance from other stations
+			var valid_position = true
+			for existing_pos in station_positions:
+				if existing_pos.distance_to(position) < min_distance_between_stations:
+					valid_position = false
+					break
+
+			if valid_position:
+				break
+
+			attempts += 1
 
 		station_positions.append(position)
-		_log_message("SpaceStationManager3D: Station %d position calculated: %s" % [i, position])
+		_log_message("SpaceStationManager3D: Station %d positioned near player spawn at: %s (distance from player: %.1f)" % [i, position, position.distance_to(player_spawn_position)])
 
 func _generate_space_stations() -> void:
 	"""Generate all space stations using templates"""

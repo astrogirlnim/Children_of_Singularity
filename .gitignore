@@ -49,6 +49,12 @@ logs/
 # Build outputs
 export/
 builds/
+releases/
+*.zip
+*.tar.gz
+*.dmg
+*.exe
+*.app
 # Large design files
 documentation/design/banner*.png
 documentation/godot_summarized/repomix-output.md

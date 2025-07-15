@@ -42,8 +42,15 @@ var module_data: Dictionary = {}
 var module_id: String = ""
 var is_active: bool = true
 
-## Space station sprite texture
-var station_sprite_texture: Texture2D = preload("res://assets/sprites/space_station_v1.png")
+## Space station sprite textures for rotation animation
+var station_sprite_textures: Array[Texture2D] = [
+	preload("res://assets/sprites/space_station_v3.png")  # Use only v3 sprite
+]
+
+## Animation properties (disabled since using single sprite)
+var current_sprite_index: int = 0
+var rotation_timer: Timer
+var rotation_speed: float = 2.0  # Time in seconds between sprite changes (unused)
 
 func _ready() -> void:
 	_log_message("SpaceStationModule3D: Initializing module type %s with sprite billboard" % ModuleType.keys()[module_type])
@@ -53,6 +60,7 @@ func _ready() -> void:
 	_setup_collision_shape()
 	_setup_interaction_area()
 	_configure_module_appearance()
+	_setup_rotation_animation()
 	_setup_module_data()
 	_log_message("SpaceStationModule3D: Module %s ready - ID: %s" % [ModuleType.keys()[module_type], module_id])
 
@@ -87,15 +95,16 @@ func _setup_sprite_billboard() -> void:
 	# Configure sprite for billboard mode (same as player and debris)
 	sprite_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	sprite_3d.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	sprite_3d.texture = station_sprite_texture
+	sprite_3d.texture = station_sprite_textures[current_sprite_index]
 	sprite_3d.pixel_size = 0.03  # 5-6x larger than player ship (0.0055) for realistic space station scale
 
 	_log_message("SpaceStationModule3D: Sprite billboard configured - Billboard: %s, Filter: %s, Pixel size: %s" % [sprite_3d.billboard, sprite_3d.texture_filter, sprite_3d.pixel_size])
 
-	if station_sprite_texture:
-		_log_message("SpaceStationModule3D: Station sprite loaded - Size: %s" % station_sprite_texture.get_size())
+	if station_sprite_textures.size() > 0 and station_sprite_textures[current_sprite_index]:
+		_log_message("SpaceStationModule3D: Station sprite v3 loaded - Size: %s" % station_sprite_textures[current_sprite_index].get_size())
+		_log_message("SpaceStationModule3D: Using single sprite v3 (no rotation animation)")
 	else:
-		_log_message("SpaceStationModule3D: ERROR - Failed to load station sprite texture!")
+		_log_message("SpaceStationModule3D: ERROR - Failed to load station sprite v3!")
 
 func _setup_collision_shape() -> void:
 	"""Set up collision shape for the station module"""
@@ -293,6 +302,62 @@ func set_sprite_scale(scale: Vector3) -> void:
 	if sprite_3d:
 		sprite_3d.scale = scale
 		_log_message("SpaceStationModule3D: Sprite scale set to %s" % scale)
+
+func _setup_rotation_animation() -> void:
+	"""Set up the rotation animation timer for cycling through sprite variants"""
+	_log_message("SpaceStationModule3D: Using single sprite v3 - no rotation animation needed")
+
+	# No rotation timer needed since we only have one sprite
+	# rotation_timer = Timer.new()
+	# rotation_timer.name = "RotationTimer"
+	# rotation_timer.wait_time = rotation_speed
+	# rotation_timer.autostart = true
+	# rotation_timer.timeout.connect(_rotate_sprite)
+	# add_child(rotation_timer)
+
+	# Set to use the single sprite (v3)
+	current_sprite_index = 0
+
+	_log_message("SpaceStationModule3D: Single sprite v3 setup complete - No animation needed")
+
+func _rotate_sprite() -> void:
+	"""Rotate to the next sprite in the sequence - NOT USED (single sprite only)"""
+	# Function kept for compatibility but not used since we only have one sprite
+	_log_message("SpaceStationModule3D: _rotate_sprite called but not needed (single sprite v3 only)")
+	return
+
+	# Original rotation code (disabled)
+	# if not sprite_3d or station_sprite_textures.size() <= 1:
+	# 	return
+	#
+	# # Move to next sprite in sequence
+	# current_sprite_index = (current_sprite_index + 1) % station_sprite_textures.size()
+	#
+	# # Update the sprite texture
+	# sprite_3d.texture = station_sprite_textures[current_sprite_index]
+	#
+	# # Log rotation for debugging (reduced frequency to avoid spam)
+	# if current_sprite_index == 0:  # Only log when completing a full cycle
+	# 	_log_message("SpaceStationModule3D: Completed rotation cycle - Now showing sprite v%d" % (current_sprite_index + 1))
+
+func set_rotation_speed(speed: float) -> void:
+	"""Set the rotation animation speed"""
+	rotation_speed = speed
+	if rotation_timer:
+		rotation_timer.wait_time = rotation_speed
+		_log_message("SpaceStationModule3D: Rotation speed updated to %s seconds" % rotation_speed)
+
+func pause_rotation() -> void:
+	"""Pause the rotation animation"""
+	if rotation_timer:
+		rotation_timer.paused = true
+		_log_message("SpaceStationModule3D: Rotation animation paused")
+
+func resume_rotation() -> void:
+	"""Resume the rotation animation"""
+	if rotation_timer:
+		rotation_timer.paused = false
+		_log_message("SpaceStationModule3D: Rotation animation resumed")
 
 func _log_message(message: String) -> void:
 	"""Log a message with timestamp"""

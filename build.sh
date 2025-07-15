@@ -2,12 +2,17 @@
 
 # build.sh
 # Build script for Children of the Singularity desktop game
-# Handles development runs and production builds
+# Handles development runs, production builds, and release packaging
 
 set -e
 
 echo "🎮 Children of the Singularity Build System"
 echo "============================================"
+
+# Version information
+VERSION=${GITHUB_REF_NAME:-"dev-$(date +%Y%m%d-%H%M%S)"}
+BUILD_NUMBER=${GITHUB_RUN_NUMBER:-"local"}
+COMMIT_HASH=${GITHUB_SHA:-$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")}
 
 # Colors for output
 RED='\033[0;31m'
@@ -178,6 +183,194 @@ show_status() {
     check_export_templates
 }
 
+# Function to build release packages for all platforms
+build_release() {
+    print_status "INFO" "Building release packages for all platforms..."
+    print_status "INFO" "Version: $VERSION (Build #$BUILD_NUMBER, Commit: $COMMIT_HASH)"
+    
+    # Check for export templates
+    check_export_templates
+    
+    # Create release directory structure
+    local release_dir="releases/$VERSION"
+    mkdir -p "$release_dir"
+    
+    # Build for all platforms
+    build_platform "Windows Desktop" "windows" "$release_dir/windows" ".exe"
+    build_platform "macOS" "macos" "$release_dir/macos" ".app"
+    build_platform "Linux/X11" "linux" "$release_dir/linux" ""
+    
+    # Create compressed archives
+    create_release_archives "$release_dir"
+    
+    # Generate release notes
+    generate_release_notes "$release_dir"
+    
+    print_status "SUCCESS" "Release build completed: $release_dir"
+}
+
+# Function to build for a specific platform
+build_platform() {
+    local platform_name="$1"
+    local preset_name="$2"
+    local output_dir="$3"
+    local extension="$4"
+    
+    print_status "INFO" "Building for $platform_name..."
+    
+    mkdir -p "$output_dir"
+    local output_file="$output_dir/Children_of_Singularity$extension"
+    
+    # Export the game
+    if godot --headless --export-release "$preset_name" "$output_file" .; then
+        print_status "SUCCESS" "Built for $platform_name: $output_file"
+        
+        # Copy additional assets if needed
+        if [ -f "README.md" ]; then
+            cp "README.md" "$output_dir/"
+        fi
+        if [ -f "LICENSE" ]; then
+            cp "LICENSE" "$output_dir/"
+        fi
+        
+    else
+        print_status "ERROR" "Failed to build for $platform_name"
+        return 1
+    fi
+}
+
+# Function to create compressed release archives
+create_release_archives() {
+    local release_dir="$1"
+    
+    print_status "INFO" "Creating release archives..."
+    
+    cd "$release_dir"
+    
+    # Create zip archives for each platform
+    if [ -d "windows" ]; then
+        zip -r "Children_of_Singularity_${VERSION}_Windows.zip" windows/
+        print_status "SUCCESS" "Created Windows archive"
+    fi
+    
+    if [ -d "macos" ]; then
+        zip -r "Children_of_Singularity_${VERSION}_macOS.zip" macos/
+        print_status "SUCCESS" "Created macOS archive"
+    fi
+    
+    if [ -d "linux" ]; then
+        tar -czf "Children_of_Singularity_${VERSION}_Linux.tar.gz" linux/
+        print_status "SUCCESS" "Created Linux archive"
+    fi
+    
+    cd - > /dev/null
+}
+
+# Function to generate release notes
+generate_release_notes() {
+    local release_dir="$1"
+    local notes_file="$release_dir/RELEASE_NOTES.md"
+    
+    print_status "INFO" "Generating release notes..."
+    
+    cat > "$notes_file" << EOF
+# Children of the Singularity - Release $VERSION
+
+**Build Information:**
+- Version: $VERSION
+- Build Number: $BUILD_NUMBER  
+- Commit: $COMMIT_HASH
+- Build Date: $(date)
+
+## Platform Downloads
+
+| Platform | Download | Notes |
+|----------|----------|--------|
+| Windows | Children_of_Singularity_${VERSION}_Windows.zip | Windows 10+ (64-bit) |
+| macOS | Children_of_Singularity_${VERSION}_macOS.zip | macOS 10.15+ (Universal) |
+| Linux | Children_of_Singularity_${VERSION}_Linux.tar.gz | Linux (64-bit) |
+
+## Installation
+
+### Windows
+1. Download and extract the Windows zip file
+2. Run \`Children_of_Singularity.exe\`
+
+### macOS  
+1. Download and extract the macOS zip file
+2. Run \`Children_of_Singularity.app\`
+3. If blocked by security, right-click and select "Open"
+
+### Linux
+1. Download and extract the Linux tar.gz file
+2. Make executable: \`chmod +x Children_of_Singularity\`
+3. Run: \`./Children_of_Singularity\`
+
+## Game Features
+
+- **3D Space Exploration**: Navigate through procedurally populated space zones
+- **Debris Collection**: Collect valuable space debris and artifacts
+- **Space Station Trading**: Interact with modular space stations
+- **Resource Management**: Manage collected resources and ship upgrades
+- **Dynamic Environment**: Real-time debris spawning and despawning system
+
+## System Requirements
+
+- **Minimum**: 
+  - OS: Windows 10 / macOS 10.15 / Ubuntu 18.04
+  - CPU: 2 GHz dual-core processor
+  - Memory: 4 GB RAM
+  - Graphics: Integrated graphics or dedicated GPU
+  - Storage: 500 MB available space
+
+- **Recommended**:
+  - OS: Windows 11 / macOS 12+ / Ubuntu 20.04+
+  - CPU: 3 GHz quad-core processor  
+  - Memory: 8 GB RAM
+  - Graphics: Dedicated GPU with 2GB VRAM
+  - Storage: 1 GB available space
+
+## Controls
+
+- **WASD** / **Arrow Keys**: Move ship
+- **Mouse**: Camera control  
+- **Space**: Collect debris (when near)
+- **Escape**: Pause/Menu
+
+## Known Issues
+
+- Export templates required for building from source
+- Some debris may occasionally flicker during collection
+
+## Support
+
+For issues or feedback, please visit our GitHub repository.
+
+---
+
+*Built with Godot 4.4.1*
+EOF
+
+    print_status "SUCCESS" "Generated release notes: $notes_file"
+}
+
+# Function to clean old releases (keep only latest N releases)
+clean_old_releases() {
+    local keep_count=${1:-1}
+    
+    print_status "INFO" "Cleaning old releases (keeping latest $keep_count)..."
+    
+    if [ -d "releases" ]; then
+        # List releases by modification time and remove old ones
+        cd releases
+        ls -1t | tail -n +$((keep_count + 1)) | xargs -r rm -rf
+        cd - > /dev/null
+        print_status "SUCCESS" "Cleaned old releases"
+    else
+        print_status "INFO" "No releases directory found"
+    fi
+}
+
 # Main script logic
 case "${1:-help}" in
     "dev"|"run")
@@ -189,24 +382,32 @@ case "${1:-help}" in
     "dist"|"build")
         build_dist
         ;;
+    "release")
+        build_release
+        ;;
+    "clean-releases")
+        clean_old_releases "${2:-1}"
+        ;;
     "status")
         show_status
         ;;
     "clean")
         print_status "INFO" "Cleaning build directories..."
-        rm -rf builds/
+        rm -rf builds/ releases/
         print_status "SUCCESS" "Build directories cleaned"
         ;;
     "help"|*)
-        echo "Usage: $0 [command]"
+        echo "Usage: $0 [command] [options]"
         echo ""
         echo "Commands:"
-        echo "  dev, run    - Run the game in development mode (default)"
-        echo "  debug, test - Validate game logic without graphics"
-        echo "  dist, build - Build distribution packages (requires export templates)"
-        echo "  status      - Show current build status"
-        echo "  clean       - Remove build directories"
-        echo "  help        - Show this help message"
+        echo "  dev, run       - Run the game in development mode (default)"
+        echo "  debug, test    - Validate game logic without graphics"
+        echo "  dist, build    - Build distribution packages (requires export templates)"
+        echo "  release        - Build complete release packages for all platforms"
+        echo "  clean-releases - Clean old releases (usage: clean-releases [keep_count])"
+        echo "  status         - Show current build status"
+        echo "  clean          - Remove build and release directories"
+        echo "  help           - Show this help message"
         echo ""
         echo "Examples:"
         echo "  $0 dev      # Run the game for development/testing"
