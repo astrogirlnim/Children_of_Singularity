@@ -119,7 +119,7 @@ func _create_boundary_wall(wall_name: String, position: Vector3, size: Vector3) 
 	wall.position = position
 
 	# Set collision layer for boundaries (layer 5)
-	wall.collision_layer = 32  # Layer 5 (2^4 = 16, but layer 5 = 2^4 = 32)
+	wall.collision_layer = 16  # Layer 5 (2^4 = 16)
 	wall.collision_mask = 1   # Collide with player (layer 1)
 
 	# Create collision shape
