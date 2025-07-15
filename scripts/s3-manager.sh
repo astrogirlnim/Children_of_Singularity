@@ -276,6 +276,129 @@ download_assets() {
     fi
 }
 
+# Function to upload documentation
+upload_documentation() {
+    local doc_path="${1:-documentation/}"
+    local s3_key="${2:-}"
+
+    if [ ! -d "$doc_path" ]; then
+        print_status "ERROR" "Documentation directory not found: $doc_path"
+        return 1
+    fi
+
+    print_status "S3" "Uploading documentation to S3..."
+
+    local s3_path
+    if [ -n "$s3_key" ]; then
+        s3_path="s3://$S3_BUCKET_NAME/documentation/$s3_key"
+    else
+        s3_path="s3://$S3_BUCKET_NAME/documentation/"
+    fi
+
+    # Upload documentation with metadata
+    aws s3 sync "$doc_path" "$s3_path" \
+        --metadata "content-type=documentation,upload-date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --no-progress
+
+    print_status "SUCCESS" "Documentation uploaded to: $s3_path"
+
+    # Create documentation index if it doesn't exist
+    create_documentation_index
+}
+
+# Function to download documentation
+download_documentation() {
+    local s3_key="${1:-}"
+    local target_path="${2:-documentation/}"
+
+    print_status "S3" "Downloading documentation from S3..."
+
+    local s3_path
+    if [ -n "$s3_key" ]; then
+        s3_path="s3://$S3_BUCKET_NAME/documentation/$s3_key"
+    else
+        s3_path="s3://$S3_BUCKET_NAME/documentation/"
+    fi
+
+    # Create target directory if needed
+    mkdir -p "$(dirname "$target_path")"
+
+    if aws s3 sync "$s3_path" "$target_path" --no-progress; then
+        print_status "SUCCESS" "Documentation downloaded to: $target_path"
+    else
+        print_status "ERROR" "Failed to download documentation from: $s3_path"
+        return 1
+    fi
+}
+
+# Function to create documentation index
+create_documentation_index() {
+    print_status "INFO" "Creating documentation index..."
+
+    local timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+    cat > /tmp/doc-index.md << EOF
+# Children of the Singularity - Documentation Index
+
+This documentation is automatically synchronized with the S3 bucket for release management.
+
+## Documentation Structure
+
+- **BrainLift/**: AI learning and concept development notes
+- **core_concept/**: Core project rules, tech stack, and UI guidelines
+- **design/**: Visual assets, sprites, and design documentation
+- **godot_summarized/**: Godot engine documentation and tutorials
+- **security/**: Security setup and guidelines
+
+## Release Integration
+
+This documentation is part of the automated release pipeline:
+- Uploaded to: \`s3://$S3_BUCKET_NAME/documentation/\`
+- Synchronized with local \`documentation/\` directory
+- Versioned alongside releases
+
+Last updated: $timestamp
+
+## Available Commands
+
+\`\`\`bash
+# Upload documentation
+./scripts/s3-manager.sh upload-doc
+
+# Download documentation
+./scripts/s3-manager.sh download-doc
+
+# List documentation
+./scripts/s3-manager.sh list-doc
+\`\`\`
+EOF
+
+    # Upload index
+    aws s3 cp "/tmp/doc-index.md" "s3://$S3_BUCKET_NAME/documentation/README.md" --no-progress
+
+    # Clean up
+    rm -f "/tmp/doc-index.md"
+
+    print_status "SUCCESS" "Documentation index created"
+}
+
+# Function to list documentation in S3
+list_documentation() {
+    local filter="${1:-}"
+
+    print_status "S3" "Listing documentation in S3 bucket..."
+
+    if [ -n "$filter" ]; then
+        aws s3 ls "s3://$S3_BUCKET_NAME/documentation/" --recursive | grep "$filter" | sort -k1,2
+    else
+        aws s3 ls "s3://$S3_BUCKET_NAME/documentation/" --recursive | sort -k1,2
+    fi
+
+    echo
+    print_status "INFO" "Documentation structure:"
+    aws s3 ls "s3://$S3_BUCKET_NAME/documentation/" | awk '{print "  " $2}' | sort
+}
+
 # Function to list releases in S3
 list_releases() {
     local prefix="${1:-}"
@@ -471,6 +594,11 @@ show_help() {
     echo "  upload-assets <path> <key>     - Upload development assets"
     echo "  download-assets <key> [path]   - Download development assets"
     echo
+    echo "Documentation Commands:"
+    echo "  upload-doc <path> [key]        - Upload documentation"
+    echo "  download-doc [key] [path]     - Download documentation"
+    echo "  list-doc [filter]             - List documentation"
+    echo
     echo "Maintenance Commands:"
     echo "  cleanup-dev [days]             - Clean old dev builds (default: 7 days)"
     echo "  storage-info                   - Show storage usage information"
@@ -488,6 +616,7 @@ show_help() {
     echo "  $0 download-release v1.0.0"
     echo "  $0 get-urls v1.0.0 86400      # 24-hour URLs"
     echo "  $0 upload-assets assets/ sprites/"
+    echo "  $0 upload-doc documentation/core_concept/"
     echo
 }
 
@@ -527,6 +656,18 @@ case "${1:-help}" in
     "download-assets")
         check_aws_cli || exit 1
         download_assets "$2" "$3"
+        ;;
+    "upload-doc")
+        check_aws_cli || exit 1
+        upload_documentation "$2" "$3"
+        ;;
+    "download-doc")
+        check_aws_cli || exit 1
+        download_documentation "$2" "$3"
+        ;;
+    "list-doc")
+        check_aws_cli || exit 1
+        list_documentation "$2"
         ;;
     "cleanup-dev")
         check_aws_cli || exit 1

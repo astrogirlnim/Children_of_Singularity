@@ -35,11 +35,65 @@ s3://children-of-singularity-releases/
 ├── assets/
 │   ├── sprites/
 │   ├── textures/
-│   └── latest-assets/ (symlink to current assets)
+│   └── latest-assets/ (current game assets)
+├── documentation/
+│   ├── BrainLift/
+│   ├── core_concept/
+│   ├── design/
+│   ├── godot_summarized/
+│   ├── security/
+│   └── README.md (auto-generated index)
 └── dev-builds/
     ├── 2024-01-15/
     └── 2024-01-16/ (auto-deleted after 7 days)
 ```
+
+## Documentation Management
+
+The documentation is stored at the root level of the S3 bucket for easy access and version control.
+
+### Upload Documentation
+
+```bash
+# Upload entire documentation directory
+./scripts/s3-manager.sh upload-doc
+
+# Upload specific documentation subdirectory
+./scripts/s3-manager.sh upload-doc documentation/core_concept/ core_concept/
+
+# Upload single documentation file
+./scripts/s3-manager.sh upload-doc documentation/README.md README.md
+```
+
+### Download Documentation
+
+```bash
+# Download entire documentation
+./scripts/s3-manager.sh download-doc
+
+# Download specific subdirectory
+./scripts/s3-manager.sh download-doc core_concept/ documentation/core_concept/
+
+# Download to different location
+./scripts/s3-manager.sh download-doc "" /tmp/docs/
+```
+
+### List Documentation
+
+```bash
+# List all documentation
+./scripts/s3-manager.sh list-doc
+
+# Filter documentation
+./scripts/s3-manager.sh list-doc "core_concept"
+```
+
+### Documentation Features
+
+- **Automatic Index**: `README.md` is auto-generated with structure overview
+- **Metadata**: Upload timestamp and content-type metadata added
+- **Versioning**: Documentation is versioned alongside releases
+- **Access Control**: Same security as other S3 resources
 
 ## Setup Guide
 
