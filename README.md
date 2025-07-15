@@ -1,6 +1,6 @@
 # Children of the Singularity
 
-A 2D / 2.5D multiplayer sci-fi salvage simulation inspired by Moebius, Planetes, and Nausicaä. Players explore cluttered orbital zones, collect and trade space debris, upgrade their ships (or themselves), and gradually uncover an unsettling AI-controlled ecosystem.
+A 2D / 2.5D multiplayer sci-fi salvage simulation inspired by Moebius, Planetes, and Nausicaa. Players explore cluttered orbital zones, collect and trade space debris, upgrade their ships (or themselves), and gradually uncover an unsettling AI-controlled ecosystem.
 
 ---
 
