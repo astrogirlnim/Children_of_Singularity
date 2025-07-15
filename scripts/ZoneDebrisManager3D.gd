@@ -245,12 +245,12 @@ func _create_debris_node_3d(debris_type: Dictionary, position: Vector3) -> Debri
 	)
 
 	# Set debris texture
-	if debris_textures.has(debris_type):
-		var texture = debris_textures[debris_type]
-		debris_node.set_debris_texture(texture, debris_type)
-		_log_message("ZoneDebrisManager3D: Assigned texture to debris type: %s" % debris_type)
+	if debris_textures.has(type_name):
+		var texture = debris_textures[type_name]
+		debris_node.set_debris_texture(texture, type_name)
+		_log_message("ZoneDebrisManager3D: Assigned texture to debris type: %s" % type_name)
 	else:
-		_log_message("ZoneDebrisManager3D: No texture available for debris type: %s" % debris_type)
+		_log_message("ZoneDebrisManager3D: No texture available for debris type: %s" % type_name)
 
 	# Add random rotation for variety
 	debris_node.rotation_degrees = Vector3(
