@@ -129,8 +129,8 @@ func _initialize_space_station_manager() -> void:
 	# Configure space station manager
 	space_station_manager.station_container = npc_hub_container
 	space_station_manager.zone_bounds = zone_bounds
-	space_station_manager.station_count = 3
-	space_station_manager.modules_per_station = 5
+	space_station_manager.station_count = 1
+	space_station_manager.modules_per_station = 1
 
 	# Connect space station manager signals
 	space_station_manager.player_entered_module.connect(_on_player_entered_module)

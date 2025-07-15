@@ -20,8 +20,8 @@ signal player_exited_module(module_type: String, module: Node3D)
 ## Export properties for configuration
 @export var station_container: Node3D
 @export var zone_bounds: Vector3 = Vector3(100, 50, 100)
-@export var station_count: int = 3
-@export var modules_per_station: int = 5
+@export var station_count: int = 2  # Reduced from 3 to 2 stations per zone
+@export var modules_per_station: int = 3  # Reduced from 5 to 3 modules per station
 @export var module_spacing: float = 20.0
 @export var station_separation: float = 60.0
 
@@ -37,36 +37,18 @@ enum ModuleType {
 	RESEARCH      # Labs and development
 }
 
-## Station layouts and configurations
+## Station layouts and configurations (simplified to 1 module per station)
 var station_templates: Array[Dictionary] = [
 	{
 		"name": "Trading Hub",
 		"modules": [
-			{"type": ModuleType.TRADING, "position": Vector3(0, 0, 0)},
-			{"type": ModuleType.DOCKING, "position": Vector3(25, 0, 0)},
-			{"type": ModuleType.STORAGE, "position": Vector3(-25, 0, 0)},
-			{"type": ModuleType.HABITAT, "position": Vector3(0, 15, 0)},
-			{"type": ModuleType.POWER, "position": Vector3(0, 0, 25)}
+			{"type": ModuleType.TRADING, "position": Vector3(0, 0, 0)}
 		]
 	},
 	{
-		"name": "Industrial Complex",
+		"name": "Industrial Outpost",
 		"modules": [
-			{"type": ModuleType.INDUSTRIAL, "position": Vector3(0, 0, 0)},
-			{"type": ModuleType.POWER, "position": Vector3(20, 0, 0)},
-			{"type": ModuleType.STORAGE, "position": Vector3(-20, 0, 0)},
-			{"type": ModuleType.RESEARCH, "position": Vector3(0, 0, 20)},
-			{"type": ModuleType.HABITAT, "position": Vector3(0, 15, -15)}
-		]
-	},
-	{
-		"name": "Command Outpost",
-		"modules": [
-			{"type": ModuleType.COMMAND, "position": Vector3(0, 0, 0)},
-			{"type": ModuleType.RESEARCH, "position": Vector3(22, 0, 0)},
-			{"type": ModuleType.DOCKING, "position": Vector3(-22, 0, 0)},
-			{"type": ModuleType.POWER, "position": Vector3(0, 12, 22)},
-			{"type": ModuleType.HABITAT, "position": Vector3(0, 8, -18)}
+			{"type": ModuleType.INDUSTRIAL, "position": Vector3(0, 0, 0)}
 		]
 	}
 ]

@@ -30,11 +30,11 @@ enum ModuleType {
 @export var interaction_radius: float = 15.0
 @export var hub_type: String = "general"  # For backward compatibility with trading system
 
-## Node references
-@onready var mesh_instance: MeshInstance3D = $MeshInstance3D
-@onready var collision_shape: CollisionShape3D = $CollisionShape3D
-@onready var interaction_area: Area3D = $InteractionArea
-@onready var interaction_collision: CollisionShape3D = $InteractionArea/CollisionShape3D
+## Node references (will be created dynamically if they don't exist)
+var mesh_instance: MeshInstance3D
+var collision_shape: CollisionShape3D
+var interaction_area: Area3D
+var interaction_collision: CollisionShape3D
 
 ## Module configuration data
 var module_data: Dictionary = {}
@@ -81,9 +81,11 @@ func _setup_interaction_area() -> void:
 	interaction_area.collision_layer = 0  # Don't collide with anything
 	interaction_area.collision_mask = 1   # Detect player (layer 1)
 
-	# Connect signals
-	interaction_area.body_entered.connect(_on_interaction_area_entered)
-	interaction_area.body_exited.connect(_on_interaction_area_exited)
+	# Connect signals (check if not already connected)
+	if not interaction_area.body_entered.is_connected(_on_interaction_area_entered):
+		interaction_area.body_entered.connect(_on_interaction_area_entered)
+	if not interaction_area.body_exited.is_connected(_on_interaction_area_exited):
+		interaction_area.body_exited.connect(_on_interaction_area_exited)
 
 	_log_message("SpaceStationModule3D: Interaction area configured with radius %.1f" % interaction_radius)
 
@@ -91,20 +93,20 @@ func _configure_module_appearance() -> void:
 	"""Configure the visual appearance based on module type using detailed 3D model"""
 	_log_message("SpaceStationModule3D: Starting appearance configuration for module type %s" % ModuleType.keys()[module_type])
 
-	# Load the detailed space station model from Blender
-	var station_model_scene = load("res://assets/models/space_station_module.gltf")
+	# Load the detailed space station model from Blender (station03 with base, ring, dock)
+	var station_model_scene = load("res://assets/models/space_station_detailed.glb")
 	if not station_model_scene:
-		_log_message("SpaceStationModule3D: ERROR - Failed to load GLTF file!")
+		_log_message("SpaceStationModule3D: ERROR - Failed to load detailed GLTF file!")
 		_create_fallback_appearance()
 		return
 
 	var station_model = station_model_scene.instantiate()
 	if not station_model:
-		_log_message("SpaceStationModule3D: ERROR - Failed to instantiate GLTF scene!")
+		_log_message("SpaceStationModule3D: ERROR - Failed to instantiate detailed GLTF scene!")
 		_create_fallback_appearance()
 		return
 
-	_log_message("SpaceStationModule3D: GLTF model loaded and instantiated successfully")
+	_log_message("SpaceStationModule3D: Detailed 3D station model loaded successfully (base+ring+dock)")
 
 	# Remove any old mesh instance if it exists
 	if mesh_instance:
@@ -122,24 +124,21 @@ func _configure_module_appearance() -> void:
 		var child = station_model.get_child(i)
 		_log_message("  Child %d: %s (Type: %s)" % [i, child.name, child.get_class()])
 
-	# Find the mesh instance within the loaded model - try direct name first
-	if station_model.has_node("SpaceStationModule"):
-		mesh_instance = station_model.get_node("SpaceStationModule") as MeshInstance3D
-		_log_message("SpaceStationModule3D: Found mesh by name 'SpaceStationModule'")
-	else:
-		_log_message("SpaceStationModule3D: No 'SpaceStationModule' node found, searching for MeshInstance3D...")
-		# Fallback: look for any MeshInstance3D in the loaded model
-		for child in station_model.get_children():
-			_log_message("  Checking child: %s (Type: %s)" % [child.name, child.get_class()])
-			if child is MeshInstance3D:
+	# Find the mesh instances within the loaded detailed model (StationBase, StationRing, StationDock)
+	var station_components = []
+	for child in station_model.get_children():
+		_log_message("  Checking child: %s (Type: %s)" % [child.name, child.get_class()])
+		if child is MeshInstance3D:
+			station_components.append(child)
+			# Use the first mesh as the main mesh_instance for compatibility
+			if not mesh_instance:
 				mesh_instance = child
-				_log_message("SpaceStationModule3D: Found MeshInstance3D: %s" % child.name)
-				break
+				_log_message("SpaceStationModule3D: Set primary mesh instance: %s" % child.name)
 
 	if mesh_instance:
-		_log_message("SpaceStationModule3D: Successfully found mesh instance: %s" % mesh_instance.name)
+		_log_message("SpaceStationModule3D: Successfully found %d mesh components in detailed station" % station_components.size())
 	else:
-		_log_message("SpaceStationModule3D: ERROR - No MeshInstance3D found in GLTF model!")
+		_log_message("SpaceStationModule3D: ERROR - No MeshInstance3D found in detailed GLTF model!")
 
 	# Set up collision shape if not exists
 	if not collision_shape:
@@ -218,18 +217,30 @@ func _configure_module_appearance() -> void:
 			collision_size = Vector3(10, 8, 14) * module_scale
 			hub_type = "research"
 
-	# Apply scale and material to the detailed model
+	# Apply scale to the detailed model
 	station_model.scale = model_scale
 
-	# Apply material override to all mesh instances in the model
-	if mesh_instance:
-		mesh_instance.material_override = material
-		_log_message("SpaceStationModule3D: Applied %s material to detailed model" % ModuleType.keys()[module_type])
+	# Apply material tinting to all mesh components for module type variation
+	if station_components.size() > 0:
+		# Create a material override with the module type color
+		for component in station_components:
+			if component is MeshInstance3D:
+				# Get the existing material or create a new one
+				var override_material = component.get_surface_override_material(0)
+				if not override_material:
+					override_material = StandardMaterial3D.new()
+					override_material.albedo_color = material.albedo_color
+					override_material.metallic = material.metallic
+					override_material.roughness = material.roughness
+					if material.emission_enabled:
+						override_material.emission_enabled = true
+						override_material.emission = material.emission
+					component.set_surface_override_material(0, override_material)
+				else:
+					# Tint the existing material
+					override_material.albedo_color = material.albedo_color
 
-	# Also apply to any child mesh instances
-	for child in station_model.get_children():
-		if child is MeshInstance3D:
-			child.material_override = material
+		_log_message("SpaceStationModule3D: Applied %s material tinting to %d components" % [ModuleType.keys()[module_type], station_components.size()])
 
 	# Create matching collision shape for the detailed model
 	var box_shape = BoxShape3D.new()
