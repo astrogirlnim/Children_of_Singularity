@@ -88,7 +88,7 @@ func _calculate_station_positions() -> void:
 
 		var position = Vector3(
 			(grid_x - stations_per_side/2) * grid_spacing + randf_range(-10, 10),
-			randf_range(-zone_bounds.y/4, zone_bounds.y/4),
+			randf_range(15, zone_bounds.y/2),  # Always above ground with collision clearance
 			(grid_z - stations_per_side/2) * grid_spacing + randf_range(-10, 10)
 		)
 
