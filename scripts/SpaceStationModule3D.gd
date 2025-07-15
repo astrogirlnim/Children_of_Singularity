@@ -88,7 +88,7 @@ func _setup_sprite_billboard() -> void:
 	sprite_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	sprite_3d.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	sprite_3d.texture = station_sprite_texture
-	sprite_3d.pixel_size = 0.008  # Slightly larger than debris (0.01) but smaller than player ship default
+	sprite_3d.pixel_size = 0.03  # 5-6x larger than player ship (0.0055) for realistic space station scale
 
 	_log_message("SpaceStationModule3D: Sprite billboard configured - Billboard: %s, Filter: %s, Pixel size: %s" % [sprite_3d.billboard, sprite_3d.texture_filter, sprite_3d.pixel_size])
 
@@ -104,9 +104,9 @@ func _setup_collision_shape() -> void:
 		collision_shape.name = "CollisionShape3D"
 		add_child(collision_shape)
 
-	# Create a reasonable collision box for the station
+	# Create a reasonable collision box for the station (scaled up to match larger sprite)
 	var box_shape = BoxShape3D.new()
-	box_shape.size = Vector3(8, 6, 8) * module_scale  # Default station size
+	box_shape.size = Vector3(20, 15, 20) * module_scale  # Larger collision to match 5-6x sprite scale
 	collision_shape.shape = box_shape
 
 	_log_message("SpaceStationModule3D: Collision shape configured - Size: %s" % box_shape.size)
@@ -151,62 +151,62 @@ func _configure_module_appearance() -> void:
 	# Configure scaling and color tinting based on module type
 	var sprite_scale = Vector3.ONE
 	var sprite_color = Color.WHITE
-	var collision_size = Vector3(8, 6, 8)  # Default size
+	var collision_size = Vector3(20, 15, 20)  # Default size (scaled up for larger station)
 
 	match module_type:
 		ModuleType.HABITAT:
 			sprite_scale = Vector3(1.0, 1.0, 1.0) * module_scale
 			sprite_color = Color(0.7, 1.0, 0.7, 1.0)  # Soft green tint
-			collision_size = Vector3(8, 6, 8) * module_scale
+			collision_size = Vector3(20, 15, 20) * module_scale
 			hub_type = "general"
 			_log_message("SpaceStationModule3D: Applied HABITAT appearance - Green tint")
 
 		ModuleType.INDUSTRIAL:
 			sprite_scale = Vector3(1.2, 1.0, 1.0) * module_scale
 			sprite_color = Color(1.0, 0.8, 0.6, 1.0)  # Industrial orange tint
-			collision_size = Vector3(10, 6, 8) * module_scale
+			collision_size = Vector3(25, 15, 20) * module_scale
 			hub_type = "industrial"
 			_log_message("SpaceStationModule3D: Applied INDUSTRIAL appearance - Orange tint")
 
 		ModuleType.DOCKING:
 			sprite_scale = Vector3(1.3, 0.8, 1.0) * module_scale
 			sprite_color = Color(1.0, 1.0, 0.6, 1.0)  # Docking yellow tint
-			collision_size = Vector3(12, 5, 8) * module_scale
+			collision_size = Vector3(30, 12, 20) * module_scale
 			hub_type = "docking"
 			_log_message("SpaceStationModule3D: Applied DOCKING appearance - Yellow tint")
 
 		ModuleType.TRADING:
 			sprite_scale = Vector3(1.1, 1.1, 1.1) * module_scale
 			sprite_color = Color.WHITE  # No tint - original sprite colors
-			collision_size = Vector3(9, 7, 9) * module_scale
+			collision_size = Vector3(22, 17, 22) * module_scale
 			hub_type = "trading"
 			_log_message("SpaceStationModule3D: Applied TRADING appearance - No tint")
 
 		ModuleType.COMMAND:
 			sprite_scale = Vector3(1.2, 1.3, 1.2) * module_scale
 			sprite_color = Color(0.6, 0.8, 1.0, 1.0)  # Command blue tint
-			collision_size = Vector3(10, 8, 10) * module_scale
+			collision_size = Vector3(25, 20, 25) * module_scale
 			hub_type = "command"
 			_log_message("SpaceStationModule3D: Applied COMMAND appearance - Blue tint")
 
 		ModuleType.POWER:
 			sprite_scale = Vector3(0.8, 1.5, 0.8) * module_scale
 			sprite_color = Color(1.0, 0.6, 0.6, 1.0)  # Power red tint
-			collision_size = Vector3(6, 9, 6) * module_scale
+			collision_size = Vector3(15, 22, 15) * module_scale
 			hub_type = "power"
 			_log_message("SpaceStationModule3D: Applied POWER appearance - Red tint")
 
 		ModuleType.STORAGE:
 			sprite_scale = Vector3(1.4, 1.0, 1.6) * module_scale
 			sprite_color = Color(0.8, 0.8, 0.8, 1.0)  # Storage gray tint
-			collision_size = Vector3(11, 6, 13) * module_scale
+			collision_size = Vector3(28, 15, 32) * module_scale
 			hub_type = "storage"
 			_log_message("SpaceStationModule3D: Applied STORAGE appearance - Gray tint")
 
 		ModuleType.RESEARCH:
 			sprite_scale = Vector3(1.0, 1.0, 1.4) * module_scale
 			sprite_color = Color(0.8, 0.6, 1.0, 1.0)  # Research purple tint
-			collision_size = Vector3(8, 6, 11) * module_scale
+			collision_size = Vector3(20, 15, 28) * module_scale
 			hub_type = "research"
 			_log_message("SpaceStationModule3D: Applied RESEARCH appearance - Purple tint")
 
