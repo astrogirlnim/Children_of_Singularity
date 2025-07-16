@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://c8xvwgqjkm8nh"]
+[gd_scene load_steps=15 format=3 uid="uid://c8xvwgqjkm8nh"]
 
 [ext_resource type="Script" uid="uid://cspf5upbn2cae" path="res://scripts/ZoneMain3D.gd" id="1_0k8x5"]
 [ext_resource type="PackedScene" uid="uid://bq2j5gk8m7xdh" path="res://scenes/player/PlayerShip3D.tscn" id="2_player_ship"]
@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" uid="uid://dltt2lxq3l5a0" path="res://scenes/objects/TradingHub3D.tscn" id="8_trading_hub"]
 [ext_resource type="PackedScene" uid="uid://dt50q3oh0r0g4" path="res://scenes/objects/UpgradeHub3D.tscn" id="9_upgrade_hub"]
 [ext_resource type="Theme" path="res://resources/themes/SpaceCustomTheme.tres" id="10_custom_theme"]
+[ext_resource type="Texture2D" path="res://assets/ui/lorge_border.png" id="11_border_image"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -311,3 +312,14 @@ anchor_top = 0.05
 anchor_right = 0.95
 anchor_bottom = 0.1
 text = "X"
+
+[node name="GameBorderOverlay" type="TextureRect" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("11_border_image")
+stretch_mode = 1
+mouse_filter = 2
