@@ -8,10 +8,10 @@
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_main_panel"]
 texture = ExtResource("1_main_card")
-texture_margin_left = 40.0
-texture_margin_top = 30.0
-texture_margin_right = 40.0
-texture_margin_bottom = 30.0
+texture_margin_left = 35.0
+texture_margin_top = 25.0
+texture_margin_right = 35.0
+texture_margin_bottom = 25.0
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_inventory_panel"]
 texture = ExtResource("2_alt_card")
@@ -22,40 +22,54 @@ texture_margin_bottom = 25.0
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_small_panel"]
 texture = ExtResource("3_small_card")
+texture_margin_left = 25.0
+texture_margin_top = 20.0
+texture_margin_right = 25.0
+texture_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_horizontal_panel"]
+texture = ExtResource("1_main_card")
+texture_margin_left = 25.0
+texture_margin_top = 35.0
+texture_margin_right = 25.0
+texture_margin_bottom = 35.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_horizontal_alt_panel"]
+texture = ExtResource("2_alt_card")
+texture_margin_left = 20.0
+texture_margin_top = 30.0
+texture_margin_right = 20.0
+texture_margin_bottom = 30.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_normal"]
+texture = ExtResource("4_line_box")
 texture_margin_left = 20.0
 texture_margin_top = 15.0
 texture_margin_right = 20.0
 texture_margin_bottom = 15.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_normal"]
-texture = ExtResource("4_line_box")
-texture_margin_left = 25.0
-texture_margin_top = 20.0
-texture_margin_right = 25.0
-texture_margin_bottom = 20.0
-
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_hover"]
 texture = ExtResource("4_line_box")
-texture_margin_left = 25.0
-texture_margin_top = 20.0
-texture_margin_right = 25.0
-texture_margin_bottom = 20.0
+texture_margin_left = 20.0
+texture_margin_top = 15.0
+texture_margin_right = 20.0
+texture_margin_bottom = 15.0
 modulate_color = Color(1.2, 1.2, 1.2, 1.0)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_active"]
 texture = ExtResource("5_icon_box")
-texture_margin_left = 25.0
-texture_margin_top = 20.0
-texture_margin_right = 25.0
-texture_margin_bottom = 20.0
+texture_margin_left = 20.0
+texture_margin_top = 15.0
+texture_margin_right = 20.0
+texture_margin_bottom = 15.0
 modulate_color = Color(1.0, 1.1, 1.2, 1.0)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_disabled"]
 texture = ExtResource("4_line_box")
-texture_margin_left = 25.0
-texture_margin_top = 20.0
-texture_margin_right = 25.0
-texture_margin_bottom = 20.0
+texture_margin_left = 20.0
+texture_margin_top = 15.0
+texture_margin_right = 20.0
+texture_margin_bottom = 15.0
 modulate_color = Color(0.6, 0.6, 0.6, 0.7)
 
 [resource]
@@ -70,3 +84,9 @@ Label/constants/shadow_offset_x = 1
 Label/constants/shadow_offset_y = 1
 Panel/styles/panel = SubResource("StyleBoxTexture_main_panel")
 PanelContainer/styles/panel = SubResource("StyleBoxTexture_main_panel")
+
+# Theme variations for different panel orientations
+Panel/theme_types/HorizontalPanel/styles/panel = SubResource("StyleBoxTexture_horizontal_panel")
+Panel/theme_types/HorizontalAltPanel/styles/panel = SubResource("StyleBoxTexture_horizontal_alt_panel")
+Panel/theme_types/InventoryPanel/styles/panel = SubResource("StyleBoxTexture_inventory_panel")
+Panel/theme_types/SmallPanel/styles/panel = SubResource("StyleBoxTexture_small_panel")
