@@ -321,5 +321,5 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("11_border_image")
-stretch_mode = 1
+stretch_mode = 5
 mouse_filter = 2
