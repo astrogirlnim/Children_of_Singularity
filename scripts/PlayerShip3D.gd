@@ -94,6 +94,11 @@ func _setup_collision_detection() -> void:
 	"""Set up collision detection for the 3D player ship"""
 	_log_message("PlayerShip3D: Setting up 3D collision detection")
 
+	# Set collision layers for proper boundary detection
+	collision_layer = 1   # Player on layer 1
+	collision_mask = 17   # Detect layer 1 (other players/objects) + layer 5 (16) for boundaries
+	_log_message("PlayerShip3D: Collision layers configured - Layer: 1, Mask: 17 (includes boundary walls)")
+
 	if collision_shape:
 		# Create collision shape wider than sprite (critical for 3D)
 		var box_shape = BoxShape3D.new()

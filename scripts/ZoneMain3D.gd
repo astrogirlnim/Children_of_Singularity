@@ -35,6 +35,7 @@ signal npc_hub_entered()
 # Preloaded scripts for 3D systems
 const SpaceStationModule3DScript = preload("res://scripts/SpaceStationModule3D.gd")
 const SpaceStationManager3DScript = preload("res://scripts/SpaceStationManager3D.gd")
+const ZoneBoundaryManager3DScript = preload("res://scripts/ZoneBoundaryManager3D.gd")
 
 # 3D Debris system
 var debris_manager_3d: ZoneDebrisManager3D
@@ -45,10 +46,13 @@ var space_station_manager: Node3D
 # 3D Trading Hub system (mechanical trading devices only)
 var trading_hub_manager: Node3D
 
+# 3D Zone Boundary system (invisible collision walls)
+var zone_boundary_manager: ZoneBoundaryManager3D
+
 # Zone properties
 var zone_name: String = "Zone Alpha 3D"
 var zone_id: String = "zone_alpha_3d_01"
-var zone_bounds: Vector3 = Vector3(100, 50, 100)  # 3D bounds
+var zone_bounds: Vector3 = Vector3(400, 50, 400)  # 3D bounds - expanded playable area
 var game_logs: Array[String] = []
 
 func _ready() -> void:
@@ -88,6 +92,9 @@ func _initialize_3d_zone() -> void:
 
 	# Initialize NPC hubs (space stations near player spawn)
 	_initialize_npc_hubs()
+
+	# Initialize zone boundaries (invisible collision walls)
+	_initialize_zone_boundaries()
 
 	# Initialize HUD
 	if debug_label:
@@ -222,6 +229,34 @@ func _initialize_trading_hub_manager() -> void:
 
 	# Log hub position for debugging (deferred to next frame)
 	call_deferred("_log_trading_hub_positions")
+
+func _initialize_zone_boundaries() -> void:
+	"""Initialize the 3D zone boundary system with invisible collision walls"""
+	_log_message("ZoneMain3D: Initializing 3D zone boundary system")
+
+	# Create the zone boundary manager instance
+	zone_boundary_manager = ZoneBoundaryManager3DScript.new()
+	zone_boundary_manager.name = "ZoneBoundaryManager3D"
+
+	# Configure boundary settings
+	zone_boundary_manager.zone_bounds = zone_bounds
+	zone_boundary_manager.warning_distance = 20.0
+	zone_boundary_manager.enable_warnings = true
+	zone_boundary_manager.enable_visual_indicators = false  # Set to true for debugging
+
+	# Set player reference for boundary checking
+	if player_ship:
+		zone_boundary_manager.set_player_reference(player_ship)
+
+	# Connect boundary manager signals
+	zone_boundary_manager.boundary_warning.connect(_on_boundary_warning)
+	zone_boundary_manager.boundary_collision.connect(_on_boundary_collision)
+	zone_boundary_manager.boundary_safe.connect(_on_boundary_safe)
+
+	# Add to scene tree
+	add_child(zone_boundary_manager)
+
+	_log_message("ZoneMain3D: Zone boundary system initialized - Invisible walls created around zone bounds: %s" % zone_bounds)
 
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
@@ -373,6 +408,30 @@ func _log_trading_hub_positions() -> void:
 		else:
 			_log_message("ZoneMain3D: WARNING - No trading hub positions calculated")
 
+## Signal handlers for zone boundaries
+
+func _on_boundary_warning(distance: float, direction: String) -> void:
+	"""Handle boundary warning when player approaches zone edge"""
+	_log_message("ZoneMain3D: BOUNDARY WARNING - %.1f units from %s boundary" % [distance, direction])
+
+	# Display warning message to player (could be integrated with UI system)
+	if hud:
+		var warning_message = "WARNING: Approaching zone boundary (%s) - %.1f units remaining" % [direction.to_upper(), distance]
+		# This could be expanded to show a visual warning in the UI
+		_log_message("ZoneMain3D: Warning displayed to player: %s" % warning_message)
+
+func _on_boundary_collision(position: Vector3, boundary_type: String) -> void:
+	"""Handle boundary collision when player hits zone wall"""
+	_log_message("ZoneMain3D: BOUNDARY COLLISION - Player hit %s at position %s" % [boundary_type, position])
+
+	# Optional: Add camera shake or other feedback
+	if camera_controller and camera_controller.has_method("shake"):
+		camera_controller.shake(2.0, 0.3)
+
+func _on_boundary_safe() -> void:
+	"""Handle when player returns to safe zone area"""
+	_log_message("ZoneMain3D: Player returned to safe zone area")
+
 ## Debris manager access methods
 func get_debris_manager() -> ZoneDebrisManager3D:
 	"""Get reference to the debris manager"""
@@ -389,6 +448,29 @@ func get_debris_stats() -> Dictionary:
 	if debris_manager_3d:
 		return debris_manager_3d.get_debris_stats()
 	return {}
+
+## Zone boundary manager access methods
+func get_boundary_manager() -> ZoneBoundaryManager3D:
+	"""Get reference to the zone boundary manager"""
+	return zone_boundary_manager
+
+func get_boundary_info() -> Dictionary:
+	"""Get zone boundary information"""
+	if zone_boundary_manager:
+		return zone_boundary_manager.get_boundary_info()
+	return {}
+
+func is_position_in_bounds(position: Vector3) -> bool:
+	"""Check if a position is within zone boundaries"""
+	if zone_boundary_manager:
+		return zone_boundary_manager.is_position_in_bounds(position)
+	return true
+
+func enable_visual_boundaries(enabled: bool) -> void:
+	"""Enable or disable visual boundary indicators for debugging"""
+	if zone_boundary_manager:
+		zone_boundary_manager.enable_visual_boundaries(enabled)
+		_log_message("ZoneMain3D: Visual boundaries %s" % ("enabled" if enabled else "disabled"))
 
 ## Space station manager access methods
 func get_space_station_manager() -> Node3D:
