@@ -152,6 +152,11 @@ func _setup_sprite_billboard() -> void:
 	sprite_3d.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	sprite_3d.pixel_size = 0.03  # 5-6x larger than player ship (0.0055) for realistic space station scale
 
+	# Ensure visibility and disable any automatic culling
+	sprite_3d.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sprite_3d.visibility_range_end = 0.0  # Disable distance-based visibility culling
+	sprite_3d.visibility_range_begin = 0.0
+
 	# Set initial frame if textures are loaded
 	if station_animation_textures.size() > current_frame and station_animation_textures[current_frame]:
 		sprite_3d.texture = station_animation_textures[current_frame]

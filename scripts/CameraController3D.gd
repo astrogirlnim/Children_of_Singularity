@@ -66,8 +66,8 @@ func setup_mario_kart_camera() -> void:
 	# FORCE PERSPECTIVE projection (override scene file)
 	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
 	camera.fov = camera_fov
-	camera.near = 0.3   # Very close for detailed view
-	camera.far = 2000.0  # Extended far plane for skybox visibility (was 300.0)
+	camera.near = 0.5   # Increased from 0.3 for better depth precision
+	camera.far = 1600.0  # Reduced from 2000.0 but still accommodates skybox at 1500.0 radius
 
 	# Clear any manual transform from scene file - let script control everything
 	camera.transform = Transform3D.IDENTITY

@@ -15,6 +15,7 @@ extends MeshInstance3D
 @export var use_random_tint: bool = false  # Enable random color variations
 @export var tint_hue_range: float = 30.0  # Hue variation range in degrees (0-360)
 @export var tint_saturation: float = 0.2  # Color saturation strength
+@export var is_overlay_layer: bool = false  # Whether this layer needs PNG transparency support
 
 ## Internal references
 var sphere_mesh: SphereMesh
@@ -75,13 +76,24 @@ func _setup_material() -> void:
 	material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED  # Don't write to depth buffer
 	material.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
 
-	# Configure transparency for PNG alpha channel support
-	material.flags_transparent = true
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+	# Force skybox to render first (behind everything)
+	material.sorting_offset = -1000.0  # Render before other objects
 
-	# Critical: Set render priority to ensure skybox renders before game objects
-	# Note: In Godot 4.4, render priority is handled differently for transparent materials
+	# Configure transparency based on layer type
+	if is_overlay_layer:
+		# Overlay layers need transparency for PNG alpha channel support
+		material.flags_transparent = true
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+		if debug_logging:
+			print("[SkyboxLayer] Configured as transparent overlay layer")
+	else:
+		# Base layers should be opaque for proper depth ordering
+		material.flags_transparent = false
+		material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+		material.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+		if debug_logging:
+			print("[SkyboxLayer] Configured as opaque base layer")
 
 	# Ensure proper render order for layered skyboxes
 	material.vertex_color_use_as_albedo = false

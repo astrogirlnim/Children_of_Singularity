@@ -80,6 +80,11 @@ func _setup_3d_sprite() -> void:
 	sprite_3d.pixel_size = 0.0055  # Same size as player ship for visual consistency
 	sprite_3d.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 
+	# Ensure visibility and disable any automatic culling
+	sprite_3d.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sprite_3d.visibility_range_end = 0.0  # Disable distance-based visibility culling
+	sprite_3d.visibility_range_begin = 0.0
+
 	_log_message("DebrisObject3D: Sprite3D configured - pixel_size: %.10f, billboard: %d, filter: %d" % [sprite_3d.pixel_size, sprite_3d.billboard, sprite_3d.texture_filter])
 
 	# Apply pending texture if available
