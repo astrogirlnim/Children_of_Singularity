@@ -29,7 +29,7 @@ signal debris_collected_by_player(player_id: int, debris_id: String, debris_type
 var multiplayer_peer: ENetMultiplayerPeer
 var is_server: bool = false
 var is_client: bool = false
-var is_connected: bool = false
+var is_network_connected: bool = false
 var server_port: int = 12345
 var max_players: int = 32
 var current_players: Dictionary = {}
@@ -57,7 +57,7 @@ func start_server() -> bool:
 
 	multiplayer.multiplayer_peer = multiplayer_peer
 	is_server = true
-	is_connected = true
+	is_network_connected = true
 	_log_message("NetworkManager: ENet server started successfully")
 	return true
 
@@ -83,7 +83,7 @@ func disconnect_from_server() -> void:
 		multiplayer_peer.close()
 
 	multiplayer.multiplayer_peer = null
-	is_connected = false
+	is_network_connected = false
 	is_client = false
 	is_server = false
 	current_players.clear()
@@ -94,7 +94,7 @@ func disconnect_from_server() -> void:
 
 func send_player_update(player_data: Dictionary) -> void:
 	"""Send player state update to server"""
-	if not is_connected:
+	if not is_network_connected:
 		_log_message("NetworkManager: Cannot send update - not connected")
 		return
 
@@ -158,7 +158,7 @@ func get_network_info() -> Dictionary:
 	return {
 		"is_server": is_server,
 		"is_client": is_client,
-		"is_connected": is_connected,
+		"is_connected": is_network_connected,
 		"server_port": server_port,
 		"max_players": max_players,
 		"current_players": current_players.size(),
@@ -204,17 +204,17 @@ func _on_peer_disconnected(id: int) -> void:
 
 func _on_connected_to_server() -> void:
 	_log_message("NetworkManager: Successfully connected to server")
-	is_connected = true
+	is_network_connected = true
 	connected_to_server.emit()
 
 func _on_connection_failed() -> void:
 	_log_message("NetworkManager: Connection to server failed")
-	is_connected = false
+	is_network_connected = false
 	is_client = false
 
 func _on_server_disconnected() -> void:
 	_log_message("NetworkManager: Server disconnected")
-	is_connected = false
+	is_network_connected = false
 	is_client = false
 	current_players.clear()
 	player_positions.clear()

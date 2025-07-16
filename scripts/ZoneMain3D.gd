@@ -49,6 +49,9 @@ var trading_hub_manager: Node3D
 # 3D Zone Boundary system (invisible collision walls)
 var zone_boundary_manager: ZoneBoundaryManager3D
 
+# 3D Background system (layered background elements with parallax)
+var background_manager: BackgroundManager3D
+
 # Zone properties
 var zone_name: String = "Zone Alpha 3D"
 var zone_id: String = "zone_alpha_3d_01"
@@ -95,6 +98,9 @@ func _initialize_3d_zone() -> void:
 
 	# Initialize zone boundaries (invisible collision walls)
 	_initialize_zone_boundaries()
+
+	# Initialize background system (layered background elements with parallax)
+	_initialize_background_system()
 
 	# Initialize HUD
 	if debug_label:
@@ -258,10 +264,55 @@ func _initialize_zone_boundaries() -> void:
 
 	_log_message("ZoneMain3D: Zone boundary system initialized - Invisible walls created around zone bounds: %s" % zone_bounds)
 
+func _initialize_background_system() -> void:
+	"""Initialize the 3D background system with layered elements and parallax scrolling"""
+	_log_message("ZoneMain3D: Initializing background system for enhanced depth perception")
+
+	# Create and configure background manager
+	background_manager = BackgroundManager3D.new()
+	background_manager.name = "BackgroundManager3D"
+
+	# Configure background manager properties
+	background_manager.parallax_strength = 0.1
+	background_manager.enable_parallax = true
+	background_manager.enable_performance_culling = true
+	background_manager.max_background_distance = 500.0
+
+	# Set camera reference for parallax calculations
+	if camera_3d:
+		background_manager.set_camera_reference(camera_3d)
+		_log_message("ZoneMain3D: Camera reference set for background parallax")
+	else:
+		_log_message("ZoneMain3D: Warning - Camera3D not found for background system")
+
+	# Add background manager to scene (position at origin, behind everything)
+	background_manager.position = Vector3.ZERO
+	add_child(background_manager)
+
+	# Connect background manager signals
+	background_manager.background_ready.connect(_on_background_ready)
+	background_manager.layer_visibility_changed.connect(_on_background_layer_visibility_changed)
+
+	_log_message("ZoneMain3D: Background system initialized with layered elements")
+
+func _on_background_ready() -> void:
+	"""Handle background system ready signal"""
+	_log_message("ZoneMain3D: Background system fully loaded with %d layers" % background_manager.get_layer_count())
+
+	# Update debug display to show background info
+	_update_debug_display()
+
+func _on_background_layer_visibility_changed(layer_name: String, layer_visible: bool) -> void:
+	"""Handle background layer visibility changes for performance monitoring"""
+	_log_message("ZoneMain3D: Background layer '%s' visibility changed to %s" % [layer_name, layer_visible])
+
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
 	if debug_label:
-		debug_label.text = "Children of the Singularity - %s [3D DEBUG] | Environment: 3D" % zone_name
+		var bg_info = ""
+		if background_manager:
+			bg_info = " | BG Layers: %d" % background_manager.get_layer_count()
+		debug_label.text = "Children of the Singularity - %s [3D DEBUG] | Environment: 3D%s" % [zone_name, bg_info]
 
 func _log_message(message: String) -> void:
 	"""Add a message to the game log and display it"""
@@ -350,22 +401,22 @@ func _on_debris_spawned(debris: DebrisObject3D) -> void:
 		_log_message("ZoneMain3D: Debris spawned - Type: %s, Position: %s" % [debris.get_debris_type(), debris.global_position])
 
 ## Signal handlers for NPC hubs
-func _on_hub_entered(hub_type: String, hub: Node3D) -> void:
+func _on_hub_entered(hub_type: String, _hub: Node3D) -> void:
 	"""Handle player entering NPC hub"""
 	_log_message("ZoneMain3D: Player entered %s hub" % hub_type)
 	npc_hub_entered.emit()
 
-func _on_hub_exited(hub_type: String, hub: Node3D) -> void:
+func _on_hub_exited(hub_type: String, _hub: Node3D) -> void:
 	"""Handle player exiting NPC hub"""
 	_log_message("ZoneMain3D: Player exited %s hub" % hub_type)
 
 ## Signal handlers for space station manager (legacy - may be unused now)
-func _on_player_entered_module(module_type: String, module: Node3D) -> void:
+func _on_player_entered_module(module_type: String, _module: Node3D) -> void:
 	"""Handle player entering space station module"""
 	_log_message("ZoneMain3D: Player entered space station module - %s" % module_type)
 	npc_hub_entered.emit()
 
-func _on_player_exited_module(module_type: String, module: Node3D) -> void:
+func _on_player_exited_module(module_type: String, _module: Node3D) -> void:
 	"""Handle player exiting space station module"""
 	_log_message("ZoneMain3D: Player exited space station module - %s" % module_type)
 
@@ -377,12 +428,12 @@ func _on_hub_created(hub: Node3D) -> void:
 	"""Handle trading hub creation"""
 	_log_message("ZoneMain3D: Trading hub created at %s" % hub.global_position)
 
-func _on_player_entered_hub(hub_type: String, hub: Node3D) -> void:
+func _on_player_entered_hub(hub_type: String, _hub: Node3D) -> void:
 	"""Handle player entering trading hub"""
 	_log_message("ZoneMain3D: Player entered trading hub: %s" % hub_type)
 	npc_hub_entered.emit()
 
-func _on_player_exited_hub(hub_type: String, hub: Node3D) -> void:
+func _on_player_exited_hub(hub_type: String, _hub: Node3D) -> void:
 	"""Handle player exiting trading hub"""
 	_log_message("ZoneMain3D: Player exited trading hub: %s" % hub_type)
 

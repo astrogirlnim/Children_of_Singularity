@@ -96,7 +96,7 @@ func _calculate_station_positions() -> void:
 
 			position = Vector3(
 				player_spawn_position.x + cos(angle) * distance,
-				player_spawn_position.y + randf_range(10, 15),  # Much higher to float above floor (10-14 units total)
+				player_spawn_position.y + randf_range(-0.5, 0.5),  # Changed from +randf_range(10, 15) to keep stations at ship level (Y=2)
 				player_spawn_position.z + sin(angle) * distance
 			)
 
@@ -337,9 +337,9 @@ func create_custom_station(station_name: String, position: Vector3, module_types
 		var col = i % int(modules_per_row)
 
 		var module_position = Vector3(
-			(col - modules_per_row/2) * module_spacing,
+			(col - modules_per_row/2.0) * module_spacing,
 			0,
-			(row - modules_per_row/2) * module_spacing
+			(row - modules_per_row/2.0) * module_spacing
 		)
 
 		custom_template.modules.append({

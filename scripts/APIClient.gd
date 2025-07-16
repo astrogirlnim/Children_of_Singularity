@@ -8,8 +8,7 @@ extends HTTPRequest
 ## Signal emitted when player data is loaded
 signal player_data_loaded(player_data: Dictionary)
 
-## Signal emitted when player data save is complete
-signal player_data_saved(success: bool)
+
 
 ## Signal emitted when inventory is updated
 signal inventory_updated(inventory_data: Array)
@@ -36,11 +35,11 @@ func _ready() -> void:
 	_log_message("APIClient: HTTP client ready")
 
 ## Load player data from the backend
-func load_player_data(player_id: String = "") -> void:
-	if player_id.is_empty():
-		player_id = self.player_id
+func load_player_data(target_player_id: String = "") -> void:
+	if target_player_id.is_empty():
+		target_player_id = self.player_id
 
-	var url = "%s/players/%s" % [base_url, player_id]
+	var url = "%s/players/%s" % [base_url, target_player_id]
 	_log_message("APIClient: Loading player data from %s" % url)
 
 	var request_id = _make_request(url, HTTPClient.METHOD_GET, [], "load_player_data")
@@ -127,7 +126,7 @@ func _make_request(url: String, method: HTTPClient.Method, headers: Array, reque
 
 	return request_id
 
-func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
+func _on_request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	"""Handle HTTP request completion"""
 	var response_text = body.get_string_from_utf8()
 	_log_message("APIClient: Request completed - Code: %d, Response: %s" % [response_code, response_text])

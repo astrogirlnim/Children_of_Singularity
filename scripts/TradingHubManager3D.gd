@@ -73,21 +73,21 @@ func _calculate_hub_positions() -> void:
 	_log_message("TradingHubManager3D: Floor boundaries: X(%.1f to %.1f), Z(%.1f to %.1f)" % [floor_min_x, floor_max_x, floor_min_z, floor_max_z])
 
 	for i in range(hub_count):
-		var position: Vector3
+		var hub_position: Vector3
 		var attempts = 0
 		var max_attempts = 50  # Increased attempts for random positioning
 
 		# Try to find a good random position within floor boundaries
 		while attempts < max_attempts:
 			# Generate completely random position within floor boundaries
-			position = Vector3(
+			hub_position = Vector3(
 				randf_range(floor_min_x, floor_max_x),  # Random X within floor
-				player_spawn_position.y + 0.5,         # Just above floor level
+				player_spawn_position.y,                # Changed from +0.5 to exact ship level (Y=2)
 				randf_range(floor_min_z, floor_max_z)   # Random Z within floor
 			)
 
 			# Check distance constraints
-			var distance_from_player = position.distance_to(player_spawn_position)
+			var distance_from_player = hub_position.distance_to(player_spawn_position)
 			var valid_position = true
 
 			# Validate player distance constraints
@@ -106,13 +106,13 @@ func _calculate_hub_positions() -> void:
 			if space_station_manager and space_station_manager.has_method("get_all_modules"):
 				var station_modules = space_station_manager.get_all_modules()
 				for station_module in station_modules:
-					if position.distance_to(station_module.global_position) < min_distance_from_stations:
+					if hub_position.distance_to(station_module.global_position) < min_distance_from_stations:
 						valid_position = false
 						break
 
 			# Check distance from other hubs
 			for existing_pos in hub_positions:
-				if position.distance_to(existing_pos) < 20.0:  # Minimum distance between hubs
+				if hub_position.distance_to(existing_pos) < 20.0:  # Minimum distance between hubs
 					valid_position = false
 					break
 
@@ -131,11 +131,11 @@ func _calculate_hub_positions() -> void:
 				Vector3(-30, player_spawn_position.y + 0.5, 30),
 				Vector3(30, player_spawn_position.y + 0.5, 30)
 			]
-			position = fallback_positions[i % fallback_positions.size()]
+			hub_position = fallback_positions[i % fallback_positions.size()]
 
-		hub_positions.append(position)
-		var distance_from_player = position.distance_to(player_spawn_position)
-		_log_message("TradingHubManager3D: Trading hub %d positioned randomly at: %s (distance from player: %.1f)" % [i, position, distance_from_player])
+		hub_positions.append(hub_position)
+		var distance_from_player = hub_position.distance_to(player_spawn_position)
+		_log_message("TradingHubManager3D: Trading hub %d positioned randomly at: %s (distance from player: %.1f)" % [i, hub_position, distance_from_player])
 
 func _generate_trading_hubs() -> void:
 	"""Generate all trading hubs using templates"""
@@ -150,7 +150,7 @@ func _generate_trading_hubs() -> void:
 
 		_log_message("TradingHubManager3D: Created trading hub '%s' at %s" % [template.name, hub_position])
 
-func _create_trading_hub(template: Dictionary, position: Vector3, hub_id: int) -> Dictionary:
+func _create_trading_hub(template: Dictionary, hub_position: Vector3, hub_id: int) -> Dictionary:
 	"""Create a single trading hub from a template"""
 	# Load the TradingHub3D scene
 	var trading_hub_scene = preload("res://scenes/objects/TradingHub3D.tscn")
@@ -172,7 +172,7 @@ func _create_trading_hub(template: Dictionary, position: Vector3, hub_id: int) -
 	hub_container.add_child(trading_hub)
 
 	# Set position after adding to scene tree
-	trading_hub.global_position = position
+	trading_hub.global_position = hub_position
 
 	# Connect signals if they exist
 	if trading_hub.has_signal("hub_entered"):
@@ -194,15 +194,15 @@ func _create_trading_hub(template: Dictionary, position: Vector3, hub_id: int) -
 	hub_created.emit(trading_hub)
 	return hub_data
 
-func _on_hub_entered(hub_type: String, hub: Node3D) -> void:
+func _on_hub_entered(hub_type: String, _hub: Node3D) -> void:
 	"""Handle player entering any trading hub"""
 	_log_message("TradingHubManager3D: Player entered %s hub" % hub_type)
-	player_entered_hub.emit(hub_type, hub)
+	player_entered_hub.emit(hub_type, _hub)
 
-func _on_hub_exited(hub_type: String, hub: Node3D) -> void:
+func _on_hub_exited(hub_type: String, _hub: Node3D) -> void:
 	"""Handle player exiting any trading hub"""
 	_log_message("TradingHubManager3D: Player exited %s hub" % hub_type)
-	player_exited_hub.emit(hub_type, hub)
+	player_exited_hub.emit(hub_type, _hub)
 
 func get_all_hubs() -> Array[Node3D]:
 	"""Get all trading hubs"""

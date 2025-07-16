@@ -25,15 +25,30 @@ signal npc_hub_exited()
 
 ## Node references
 @onready var sprite_3d: Sprite3D = $Sprite3D
+
+## Ship animation textures - preloaded for fast switching
+var ship_textures: Array[Texture2D] = []
+var current_frame: int = 113  # Default straight frame
 @onready var collision_shape: CollisionShape3D = $CollisionShape3D
 @onready var collection_area: Area3D = $CollectionArea
 @onready var collection_collision: CollisionShape3D = $CollectionArea/CollectionCollision
 @onready var interaction_area: Area3D = $InteractionArea
 @onready var interaction_collision: CollisionShape3D = $InteractionArea/InteractionCollision
 
-## Sprite resources for directional movement
-var sprite_normal: Texture2D = preload("res://assets/sprites/ships/ship_right_vibrant.png")
-var sprite_left: Texture2D = preload("res://assets/sprites/ships/ship_sprite_left_updated.png")
+## Animation state management
+var current_animation_state: String = "straight"
+var is_turning_left: bool = false
+var is_turning_right: bool = false
+var animation_tween: Tween
+
+## Animation constants
+const DEFAULT_FRAME: int = 113
+const LEFT_TURN_START: int = 113
+const LEFT_TURN_END: int = 98
+const RIGHT_TURN_START: int = 113
+const RIGHT_TURN_END: int = 127
+const ANIMATION_SPEED: float = 12.0  # frames per second
+const FRAME_COUNT: int = 127  # Total number of frames (1-127)
 
 ## Movement state
 var input_vector: Vector2 = Vector2.ZERO
@@ -72,18 +87,32 @@ func _ready() -> void:
 	_initialize_player_state()
 	_log_message("PlayerShip3D: 3D player ship ready for gameplay")
 
+func _exit_tree() -> void:
+	"""Clean up animation resources when node is freed"""
+	if animation_tween and animation_tween.is_valid():
+		animation_tween.kill()
+
+	_log_message("PlayerShip3D: Animation resources cleaned up")
+
 func _setup_3d_components() -> void:
 	"""Set up 3D-specific components"""
 	_log_message("PlayerShip3D: Setting up 3D components")
+
+	# Load all ship animation frame textures
+	_load_ship_animation_textures()
 
 	# Configure sprite to always face camera (billboard mode)
 	if sprite_3d:
 		sprite_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		sprite_3d.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 
-		# Note: Ship sprite texture is loaded from the scene file (player_ship.png)
-		# No need to create programmatic texture - using imported sprite instead
-		_log_message("PlayerShip3D: 3D sprite texture created with billboard mode")
+		# Set default frame (113 - straight position)
+		_set_ship_frame(DEFAULT_FRAME)
+
+		_log_message("PlayerShip3D: Sprite3D configured with billboard mode and default frame")
+
+	# Animation tween will be created when needed
+	animation_tween = null
 
 	# Configure floor settings (important for 3D physics)
 	floor_stop_on_slope = true
@@ -192,21 +221,25 @@ func _physics_process(delta: float) -> void:
 func _handle_input() -> void:
 	"""Handle input for 3D movement"""
 	input_vector = Vector2.ZERO
-	var is_moving_left = false
+
+	# Reset turning states
+	is_turning_left = false
+	is_turning_right = false
 
 	# Get input from all movement actions
 	if Input.is_action_pressed("move_right"):
 		input_vector.x += 1
+		is_turning_right = true
 	if Input.is_action_pressed("move_left"):
 		input_vector.x -= 1
-		is_moving_left = true
+		is_turning_left = true
 	if Input.is_action_pressed("move_down"):
 		input_vector.y += 1  # This will map to Z in 3D
 	if Input.is_action_pressed("move_up"):
 		input_vector.y -= 1  # This will map to Z in 3D
 
-	# Update sprite based on movement direction
-	_update_sprite_direction(is_moving_left)
+	# Update ship frame animation based on turning state
+	_update_ship_turning_animation()
 
 	# Normalize diagonal movement
 	if input_vector.length() > 1.0:
@@ -538,16 +571,67 @@ func teleport_to(new_position: Vector3) -> void:
 	_log_message("PlayerShip3D: Teleported to %s" % new_position)
 	position_changed.emit(global_position)
 
-func _update_sprite_direction(is_moving_left: bool) -> void:
-	"""Update sprite texture based on movement direction"""
-	if not sprite_3d:
+func _load_ship_animation_textures() -> void:
+	"""Load all ship animation frame textures into memory for fast switching"""
+	_log_message("PlayerShip3D: Loading ship animation textures...")
+
+	# Resize array to hold all frames (1-127, but we use 0-based indexing)
+	ship_textures.resize(FRAME_COUNT + 1)
+
+	# Load frames from 98 to 127 (the range we actually use)
+	for i in range(98, FRAME_COUNT + 1):
+		var texture_path = "res://assets/sprites/ships/animation_frames/ship_turn_frame_%03d.png" % i
+		var texture = load(texture_path) as Texture2D
+		if texture:
+			ship_textures[i] = texture
+		else:
+			_log_message("PlayerShip3D: Failed to load texture: %s" % texture_path)
+
+	_log_message("PlayerShip3D: Loaded ship animation textures (frames 98-127)")
+
+func _set_ship_frame(frame_number: int) -> void:
+	"""Set the ship sprite to a specific frame"""
+	if frame_number < 98 or frame_number > FRAME_COUNT:
+		_log_message("PlayerShip3D: Invalid frame number: %d" % frame_number)
 		return
 
-	if is_moving_left:
-		if sprite_3d.texture != sprite_left:
-			sprite_3d.texture = sprite_left
-			_log_message("PlayerShip3D: Switched to left-facing sprite")
+	if sprite_3d and ship_textures.size() > frame_number and ship_textures[frame_number]:
+		sprite_3d.texture = ship_textures[frame_number]
+		current_frame = frame_number
 	else:
-		if sprite_3d.texture != sprite_normal:
-			sprite_3d.texture = sprite_normal
-			_log_message("PlayerShip3D: Switched to normal sprite")
+		_log_message("PlayerShip3D: Could not set frame %d" % frame_number)
+
+func _update_ship_turning_animation() -> void:
+	"""Update ship turning animation based on movement direction"""
+	var target_frame = DEFAULT_FRAME  # Frame 113 (straight)
+
+	if is_turning_left and not is_turning_right:
+		target_frame = LEFT_TURN_END  # Frame 98 (full left turn)
+	elif is_turning_right and not is_turning_left:
+		target_frame = RIGHT_TURN_END  # Frame 127 (full right turn)
+	else:
+		target_frame = DEFAULT_FRAME  # Frame 113 (straight)
+
+	# Smoothly animate to target frame if different from current
+	if target_frame != current_frame:
+		_animate_to_frame(target_frame)
+
+func _animate_to_frame(target_frame: int) -> void:
+	"""Smoothly animate from current frame to target frame"""
+	if animation_tween and animation_tween.is_valid():
+		animation_tween.kill()
+
+	animation_tween = create_tween()
+	animation_tween.set_ease(Tween.EASE_OUT)
+	animation_tween.set_trans(Tween.TRANS_CUBIC)
+
+	var frame_difference = abs(target_frame - current_frame)
+	var animation_duration = frame_difference / ANIMATION_SPEED
+
+	# Animate through the frames
+	animation_tween.tween_method(_set_ship_frame_interpolated, current_frame, target_frame, animation_duration)
+
+func _set_ship_frame_interpolated(frame: float) -> void:
+	"""Set ship frame with interpolation support for smooth animation"""
+	var rounded_frame = int(round(frame))
+	_set_ship_frame(rounded_frame)

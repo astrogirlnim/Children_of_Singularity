@@ -157,7 +157,7 @@ func _update_floating_animation(delta: float) -> void:
 	if force_direction.length() > 0:
 		apply_central_force(force_direction * 2.0)
 
-func _update_rotation_animation(delta: float) -> void:
+func _update_rotation_animation(_delta: float) -> void:
 	"""Update rotation animation"""
 	if not is_inside_tree() or is_collected:
 		return
@@ -278,8 +278,8 @@ func set_debris_data(type: String, val: int, color: Color) -> void:
 	set_meta("debris_value", val)
 	set_meta("debris_id", debris_id)
 
-func set_debris_texture(texture: Texture2D, debris_type: String) -> void:
-	_log_message("DebrisObject3D: Setting texture for debris type: %s (valid: %s)" % [debris_type, texture != null])
+func set_debris_texture(texture: Texture2D, texture_debris_type: String) -> void:
+	_log_message("DebrisObject3D: Setting texture for debris type: %s (valid: %s)" % [texture_debris_type, texture != null])
 	if texture:
 		# Log texture details only in debug mode
 		_log_message("DebrisObject3D: Texture loaded - size: %s, class: %s" % [texture.get_size(), texture.get_class()])
@@ -294,8 +294,8 @@ func set_debris_texture(texture: Texture2D, debris_type: String) -> void:
 		pending_debris_type = ""
 	else:
 		pending_texture = texture
-		pending_debris_type = debris_type
-		_log_message("DebrisObject3D: Texture stored as pending for debris type: %s (size: %s)" % [debris_type, texture.get_size()])
+		pending_debris_type = texture_debris_type
+		_log_message("DebrisObject3D: Texture stored as pending for debris type: %s (size: %s)" % [texture_debris_type, texture.get_size()])
 
 func _log_message(message: String) -> void:
 	"""Log message with timestamp"""
