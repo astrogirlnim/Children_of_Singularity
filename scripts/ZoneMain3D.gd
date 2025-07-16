@@ -710,21 +710,14 @@ func _create_grouped_inventory_item_control(item_type: String, group_data: Dicti
 	var item_panel = Panel.new()
 	item_panel.custom_minimum_size = Vector2(120, 80)
 
-	# Set rarity-based border color
-	var border_color = _get_rarity_color(item_type)
-	var style = StyleBoxFlat.new()
-	style.border_color = border_color
-	style.border_width_left = 3
-	style.border_width_right = 3
-	style.border_width_top = 3
-	style.border_width_bottom = 3
-	style.bg_color = Color(0.1, 0.1, 0.1, 0.8)
-	item_panel.add_theme_stylebox_override("panel", style)
+	# Use the new generated theme styling with proper margins
+	item_panel.theme_type_variation = "InventoryPanel"
 
+	# Use VBoxContainer for clean layout
 	var vbox = VBoxContainer.new()
 	item_panel.add_child(vbox)
 	vbox.anchors_preset = Control.PRESET_FULL_RECT
-	vbox.add_theme_constant_override("separation", 2)
+	vbox.add_theme_constant_override("separation", 4)
 
 	# Item type label
 	var type_label = Label.new()

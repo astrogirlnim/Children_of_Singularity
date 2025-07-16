@@ -192,57 +192,47 @@ func _create_grouped_inventory_item_control(item_type: String, group_data: Dicti
 	var item_panel = Panel.new()
 	item_panel.custom_minimum_size = Vector2(120, 90)
 
-	# Add subtle background based on rarity
-	var rarity_color = _get_rarity_color(item_type)
-	var style_box = StyleBoxFlat.new()
-	style_box.bg_color = Color(0.1, 0.1, 0.1, 0.8)
-	style_box.border_color = rarity_color
-	style_box.border_width_top = 2
-	style_box.border_width_bottom = 2
-	style_box.border_width_left = 2
-	style_box.border_width_right = 2
-	item_panel.add_theme_stylebox_override("panel", style_box)
+	# The new StyleBoxFlat theme handles all styling and margins automatically
+	# No need for manual styling - just use theme type
+	item_panel.theme_type_variation = "InventoryPanel"
+
+	# Use VBoxContainer for clean layout - theme margins will handle spacing
+	var vbox = VBoxContainer.new()
+	item_panel.add_child(vbox)
+	vbox.anchors_preset = Control.PRESET_FULL_RECT
+	vbox.add_theme_constant_override("separation", 4)  # Space between text elements
 
 	# Item type name (formatted nicely)
 	var item_label = Label.new()
 	item_label.text = _format_item_name(item_type)
 	item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	item_label.position = Vector2(5, 5)
-	item_label.size = Vector2(110, 25)
 	item_label.add_theme_font_size_override("font_size", 12)
+	vbox.add_child(item_label)
 
 	# Quantity display
 	var quantity_label = Label.new()
 	quantity_label.text = "x%d" % group_data.quantity
 	quantity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	quantity_label.position = Vector2(5, 30)
-	quantity_label.size = Vector2(110, 20)
-	quantity_label.modulate = Color.CYAN
+	quantity_label.add_theme_color_override("font_color", Color.CYAN)
 	quantity_label.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(quantity_label)
 
 	# Total value display
 	var value_label = Label.new()
 	value_label.text = "%d credits" % group_data.total_value
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value_label.position = Vector2(5, 55)
-	value_label.size = Vector2(110, 20)
-	value_label.modulate = Color.YELLOW
+	value_label.add_theme_color_override("font_color", Color.YELLOW)
 	value_label.add_theme_font_size_override("font_size", 11)
+	vbox.add_child(value_label)
 
 	# Individual value (smaller text)
 	var unit_value_label = Label.new()
 	unit_value_label.text = "(%d each)" % group_data.individual_value
 	unit_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	unit_value_label.position = Vector2(5, 72)
-	unit_value_label.size = Vector2(110, 15)
-	unit_value_label.modulate = Color.GRAY
+	unit_value_label.add_theme_color_override("font_color", Color.GRAY)
 	unit_value_label.add_theme_font_size_override("font_size", 9)
-
-	item_panel.add_child(item_label)
-	item_panel.add_child(quantity_label)
-	item_panel.add_child(value_label)
-	item_panel.add_child(unit_value_label)
+	vbox.add_child(unit_value_label)
 
 	return item_panel
 

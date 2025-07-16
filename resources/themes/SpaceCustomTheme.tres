@@ -1,92 +1,168 @@
 [gd_resource type="Theme" format=3]
 
-[ext_resource type="Texture2D" path="res://assets/ui/gui_card.png" id="1_main_card"]
-[ext_resource type="Texture2D" path="res://assets/ui/gui_card_2.png" id="2_alt_card"]
-[ext_resource type="Texture2D" path="res://assets/ui/gui_small_card.png" id="3_small_card"]
-[ext_resource type="Texture2D" path="res://assets/ui/gui_line_box.png" id="4_line_box"]
-[ext_resource type="Texture2D" path="res://assets/ui/gui_icon_tripple_box.png" id="5_icon_box"]
+# No more external PNG dependencies for cards - everything is generated!
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_main_panel"]
-texture = ExtResource("1_main_card")
-texture_margin_left = 0.0
-texture_margin_top = 0.0
-texture_margin_right = 0.0
-texture_margin_bottom = 0.0
+# Generated card styles with proper margins and space theme
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_main_panel"]
+bg_color = Color(0.08, 0.12, 0.2, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.5, 0.8, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+content_margin_left = 15.0
+content_margin_top = 12.0
+content_margin_right = 15.0
+content_margin_bottom = 12.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_inventory_panel"]
-texture = ExtResource("2_alt_card")
-texture_margin_left = 0.0
-texture_margin_top = 0.0
-texture_margin_right = 0.0
-texture_margin_bottom = 0.0
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_inventory_panel"]
+bg_color = Color(0.06, 0.08, 0.15, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.2, 0.8, 0.6, 0.7)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+content_margin_left = 18.0
+content_margin_top = 15.0
+content_margin_right = 18.0
+content_margin_bottom = 15.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_small_panel"]
-texture = ExtResource("3_small_card")
-texture_margin_left = 0.0
-texture_margin_top = 0.0
-texture_margin_right = 0.0
-texture_margin_bottom = 0.0
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_small_panel"]
+bg_color = Color(0.05, 0.08, 0.12, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.6, 0.9, 0.6)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_left = 4
+corner_radius_bottom_right = 4
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_horizontal_panel"]
-texture = ExtResource("1_main_card")
-texture_margin_left = 0.0
-texture_margin_top = 0.0
-texture_margin_right = 0.0
-texture_margin_bottom = 0.0
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_horizontal_panel"]
+bg_color = Color(0.08, 0.12, 0.2, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.5, 0.8, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+content_margin_left = 15.0
+content_margin_top = 12.0
+content_margin_right = 15.0
+content_margin_bottom = 12.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_horizontal_alt_panel"]
-texture = ExtResource("2_alt_card")
-texture_margin_left = 0.0
-texture_margin_top = 0.0
-texture_margin_right = 0.0
-texture_margin_bottom = 0.0
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_horizontal_alt_panel"]
+bg_color = Color(0.06, 0.08, 0.15, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.2, 0.8, 0.6, 0.7)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+content_margin_left = 18.0
+content_margin_top = 15.0
+content_margin_right = 18.0
+content_margin_bottom = 15.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_normal"]
-texture = ExtResource("4_line_box")
-texture_margin_left = 20.0
-texture_margin_top = 15.0
-texture_margin_right = 20.0
-texture_margin_bottom = 15.0
+# Generated button styles to match the space theme
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+bg_color = Color(0.1, 0.15, 0.25, 0.8)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.6, 0.8, 0.7)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+content_margin_left = 20.0
+content_margin_top = 15.0
+content_margin_right = 20.0
+content_margin_bottom = 15.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_hover"]
-texture = ExtResource("4_line_box")
-texture_margin_left = 20.0
-texture_margin_top = 15.0
-texture_margin_right = 20.0
-texture_margin_bottom = 15.0
-modulate_color = Color(1.2, 1.2, 1.2, 1.0)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.15, 0.2, 0.3, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.7, 0.9, 0.8)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+content_margin_left = 20.0
+content_margin_top = 15.0
+content_margin_right = 20.0
+content_margin_bottom = 15.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_active"]
-texture = ExtResource("5_icon_box")
-texture_margin_left = 20.0
-texture_margin_top = 15.0
-texture_margin_right = 20.0
-texture_margin_bottom = 15.0
-modulate_color = Color(1.0, 1.1, 1.2, 1.0)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_active"]
+bg_color = Color(0.2, 0.25, 0.35, 0.95)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.6, 0.8, 1.0, 0.9)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+content_margin_left = 20.0
+content_margin_top = 15.0
+content_margin_right = 20.0
+content_margin_bottom = 15.0
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_disabled"]
-texture = ExtResource("4_line_box")
-texture_margin_left = 20.0
-texture_margin_top = 15.0
-texture_margin_right = 20.0
-texture_margin_bottom = 15.0
-modulate_color = Color(0.6, 0.6, 0.6, 0.7)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_disabled"]
+bg_color = Color(0.05, 0.08, 0.12, 0.6)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.4, 0.5, 0.5)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+content_margin_left = 20.0
+content_margin_top = 15.0
+content_margin_right = 20.0
+content_margin_bottom = 15.0
 
 [resource]
-Button/styles/disabled = SubResource("StyleBoxTexture_button_disabled")
-Button/styles/focus = SubResource("StyleBoxTexture_button_hover")
-Button/styles/hover = SubResource("StyleBoxTexture_button_hover")
-Button/styles/normal = SubResource("StyleBoxTexture_button_normal")
-Button/styles/pressed = SubResource("StyleBoxTexture_button_active")
+Button/styles/disabled = SubResource("StyleBoxFlat_button_disabled")
+Button/styles/focus = SubResource("StyleBoxFlat_button_hover")
+Button/styles/hover = SubResource("StyleBoxFlat_button_hover")
+Button/styles/normal = SubResource("StyleBoxFlat_button_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_button_active")
 Label/colors/font_color = Color(0.9, 0.9, 0.9, 1.0)
 Label/colors/font_shadow_color = Color(0.0, 0.0, 0.0, 0.8)
 Label/constants/shadow_offset_x = 1
 Label/constants/shadow_offset_y = 1
-Panel/styles/panel = SubResource("StyleBoxTexture_main_panel")
-PanelContainer/styles/panel = SubResource("StyleBoxTexture_main_panel")
+Panel/styles/panel = SubResource("StyleBoxFlat_main_panel")
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_main_panel")
 
-# Theme variations for different panel orientations
-Panel/theme_types/HorizontalPanel/styles/panel = SubResource("StyleBoxTexture_horizontal_panel")
-Panel/theme_types/HorizontalAltPanel/styles/panel = SubResource("StyleBoxTexture_horizontal_alt_panel")
-Panel/theme_types/InventoryPanel/styles/panel = SubResource("StyleBoxTexture_inventory_panel")
-Panel/theme_types/SmallPanel/styles/panel = SubResource("StyleBoxTexture_small_panel")
+# Theme variations for different panel orientations - now with proper margins!
+Panel/theme_types/HorizontalPanel/styles/panel = SubResource("StyleBoxFlat_horizontal_panel")
+Panel/theme_types/HorizontalAltPanel/styles/panel = SubResource("StyleBoxFlat_horizontal_alt_panel")
+Panel/theme_types/InventoryPanel/styles/panel = SubResource("StyleBoxFlat_inventory_panel")
+Panel/theme_types/SmallPanel/styles/panel = SubResource("StyleBoxFlat_small_panel")
