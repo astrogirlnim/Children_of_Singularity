@@ -204,7 +204,7 @@ func _get_spawn_position_away_from_player_3d() -> Vector3:
 
 	return Vector3.ZERO  # Failed to find suitable position
 
-func _spawn_debris_at_position_3d(position: Vector3) -> void:
+func _spawn_debris_at_position_3d(spawn_position: Vector3) -> void:
 	"""Spawn debris at specific 3D position"""
 	if not debris_container:
 		push_error("ZoneDebrisManager3D: No debris container assigned!")
@@ -215,15 +215,15 @@ func _spawn_debris_at_position_3d(position: Vector3) -> void:
 		return
 
 	var debris_type = _get_random_debris_type()
-	var debris_node = _create_debris_node_3d(debris_type, position)
+	var debris_node = _create_debris_node_3d(debris_type, spawn_position)
 
 	if debris_node:
 		# Add to scene tree first before setting position
 		debris_container.add_child(debris_node)
 
 		# Now set position after node is in scene tree
-		debris_node.global_position = position
-		debris_node.initial_position = position
+		debris_node.global_position = spawn_position
+		debris_node.initial_position = spawn_position
 
 		active_debris.append(debris_node)
 		current_debris_count += 1
@@ -234,7 +234,7 @@ func _spawn_debris_at_position_3d(position: Vector3) -> void:
 		debris_spawned.emit(debris_node)
 		_emit_count_change_if_needed()
 
-		_log_message("ZoneDebrisManager3D: Spawned %s at 3D position %s" % [debris_type.get("type", "unknown"), position])
+		_log_message("ZoneDebrisManager3D: Spawned %s at 3D position %s" % [debris_type.get("type", "unknown"), spawn_position])
 
 func _get_random_debris_type() -> Dictionary:
 	"""Get random debris type based on weighted probabilities"""
@@ -249,7 +249,7 @@ func _get_random_debris_type() -> Dictionary:
 
 	return debris_types[0]  # Fallback
 
-func _create_debris_node_3d(debris_type: Dictionary, position: Vector3) -> DebrisObject3D:
+func _create_debris_node_3d(debris_type: Dictionary, _spawn_position: Vector3) -> DebrisObject3D:
 	"""Create a 3D debris node with proper components"""
 	var debris_node = debris_3d_scene.instantiate() as DebrisObject3D
 	if not debris_node:
@@ -373,21 +373,21 @@ func collect_debris_3d(debris: DebrisObject3D) -> Dictionary:
 
 	return debris_data
 
-func force_spawn_debris_3d(debris_type_name: String, position: Vector3) -> DebrisObject3D:
+func force_spawn_debris_3d(debris_type_name: String, spawn_position: Vector3) -> DebrisObject3D:
 	"""Force spawn specific debris type at 3D position"""
 	var debris_type = _get_debris_type_by_name(debris_type_name)
 	if debris_type.is_empty():
 		push_error("ZoneDebrisManager3D: Unknown debris type: %s" % debris_type_name)
 		return null
 
-	var debris_node = _create_debris_node_3d(debris_type, position)
+	var debris_node = _create_debris_node_3d(debris_type, spawn_position)
 	if debris_node and debris_container:
 		# Add to scene tree first before setting position
 		debris_container.add_child(debris_node)
 
 		# Now set position after node is in scene tree
-		debris_node.global_position = position
-		debris_node.initial_position = position
+		debris_node.global_position = spawn_position
+		debris_node.initial_position = spawn_position
 
 		active_debris.append(debris_node)
 		current_debris_count += 1
@@ -398,7 +398,7 @@ func force_spawn_debris_3d(debris_type_name: String, position: Vector3) -> Debri
 		debris_spawned.emit(debris_node)
 		_emit_count_change_if_needed()
 
-		_log_message("ZoneDebrisManager3D: Force spawned %s at 3D position %s" % [debris_type_name, position])
+		_log_message("ZoneDebrisManager3D: Force spawned %s at 3D position %s" % [debris_type_name, spawn_position])
 		return debris_node
 
 	return null

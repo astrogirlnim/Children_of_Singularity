@@ -115,12 +115,12 @@ func move_by_parallax(camera_movement: Vector3, parallax_strength: float) -> voi
 	position += parallax_offset
 	layer_moved.emit(position)
 
-func set_visibility(visible: bool) -> void:
+func set_visibility(layer_visible: bool) -> void:
 	"""Set layer visibility and emit signal"""
-	if self.visible != visible:
-		self.visible = visible
-		layer_visibility_changed.emit(visible)
-		_log_message("BackgroundLayer3D: Layer '%s' visibility set to %s" % [layer_name, visible])
+	if self.visible != layer_visible:
+		self.visible = layer_visible
+		layer_visibility_changed.emit(layer_visible)
+		_log_message("BackgroundLayer3D: Layer '%s' visibility set to %s" % [layer_name, layer_visible])
 
 func get_layer_info() -> Dictionary:
 	"""Get comprehensive layer information"""

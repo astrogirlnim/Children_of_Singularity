@@ -221,8 +221,6 @@ func _physics_process(delta: float) -> void:
 func _handle_input() -> void:
 	"""Handle input for 3D movement"""
 	input_vector = Vector2.ZERO
-	var was_turning_left = is_turning_left
-	var was_turning_right = is_turning_right
 
 	# Reset turning states
 	is_turning_left = false

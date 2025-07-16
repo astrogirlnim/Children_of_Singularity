@@ -337,9 +337,9 @@ func create_custom_station(station_name: String, position: Vector3, module_types
 		var col = i % int(modules_per_row)
 
 		var module_position = Vector3(
-			(col - modules_per_row/2) * module_spacing,
+			(col - modules_per_row/2.0) * module_spacing,
 			0,
-			(row - modules_per_row/2) * module_spacing
+			(row - modules_per_row/2.0) * module_spacing
 		)
 
 		custom_template.modules.append({

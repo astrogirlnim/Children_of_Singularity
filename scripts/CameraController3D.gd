@@ -204,7 +204,9 @@ func _update_distance_zoom(delta: float) -> void:
 func _update_camera_tilt(delta: float) -> void:
 	"""Update camera tilt based on ship movement (if enabled)"""
 	# TEMPORARILY DISABLED to debug tilting issue
-	return
+	# TODO: Re-enable banking when tilting issues are resolved
+	if true:  # Disabled for now
+		return
 
 	if not enable_camera_banking:
 		# Reset tilt if disabled
@@ -240,7 +242,7 @@ func _update_camera_shake(delta: float) -> void:
 	else:
 		camera.position = Vector3.ZERO
 
-func _handle_zoom_input(delta: float) -> void:
+func _handle_zoom_input(_delta: float) -> void:
 	"""Handle zoom input controls (distance-based)"""
 	var zoom_input = 0.0
 
@@ -302,7 +304,7 @@ func reset_camera() -> void:
 	set_camera_fov(85.0)  # Mario Kart 8 optimal FOV
 	_log_message("CameraController3D: Camera reset to Mario Kart 8 defaults")
 
-func _on_target_position_changed(new_position: Vector3) -> void:
+func _on_target_position_changed(_new_position: Vector3) -> void:
 	"""Handle target position change signal"""
 	# This is called when the target emits position_changed signal
 	# We don't need to do anything here as _physics_process handles following

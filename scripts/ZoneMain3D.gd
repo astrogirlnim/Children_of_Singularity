@@ -302,9 +302,9 @@ func _on_background_ready() -> void:
 	# Update debug display to show background info
 	_update_debug_display()
 
-func _on_background_layer_visibility_changed(layer_name: String, visible: bool) -> void:
+func _on_background_layer_visibility_changed(layer_name: String, layer_visible: bool) -> void:
 	"""Handle background layer visibility changes for performance monitoring"""
-	_log_message("ZoneMain3D: Background layer '%s' visibility changed to %s" % [layer_name, visible])
+	_log_message("ZoneMain3D: Background layer '%s' visibility changed to %s" % [layer_name, layer_visible])
 
 func _update_debug_display() -> void:
 	"""Update the debug information display"""
@@ -401,22 +401,22 @@ func _on_debris_spawned(debris: DebrisObject3D) -> void:
 		_log_message("ZoneMain3D: Debris spawned - Type: %s, Position: %s" % [debris.get_debris_type(), debris.global_position])
 
 ## Signal handlers for NPC hubs
-func _on_hub_entered(hub_type: String, hub: Node3D) -> void:
+func _on_hub_entered(hub_type: String, _hub: Node3D) -> void:
 	"""Handle player entering NPC hub"""
 	_log_message("ZoneMain3D: Player entered %s hub" % hub_type)
 	npc_hub_entered.emit()
 
-func _on_hub_exited(hub_type: String, hub: Node3D) -> void:
+func _on_hub_exited(hub_type: String, _hub: Node3D) -> void:
 	"""Handle player exiting NPC hub"""
 	_log_message("ZoneMain3D: Player exited %s hub" % hub_type)
 
 ## Signal handlers for space station manager (legacy - may be unused now)
-func _on_player_entered_module(module_type: String, module: Node3D) -> void:
+func _on_player_entered_module(module_type: String, _module: Node3D) -> void:
 	"""Handle player entering space station module"""
 	_log_message("ZoneMain3D: Player entered space station module - %s" % module_type)
 	npc_hub_entered.emit()
 
-func _on_player_exited_module(module_type: String, module: Node3D) -> void:
+func _on_player_exited_module(module_type: String, _module: Node3D) -> void:
 	"""Handle player exiting space station module"""
 	_log_message("ZoneMain3D: Player exited space station module - %s" % module_type)
 
@@ -428,12 +428,12 @@ func _on_hub_created(hub: Node3D) -> void:
 	"""Handle trading hub creation"""
 	_log_message("ZoneMain3D: Trading hub created at %s" % hub.global_position)
 
-func _on_player_entered_hub(hub_type: String, hub: Node3D) -> void:
+func _on_player_entered_hub(hub_type: String, _hub: Node3D) -> void:
 	"""Handle player entering trading hub"""
 	_log_message("ZoneMain3D: Player entered trading hub: %s" % hub_type)
 	npc_hub_entered.emit()
 
-func _on_player_exited_hub(hub_type: String, hub: Node3D) -> void:
+func _on_player_exited_hub(hub_type: String, _hub: Node3D) -> void:
 	"""Handle player exiting trading hub"""
 	_log_message("ZoneMain3D: Player exited trading hub: %s" % hub_type)
 
