@@ -357,11 +357,11 @@ func set_sprite_color(color: Color) -> void:
 		sprite_3d.modulate = color
 		_log_message("SpaceStationModule3D: Sprite color set to %s" % color)
 
-func set_sprite_scale(scale: Vector3) -> void:
+func set_sprite_scale(sprite_scale: Vector3) -> void:
 	##Set the sprite scale
 	if sprite_3d:
-		sprite_3d.scale = scale
-		_log_message("SpaceStationModule3D: Sprite scale set to %s" % scale)
+		sprite_3d.scale = sprite_scale
+		_log_message("SpaceStationModule3D: Sprite scale set to %s" % sprite_scale)
 
 func _setup_rotation_animation() -> void:
 	##Set up the continuous rotation animation timer

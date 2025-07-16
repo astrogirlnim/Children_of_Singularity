@@ -22,6 +22,7 @@ signal npc_hub_entered()
 @onready var debris_container: Node3D = $DebrisContainer
 @onready var npc_hub_container: Node3D = $NPCHubContainer
 @onready var player_ship: CharacterBody3D = $PlayerShip3D
+@onready var skybox_manager_3d: Node3D = $SkyboxManager3D
 
 # System nodes (shared with 2D version)
 @onready var hud: Control = $UILayer/HUD
@@ -328,6 +329,18 @@ func _update_debug_display() -> void:
 			bg_info = " | BG Layers: %d" % background_manager.get_layer_count()
 		debug_label.text = "Children of the Singularity - %s [3D DEBUG] | Environment: 3D%s" % [zone_name, bg_info]
 
+func _input(event):
+	## Handle input events, including skybox visibility toggle for testing
+	if event is InputEventKey and event.pressed:
+		# Toggle skybox visibility with F9 key (for testing skybox interference)
+		if event.keycode == KEY_F9:
+			if skybox_manager_3d:
+				# Toggle between visible and invisible
+				var current_visible = skybox_manager_3d.active_layers.size() > 0 and skybox_manager_3d.active_layers[0].visible
+				skybox_manager_3d.toggle_skybox_visibility(not current_visible)
+				var state_text = "HIDDEN" if current_visible else "VISIBLE"
+				_log_message("ZoneMain3D: Skybox toggled - Now %s (F9 to toggle)" % state_text)
+
 func _log_message(message: String) -> void:
 	##Add a message to the game log and display it
 	var timestamp = Time.get_datetime_string_from_system()
@@ -485,9 +498,9 @@ func _on_boundary_warning(distance: float, direction: String) -> void:
 		# This could be expanded to show a visual warning in the UI
 		_log_message("ZoneMain3D: Warning displayed to player: %s" % warning_message)
 
-func _on_boundary_collision(position: Vector3, boundary_type: String) -> void:
+func _on_boundary_collision(collision_position: Vector3, boundary_type: String) -> void:
 	##Handle boundary collision when player hits zone wall
-	_log_message("ZoneMain3D: BOUNDARY COLLISION - Player hit %s at position %s" % [boundary_type, position])
+	_log_message("ZoneMain3D: BOUNDARY COLLISION - Player hit %s at position %s" % [boundary_type, collision_position])
 
 	# Optional: Add camera shake or other feedback
 	if camera_controller and camera_controller.has_method("shake"):
@@ -525,10 +538,10 @@ func get_boundary_info() -> Dictionary:
 		return zone_boundary_manager.get_boundary_info()
 	return {}
 
-func is_position_in_bounds(position: Vector3) -> bool:
+func is_position_in_bounds(check_position: Vector3) -> bool:
 	##Check if a position is within zone boundaries
 	if zone_boundary_manager:
-		return zone_boundary_manager.is_position_in_bounds(position)
+		return zone_boundary_manager.is_position_in_bounds(check_position)
 	return true
 
 func enable_visual_boundaries(enabled: bool) -> void:

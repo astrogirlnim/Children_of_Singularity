@@ -5,11 +5,8 @@
 class_name SkyboxManager3D
 extends Node3D
 
-## Signal emitted when skybox system is fully initialized
+## Signal emitted when skybox system is ready
 signal skybox_ready()
-
-## Signal emitted when layer visibility changes for performance
-signal layer_visibility_changed(layer_name: String, visible: bool)
 
 ## Export properties for configuration
 @export var camera_reference: Camera3D
@@ -28,16 +25,9 @@ var layers_config: Array[Dictionary] = [
 		"radius": 1500.0,  # Bright twinkling stars - furthest layer
 		"texture_path": "res://assets/backgrounds/seamless/starfield_seamless.png",
 		"rotation_speed": 0.3,  # Slow, majestic rotation
-		"alpha": 0.8,  # Slightly transparent for natural blending
+		"alpha": 1.0,  # Completely opaque for proper depth ordering
 		"uv_scale": 12.0,  # Dense starfield tiling
-	},
-	{
-		"name": "Shell_1_Stars_Distant",
-		"radius": 1200.0,  # Distant stars - middle layer
-		"texture_path": "res://assets/backgrounds/layers/space_stars_distant.png",
-		"rotation_speed": -0.2,  # Counter-rotation for depth effect
-		"alpha": 0.25,  # Lower alpha for subtle transparent overlay
-		"uv_scale": 16.0,  # Higher tiling to break up pattern repetition
+		"is_overlay_layer": false,  # Base layer - no transparency needed
 	}
 ]
 
@@ -120,6 +110,7 @@ func _create_layer_from_config(config: Dictionary, index: int) -> void:
 	skybox_layer.use_random_tint = config.get("use_random_tint", false)
 	skybox_layer.tint_hue_range = config.get("tint_hue_range", 30.0)
 	skybox_layer.tint_saturation = config.get("tint_saturation", 0.2)
+	skybox_layer.is_overlay_layer = config.get("is_overlay_layer", false)
 
 	# Enable debug logging for layers
 	skybox_layer.enable_debug_logging(debug_logging)
@@ -246,3 +237,15 @@ func enable_debug_logging(enabled: bool) -> void:
 
 	if debug_logging:
 		print("[SkyboxManager3D] Debug logging enabled for manager and all layers")
+
+func toggle_skybox_visibility(skybox_visible: bool = true) -> void:
+	## Toggle visibility of all skybox layers (for testing skybox interference)
+	if debug_logging:
+		print("[SkyboxManager3D] Toggling skybox visibility: ", skybox_visible)
+
+	for layer in active_layers:
+		if layer and is_instance_valid(layer):
+			layer.visible = skybox_visible
+
+	if debug_logging:
+		print("[SkyboxManager3D] Skybox visibility set to: ", skybox_visible)

@@ -112,11 +112,11 @@ func _create_boundary_walls() -> void:
 
 	_log_message("ZoneBoundaryManager3D: Created 6 boundary walls (N/S/E/W/Top/Bottom)")
 
-func _create_boundary_wall(wall_name: String, position: Vector3, size: Vector3) -> StaticBody3D:
+func _create_boundary_wall(wall_name: String, wall_position: Vector3, size: Vector3) -> StaticBody3D:
 	##Create a single boundary wall with collision
 	var wall = StaticBody3D.new()
 	wall.name = wall_name
-	wall.position = position
+	wall.position = wall_position
 
 	# Set collision layer for boundaries (layer 5)
 	wall.collision_layer = 16  # Layer 5 (2^4 = 16)
@@ -244,25 +244,25 @@ func get_boundary_info() -> Dictionary:
 		"warnings_enabled": enable_warnings
 	}
 
-func get_distance_to_nearest_boundary(position: Vector3) -> float:
+func get_distance_to_nearest_boundary(check_position: Vector3) -> float:
 	##Get distance from a position to the nearest boundary
 	var distances = [
-		(zone_bounds.z / 2.0) - position.z,      # North
-		position.z - (-zone_bounds.z / 2.0),     # South
-		(zone_bounds.x / 2.0) - position.x,      # East
-		position.x - (-zone_bounds.x / 2.0),     # West
-		(zone_bounds.y) - position.y,            # Top
-		position.y - 0                           # Bottom
+		(zone_bounds.z / 2.0) - check_position.z,      # North
+		check_position.z - (-zone_bounds.z / 2.0),     # South
+		(zone_bounds.x / 2.0) - check_position.x,      # East
+		check_position.x - (-zone_bounds.x / 2.0),     # West
+		(zone_bounds.y) - check_position.y,            # Top
+		check_position.y - 0                           # Bottom
 	]
 
 	return distances.min()
 
-func is_position_in_bounds(position: Vector3) -> bool:
+func is_position_in_bounds(check_position: Vector3) -> bool:
 	##Check if a position is within zone boundaries
 	return (
-		position.x >= -zone_bounds.x / 2.0 and position.x <= zone_bounds.x / 2.0 and
-		position.y >= 0 and position.y <= zone_bounds.y and
-		position.z >= -zone_bounds.z / 2.0 and position.z <= zone_bounds.z / 2.0
+		check_position.x >= -zone_bounds.x / 2.0 and check_position.x <= zone_bounds.x / 2.0 and
+		check_position.y >= 0 and check_position.y <= zone_bounds.y and
+		check_position.z >= -zone_bounds.z / 2.0 and check_position.z <= zone_bounds.z / 2.0
 	)
 
 func clamp_position_to_bounds(position: Vector3) -> Vector3:
