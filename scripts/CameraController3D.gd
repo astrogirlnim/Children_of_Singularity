@@ -6,7 +6,7 @@ extends Node3D
 
 ## Camera configuration for Mario Kart 8 style
 @export var camera_distance: float = 10.0        # Distance behind ship (Mario Kart 8 style)
-@export var camera_height: float = 3.0           # Height above ship (Mario Kart 8 positioning)
+@export var camera_height: float = 1.5           # Height above ship (lower for ground-level Mario Kart 8 feel)
 @export var camera_fov: float = 65.0             # Field of view (degrees) - console racing standard
 @export var follow_speed: float = 5.0            # Camera follow responsiveness
 @export var rotation_follow_speed: float = 3.0   # Rotation following speed
@@ -118,10 +118,10 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	else:
 		global_position = desired_position
 
-	# Make camera look ahead of ship like Mario Kart 8
-	var look_ahead_distance = 5.0  # Look ahead on the ground plane
+	# Make camera look upward like Mario Kart 8 - low angle looking ahead with ship in lower third
+	var look_ahead_distance = 30.0  # Look ahead toward horizon
 	var ship_forward = -target.transform.basis.z  # Ship's forward direction
-	var look_target = target.global_position + ship_forward * look_ahead_distance + Vector3.UP * 0.8  # Look ahead, slightly above ground
+	var look_target = target.global_position + ship_forward * look_ahead_distance + Vector3.UP * (camera_height + 25.0)  # Look even more upward to position ship in lower third
 	look_at(look_target, Vector3.UP)
 
 func _update_distance_zoom(delta: float) -> void:
