@@ -124,7 +124,7 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	# Make camera look upward like Mario Kart 8 - ultra-low angle with ship in lower third
 	var look_ahead_distance = 30.0  # Look ahead toward horizon
 	var ship_forward = -target.transform.basis.z  # Ship's forward direction
-	var look_target = target.global_position + ship_forward * look_ahead_distance + Vector3.UP * (camera_height + 40.0)  # Look EVEN MORE upward to position ship in lower third
+	var look_target = target.global_position + ship_forward * look_ahead_distance + Vector3.UP * (camera_height + 15.0)  # Reduced from 40.0 to 15.0 for less extreme tilt
 
 	# Apply Mario Kart 8 style camera banking when turning
 	var banking_roll = 0.0

@@ -96,7 +96,7 @@ func _calculate_station_positions() -> void:
 
 			position = Vector3(
 				player_spawn_position.x + cos(angle) * distance,
-				player_spawn_position.y + randf_range(10, 15),  # Much higher to float above floor (10-14 units total)
+				player_spawn_position.y + randf_range(-0.5, 0.5),  # Changed from +randf_range(10, 15) to keep stations at ship level (Y=2)
 				player_spawn_position.z + sin(angle) * distance
 			)
 

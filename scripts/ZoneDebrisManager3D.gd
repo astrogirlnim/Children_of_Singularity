@@ -20,7 +20,7 @@ signal debris_despawned(debris: DebrisObject3D)
 ## Export properties for configuration
 @export var debris_container: Node3D
 @export var zone_bounds: Vector3 = Vector3(100, 50, 100)  # 3D bounds (X, Y, Z)
-@export var debris_spawn_height_range: Vector2 = Vector2(-5, 5)  # Y-axis range for debris spawning
+@export var debris_spawn_height_range: Vector2 = Vector2(1.5, 2.5)  # Changed from Vector2(-5, 5) to keep debris at ship level (Y=2)
 @export var max_debris_count: int = 50
 @export var spawn_interval: float = 2.0
 @export var despawn_distance: float = 220.0

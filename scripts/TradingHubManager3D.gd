@@ -82,7 +82,7 @@ func _calculate_hub_positions() -> void:
 			# Generate completely random position within floor boundaries
 			position = Vector3(
 				randf_range(floor_min_x, floor_max_x),  # Random X within floor
-				player_spawn_position.y + 0.5,         # Just above floor level
+				player_spawn_position.y,                # Changed from +0.5 to exact ship level (Y=2)
 				randf_range(floor_min_z, floor_max_z)   # Random Z within floor
 			)
 
