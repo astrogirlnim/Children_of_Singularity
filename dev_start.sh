@@ -151,11 +151,12 @@ for i in $(seq 1 $HEALTH_RETRIES); do
     fi
 done
 
-echo -e "${BLUE}Step 3: Starting Godot game...${NC}"
+echo -e "${BLUE}Step 3: Starting Godot game with remote debugging...${NC}"
 
-# Start Godot game
-echo -e "${YELLOW}Launching Godot game...${NC}"
-godot --run-project . &
+# Start Godot game with remote debugging enabled
+echo -e "${YELLOW}Launching Godot game with remote inspector...${NC}"
+echo -e "${BLUE}🔧 Remote debugging enabled - you can connect Godot editor for live updates${NC}"
+godot --run-project . --remote-debug 127.0.0.1:6007 &
 GODOT_PID=$!
 
 # Wait a moment for Godot to start
@@ -172,12 +173,20 @@ echo
 echo -e "${BLUE}📊 Service Status:${NC}"
 echo -e "  🔗 Backend API: ${GREEN}http://localhost:$BACKEND_PORT${NC}"
 echo -e "  🎮 Godot Game: ${GREEN}Running (PID: $GODOT_PID)${NC}"
+echo -e "  🔧 Remote Debug: ${GREEN}127.0.0.1:6007${NC}"
 echo -e "  📚 API Docs: ${GREEN}http://localhost:$BACKEND_PORT/docs${NC}"
 echo
 echo -e "${BLUE}🔧 Useful endpoints:${NC}"
 echo -e "  Health: ${YELLOW}curl http://localhost:$BACKEND_PORT/api/v1/health${NC}"
 echo -e "  Stats: ${YELLOW}curl http://localhost:$BACKEND_PORT/api/v1/stats${NC}"
 echo -e "  Player: ${YELLOW}curl http://localhost:$BACKEND_PORT/api/v1/players/player_001${NC}"
+echo
+echo -e "${BLUE}🎮 Live Camera Debugging:${NC}"
+echo -e "  1. Open Godot editor"
+echo -e "  2. Go to Remote → Remote Inspector"
+echo -e "  3. Connect to 127.0.0.1:6007"
+echo -e "  4. Select CameraController3D node"
+echo -e "  5. Adjust export properties in real-time!"
 echo
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
 

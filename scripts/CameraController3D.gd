@@ -7,17 +7,17 @@
 
 extends Node3D
 
-## Camera configuration for Mario Kart 8 style
-@export var camera_distance: float = 10.0        # Distance behind ship (Mario Kart 8 style)
-@export var camera_height: float = 0.8           # Height above ship (ultra-low Mario Kart 8 feel)
-@export var camera_fov: float = 65.0             # Field of view (degrees) - console racing standard
+## Camera configuration for Mario Kart 8 style (balanced racing camera)
+@export var camera_distance: float = 20         # Balanced distance for proper ship visibility and bottom-third positioning
+@export var camera_height: float = 5           # Slightly higher for better racing perspective
+@export var camera_fov: float = 70.0             # Field of view (degrees) - Mario Kart 8 optimal
 @export var follow_speed: float = 5.0            # Camera follow responsiveness
 @export var rotation_follow_speed: float = 3.0   # Rotation following speed
 @export var enable_smoothing: bool = true
 
 ## Zoom settings (now distance-based for perspective)
-@export var zoom_min_distance: float = 6.0       # Closest zoom (Mario Kart 8 style)
-@export var zoom_max_distance: float = 15.0      # Furthest zoom (Mario Kart 8 style)
+@export var zoom_min_distance: float = 3.5       # Closest zoom (not too close)
+@export var zoom_max_distance: float = 6.0       # Furthest zoom (not too far)
 @export var zoom_speed: float = 2.0              # Zoom speed multiplier
 
 ## Camera banking settings (Mario Kart 8 style)
@@ -31,8 +31,8 @@ extends Node3D
 @onready var camera: Camera3D = $Camera3D
 
 var target: Node3D = null
-var current_distance: float = 15.0               # Current zoom distance
-var target_distance: float = 15.0               # Target zoom distance
+var current_distance: float = 20              # Updated to match new balanced default distance
+var target_distance: float = 20                # Updated to match new balanced default distance
 var shake_strength: float = 0.0
 var shake_timer: float = 0.0
 
@@ -110,7 +110,7 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	if not target:
 		return
 
-	# Calculate desired position behind ship
+	# Calculate desired position behind ship with Mario Kart 8 positioning
 	var behind_offset = ship_forward_direction * current_distance
 	var height_offset = Vector3.UP * camera_height
 	var desired_position = target.global_position - behind_offset + height_offset
@@ -121,10 +121,21 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	else:
 		global_position = desired_position
 
-	# Make camera look upward like Mario Kart 8 - ultra-low angle with ship in lower third
-	var look_ahead_distance = 30.0  # Look ahead toward horizon
-	var ship_forward = -target.transform.basis.z  # Ship's forward direction
-	var look_target = target.global_position + ship_forward * look_ahead_distance + Vector3.UP * (camera_height + 15.0)  # Reduced from 40.0 to 15.0 for less extreme tilt
+	# Mario Kart 8 style: Look horizontally ahead toward horizon (NO downward tilt!)
+	# This naturally positions ship in bottom third without perspective distortion
+	# PROPER FIX: Look ahead horizontally, not down at ship
+	var look_ahead_distance = 30.0  # Look far ahead toward horizon
+	var horizontal_forward = ship_forward_direction
+	horizontal_forward.y = 0.0  # Remove any vertical component to ensure horizontal look
+	horizontal_forward = horizontal_forward.normalized()
+	var look_target = target.global_position + horizontal_forward * look_ahead_distance
+	# CRITICAL: Keep look target at ship's Y level for horizontal horizon view!
+
+	# Live debug output for camera tuning (only every 60 frames to avoid spam)
+	if Engine.get_process_frames() % 60 == 0:
+		print("[LIVE DEBUG] Camera - Distance: %.1f | Height: %.1f | FOV: %.0f° | Pos: %s" %
+			[current_distance, camera_height, camera_fov, global_position])
+		print("[LIVE DEBUG] Ship Pos: %s | Look Target: %s" % [target.global_position, look_target])
 
 	# Apply Mario Kart 8 style camera banking when turning
 	var banking_roll = 0.0
@@ -147,7 +158,7 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	var up_vector = Vector3.UP
 	if banking_roll != 0.0:
 		# Rotate the up vector to create banking effect
-		up_vector = up_vector.rotated(ship_forward.normalized(), deg_to_rad(banking_roll))
+		up_vector = up_vector.rotated(ship_forward_direction.normalized(), deg_to_rad(banking_roll))
 
 	look_at(look_target, up_vector)
 
