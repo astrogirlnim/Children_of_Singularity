@@ -83,6 +83,12 @@ var is_scanner_active: bool = false
 var is_magnet_active: bool = false
 var magnet_range: float = 15.0
 
+## Ship rotation for mouse control
+var target_rotation: float = 0.0
+var current_ship_rotation: float = 0.0
+var ship_rotation_speed: float = 3.0
+var ship_forward_direction: Vector3 = Vector3.FORWARD
+
 ## Visual feedback for collection range
 var collection_indicator: MeshInstance3D = null
 var collection_material: StandardMaterial3D = null
@@ -247,6 +253,7 @@ func _initialize_player_state() -> void:
 func _physics_process(delta: float) -> void:
 	##Handle 3D physics processing
 	_handle_input()
+	_apply_ship_rotation(delta)
 	_apply_3d_movement(delta)
 	_apply_gravity(delta)
 
@@ -295,12 +302,21 @@ func _handle_input() -> void:
 		velocity.y = JUMP_VELOCITY
 
 func _apply_3d_movement(delta: float) -> void:
-	##Apply 3D movement on X-Z plane
-	# Calculate desired velocity on X-Z plane (Y input maps to Z axis)
+	##Apply 3D movement relative to ship rotation
+	# Calculate movement relative to ship's facing direction
+	var forward_input = -input_vector.y  # W/S for forward/backward
+	var strafe_input = input_vector.x     # A/D for left/right strafe
+
+	# Get ship's current forward and right directions
+	var forward_dir = ship_forward_direction
+	var right_dir = transform.basis.x.normalized()
+
+	# Calculate desired velocity in world space
+	var movement_direction = (forward_dir * forward_input + right_dir * strafe_input).normalized()
 	var desired_velocity = Vector3(
-		input_vector.x * SPEED,
+		movement_direction.x * SPEED if input_vector.length() > 0 else 0,
 		0,  # Y will be handled by gravity
-		input_vector.y * SPEED  # Y input maps to Z axis movement
+		movement_direction.z * SPEED if input_vector.length() > 0 else 0
 	)
 
 	# Apply acceleration or friction
@@ -318,6 +334,17 @@ func _apply_3d_movement(delta: float) -> void:
 	# Apply to character velocity (preserve Y for gravity)
 	velocity.x = movement_velocity.x
 	velocity.z = movement_velocity.z
+
+func _apply_ship_rotation(delta: float) -> void:
+	##Apply smooth ship rotation from mouse input
+	# Smooth rotation towards target
+	current_ship_rotation = lerp_angle(current_ship_rotation, target_rotation, ship_rotation_speed * delta)
+
+	# Apply rotation to ship (Y-axis for yaw)
+	rotation.y = current_ship_rotation
+
+	# Update ship forward direction for movement
+	ship_forward_direction = -transform.basis.z.normalized()
 
 func _apply_gravity(delta: float) -> void:
 	##Apply gravity for floating/jumping mechanics
@@ -517,6 +544,19 @@ func _log_message(message: String) -> void:
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
+
+## Mouse rotation interface methods for camera controller
+
+func set_target_rotation(new_rotation: float) -> void:
+	##Set target rotation from camera controller mouse input
+	target_rotation = new_rotation
+	_log_message("PlayerShip3D: Target rotation set to %.2f degrees" % rad_to_deg(target_rotation))
+
+func get_turn_input() -> float:
+	##Get normalized turn input for camera banking (-1 to 1)
+	var rotation_diff = target_rotation - current_ship_rotation
+	# Normalize the rotation difference to -1 to 1 range
+	return clamp(rotation_diff / PI, -1.0, 1.0)
 
 # Player state management methods (same API as 2D version)
 func get_player_info() -> Dictionary:

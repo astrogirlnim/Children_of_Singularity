@@ -32,7 +32,22 @@ extends Node3D
 ## Camera shake settings
 @export var shake_fade_speed: float = 5.0
 
+## Mouse rotation settings
+@export_group("Mouse Rotation")
+@export var enable_mouse_rotation: bool = true
+@export var mouse_sensitivity: float = 0.002
+@export var invert_mouse_y: bool = false
+@export var invert_mouse_x: bool = false
+@export var rotation_smoothing: float = 8.0
+
+## Rotation limits
+@export_group("Rotation Limits")
+@export var max_pitch_up: float = -0.1    # Slight upward limit
+@export var max_pitch_down: float = -1.4   # ~80 degrees down
+@export var max_yaw_speed: float = 2.0     # Max rotation speed
+
 @onready var camera: Camera3D = $Camera3D
+@onready var inner_gimbal: Node3D = null  # Will be created dynamically
 
 # Internal state variables
 var target: CharacterBody3D
@@ -42,6 +57,13 @@ var current_distance: float = 12.0
 var target_distance: float = 12.0
 var current_tilt: float = 0.0
 var current_banking: float = 0.0  # Smoothed banking value for gradual transitions
+
+# Mouse rotation state
+var target_yaw: float = 0.0
+var target_pitch: float = 0.0
+var current_yaw: float = 0.0
+var current_pitch: float = 0.0
+var is_mouse_rotating: bool = false
 
 # Camera shake state
 var shake_strength: float = 0.0
@@ -56,14 +78,27 @@ func _ready() -> void:
 	_log_message("CameraController3D: Mario Kart 8 style camera controller initialized")
 
 func setup_mario_kart_camera() -> void:
-	##Configure the 3D camera for Mario Kart 8 style perspective
-	_log_message("CameraController3D: Setting up Mario Kart 8 style close-up perspective camera")
+	##Configure the 3D camera for Mario Kart 8 style perspective with mouse rotation gimbal
+	_log_message("CameraController3D: Setting up Mario Kart 8 style camera with mouse rotation gimbal")
 
-	# Create Camera3D if it doesn't exist
+	# Create inner gimbal for pitch control (X-axis rotation)
+	if not inner_gimbal:
+		inner_gimbal = Node3D.new()
+		inner_gimbal.name = "InnerGimbal"
+		add_child(inner_gimbal)
+		_log_message("CameraController3D: Created inner gimbal for pitch control")
+
+	# Create Camera3D if it doesn't exist and move it to inner gimbal
 	if not camera:
 		camera = Camera3D.new()
 		camera.name = "Camera3D"
-		add_child(camera)
+		inner_gimbal.add_child(camera)
+	elif camera.get_parent() != inner_gimbal:
+		# Move existing camera to inner gimbal
+		var old_parent = camera.get_parent()
+		if old_parent:
+			old_parent.remove_child(camera)
+		inner_gimbal.add_child(camera)
 
 	# FORCE PERSPECTIVE projection (override scene file)
 	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
@@ -101,7 +136,7 @@ func set_target(new_target: Node3D) -> void:
 		_log_message("CameraController3D: Target cleared")
 
 func _physics_process(delta: float) -> void:
-	##Update camera position and effects (Mario Kart 8 style)
+	##Update camera position and effects (Mario Kart 8 style with mouse rotation)
 	# Update debug timer
 	debug_log_timer += delta
 
@@ -109,6 +144,7 @@ func _physics_process(delta: float) -> void:
 		_update_ship_tracking_data(delta)
 		_update_mario_kart_camera_position(delta)
 
+	_update_mouse_rotation(delta)
 	_update_distance_zoom(delta)
 	_update_camera_tilt(delta)
 	_update_camera_shake(delta)
@@ -202,6 +238,27 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 			[ship_forward_direction.x, ship_forward_direction.y, ship_forward_direction.z])
 
 	look_at(look_target, up_vector)
+
+func _update_mouse_rotation(delta: float) -> void:
+	##Update mouse-controlled camera rotation with smooth interpolation
+	if not enable_mouse_rotation:
+		return
+
+	# Smooth interpolation towards target rotations
+	current_yaw = lerp_angle(current_yaw, target_yaw, rotation_smoothing * delta)
+	current_pitch = lerp_angle(current_pitch, target_pitch, rotation_smoothing * delta)
+
+	# Apply rotations to gimbal system
+	# Outer gimbal (this node) controls yaw (Y-axis rotation)
+	rotation.y = current_yaw
+
+	# Inner gimbal controls pitch (X-axis rotation) with limits
+	if inner_gimbal:
+		inner_gimbal.rotation.x = clamp(current_pitch, max_pitch_down, max_pitch_up)
+
+	# Update ship rotation if we have a target
+	if target and target.has_method("set_target_rotation"):
+		target.set_target_rotation(current_yaw)
 
 func _update_distance_zoom(delta: float) -> void:
 	##Update distance-based zoom system
@@ -337,9 +394,9 @@ func _log_message(message: String) -> void:
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
 
-# Input actions for zoom (mouse wheel)
+# Input actions for zoom and mouse rotation
 func _input(event: InputEvent) -> void:
-	##Handle additional input events
+	##Handle additional input events including mouse rotation
 	if event is InputEventMouseButton:
 		var mouse_event = event as InputEventMouseButton
 		if mouse_event.pressed:
@@ -348,6 +405,38 @@ func _input(event: InputEvent) -> void:
 					zoom_in()
 				MOUSE_BUTTON_WHEEL_DOWN:
 					zoom_out()
+				MOUSE_BUTTON_RIGHT:
+					if enable_mouse_rotation:
+						is_mouse_rotating = true
+						# Capture mouse for rotation
+						Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+						_log_message("CameraController3D: Mouse rotation started")
+		else:
+			# Mouse button released
+			if mouse_event.button_index == MOUSE_BUTTON_RIGHT and is_mouse_rotating:
+				is_mouse_rotating = false
+				# Release mouse capture
+				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+				_log_message("CameraController3D: Mouse rotation ended")
+
+	elif event is InputEventMouseMotion and is_mouse_rotating and enable_mouse_rotation:
+		var mouse_motion = event as InputEventMouseMotion
+
+		# Apply mouse sensitivity and inversion
+		var yaw_input = mouse_motion.relative.x * mouse_sensitivity
+		var pitch_input = mouse_motion.relative.y * mouse_sensitivity
+
+		if invert_mouse_x:
+			yaw_input = -yaw_input
+		if invert_mouse_y:
+			pitch_input = -pitch_input
+
+		# Update target rotations with speed limits
+		target_yaw += clamp(-yaw_input, -max_yaw_speed * get_process_delta_time(), max_yaw_speed * get_process_delta_time())
+		target_pitch += clamp(-pitch_input, -max_yaw_speed * get_process_delta_time(), max_yaw_speed * get_process_delta_time())
+
+		# Clamp pitch to prevent over-rotation
+		target_pitch = clamp(target_pitch, max_pitch_down, max_pitch_up)
 
 	# Handle keyboard zoom input
 	_handle_zoom_input(get_process_delta_time())

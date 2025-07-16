@@ -1,0 +1,96 @@
+[gd_resource type="Theme" format=3 uid="uid://c7qx9nkf8vqxe"]
+
+[ext_resource type="Texture2D" uid="uid://bvx8q2lkm9rnx" path="res://assets/ui/hologram/Card X1/Panel Empty.png" id="1_panel_main"]
+[ext_resource type="Texture2D" uid="uid://c3mf5dt1a8qne" path="res://assets/ui/hologram/Card X1/Panel Empty Green.png" id="2_panel_green"]
+[ext_resource type="Texture2D" uid="uid://btqj7vlkx9sne" path="res://assets/ui/hologram/Card X1/Panel Red.png" id="3_panel_red"]
+[ext_resource type="Texture2D" uid="uid://dkqj8vlqxm3ne" path="res://assets/ui/hologram/Button 1/Button Normal.png" id="4_button_normal"]
+[ext_resource type="Texture2D" uid="uid://ekrj9wlqxn4oe" path="res://assets/ui/hologram/Button 1/Button Hover.png" id="5_button_hover"]
+[ext_resource type="Texture2D" uid="uid://fksl0xmqyo5pf" path="res://assets/ui/hologram/Button 1/Button Active.png" id="6_button_active"]
+[ext_resource type="Texture2D" uid="uid://gltm1ynrzp6qg" path="res://assets/ui/hologram/Button 1/Button Disable.png" id="7_button_disabled"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_panel_main"]
+texture = ExtResource("1_panel_main")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_panel_green"]
+texture = ExtResource("2_panel_green")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_panel_red"]
+texture = ExtResource("3_panel_red")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_normal"]
+texture = ExtResource("4_button_normal")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_hover"]
+texture = ExtResource("5_button_hover")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_pressed"]
+texture = ExtResource("6_button_active")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_button_disabled"]
+texture = ExtResource("7_button_disabled")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+
+[resource]
+default_font_size = 14
+
+# Panel styling - Holographic aesthetic
+Panel/styles/panel = SubResource("StyleBoxTexture_panel_main")
+
+# Button styling - Holographic states
+Button/styles/normal = SubResource("StyleBoxTexture_button_normal")
+Button/styles/hover = SubResource("StyleBoxTexture_button_hover")
+Button/styles/pressed = SubResource("StyleBoxTexture_button_pressed")
+Button/styles/disabled = SubResource("StyleBoxTexture_button_disabled")
+Button/font_sizes/font_size = 16
+Button/colors/font_color = Color(0.6, 1.0, 1.0, 1.0)  # Cyan hologram glow
+Button/colors/font_hover_color = Color(0.8, 1.0, 1.0, 1.0)  # Brighter cyan on hover
+Button/colors/font_pressed_color = Color(0.4, 0.8, 1.0, 1.0)  # Blue when pressed
+Button/colors/font_disabled_color = Color(0.3, 0.5, 0.5, 0.6)  # Dimmed
+
+# Label styling - Holographic theme
+Label/font_sizes/font_size = 14
+Label/colors/font_color = Color(0.7, 1.0, 1.0, 1.0)  # Light cyan for readability
+
+# Special styling for panel titles (HeaderLabel variation)
+HeaderLabel/font_sizes/font_size = 18
+HeaderLabel/colors/font_color = Color(0.9, 1.0, 1.0, 1.0)  # Bright cyan for headers
+HeaderLabel/colors/font_shadow_color = Color(0.2, 0.6, 0.8, 0.8)  # Blue glow shadow
+HeaderLabel/constants/shadow_offset_x = 1
+HeaderLabel/constants/shadow_offset_y = 1
+
+# Special styling for inventory items - Holographic colors
+Label/colors/inventory_type_color = Color(0.6, 1.0, 1.0, 1.0)  # Cyan
+Label/colors/inventory_quantity_color = Color(0.4, 1.0, 0.6, 1.0)  # Green glow
+Label/colors/inventory_value_color = Color(1.0, 1.0, 0.4, 1.0)  # Yellow/gold glow
+Label/colors/inventory_reference_color = Color(0.5, 0.8, 0.9, 1.0)  # Dimmed cyan
+
+# Special panel variants
+PanelGreen/styles/panel = SubResource("StyleBoxTexture_panel_green")
+PanelRed/styles/panel = SubResource("StyleBoxTexture_panel_red")
