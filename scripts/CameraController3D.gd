@@ -1,21 +1,26 @@
 # CameraController3D.gd
-# Smooth follow camera for 2.5D perspective in Children of the Singularity
-# Handles camera movement, zoom, and effects for 3D gameplay
+# Mario Kart 8 style follow camera for Children of the Singularity
+# Handles perspective camera positioned behind ship with smooth following and zoom
 
 extends Node3D
 
-## Camera configuration
-@export var follow_speed: float = 5.0
-@export var camera_distance: float = 25.0
-@export var camera_height: float = 25.0
-@export var look_angle: float = -45.0  # Degrees
+## Camera configuration for Mario Kart 8 style
+@export var camera_distance: float = 10.0        # Distance behind ship (Mario Kart 8 style)
+@export var camera_height: float = 3.0           # Height above ship (Mario Kart 8 positioning)
+@export var camera_fov: float = 65.0             # Field of view (degrees) - console racing standard
+@export var follow_speed: float = 5.0            # Camera follow responsiveness
+@export var rotation_follow_speed: float = 3.0   # Rotation following speed
 @export var enable_smoothing: bool = true
 
-## Zoom settings
-@export var default_zoom: float = 25.0
-@export var min_zoom: float = 10.0
-@export var max_zoom: float = 60.0
-@export var zoom_speed: float = 20.0
+## Zoom settings (now distance-based for perspective)
+@export var zoom_min_distance: float = 6.0       # Closest zoom (Mario Kart 8 style)
+@export var zoom_max_distance: float = 15.0      # Furthest zoom (Mario Kart 8 style)
+@export var zoom_speed: float = 2.0              # Zoom speed multiplier
+
+## Camera tilt settings
+@export var enable_camera_tilt: bool = false     # Banking on turns
+@export var tilt_amount: float = 10.0            # Max tilt angle (degrees)
+@export var tilt_speed: float = 3.0              # Tilt response speed
 
 ## Camera shake settings
 @export var shake_fade_speed: float = 5.0
@@ -23,19 +28,23 @@ extends Node3D
 @onready var camera: Camera3D = $Camera3D
 
 var target: Node3D = null
-var camera_offset: Vector3
-var current_zoom: float = 80.0
+var current_distance: float = 15.0               # Current zoom distance
+var target_distance: float = 15.0               # Target zoom distance
 var shake_strength: float = 0.0
 var shake_timer: float = 0.0
 
-func _ready() -> void:
-	setup_camera()
-	calculate_offset()
-	_log_message("CameraController3D: 3D camera controller initialized")
+# Ship tracking state
+var ship_forward_direction: Vector3 = Vector3.FORWARD
+var ship_velocity: Vector3 = Vector3.ZERO
+var current_tilt: float = 0.0
 
-func setup_camera() -> void:
-	"""Configure the 3D camera for 2.5D gameplay"""
-	_log_message("CameraController3D: Setting up 3D camera")
+func _ready() -> void:
+	setup_mario_kart_camera()
+	_log_message("CameraController3D: Mario Kart 8 style camera controller initialized")
+
+func setup_mario_kart_camera() -> void:
+	"""Configure the 3D camera for Mario Kart 8 style perspective"""
+	_log_message("CameraController3D: Setting up Mario Kart 8 style perspective camera")
 
 	# Create Camera3D if it doesn't exist
 	if not camera:
@@ -43,30 +52,20 @@ func setup_camera() -> void:
 		camera.name = "Camera3D"
 		add_child(camera)
 
-	# Configure orthogonal projection (no perspective distortion)
-	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = default_zoom
-	camera.near = 0.1
-	camera.far = 200.0
+	# Configure PERSPECTIVE projection (key change from orthogonal)
+	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+	camera.fov = camera_fov
+	camera.near = 0.5   # Close enough for detailed view
+	camera.far = 200.0  # Far enough for zone boundaries
 
-	# Set initial rotation for 2.5D view
-	camera.rotation_degrees.x = look_angle
+	# Initialize distance-based zoom
+	current_distance = camera_distance
+	target_distance = camera_distance
 
-	current_zoom = default_zoom
-	_log_message("CameraController3D: Camera configured with orthogonal projection, size: %.1f" % current_zoom)
-
-func calculate_offset() -> void:
-	"""Calculate camera offset based on angle and distance"""
-	var angle_rad = deg_to_rad(look_angle)
-	camera_offset = Vector3(
-		0,
-		camera_height,
-		camera_distance
-	)
-	_log_message("CameraController3D: Camera offset calculated - %s" % camera_offset)
+	_log_message("CameraController3D: Perspective camera configured - FOV: %.1f, Distance: %.1f" % [camera.fov, current_distance])
 
 func set_target(new_target: Node3D) -> void:
-	"""Set the target node for the camera to follow"""
+	"""Set the target ship for the camera to follow"""
 	target = new_target
 	if target:
 		_log_message("CameraController3D: Target set to %s" % target.name)
@@ -78,27 +77,78 @@ func set_target(new_target: Node3D) -> void:
 		_log_message("CameraController3D: Target cleared")
 
 func _physics_process(delta: float) -> void:
-	"""Update camera position and effects"""
+	"""Update camera position and effects (Mario Kart 8 style)"""
 	if target:
-		_update_camera_position(delta)
+		_update_ship_tracking_data(delta)
+		_update_mario_kart_camera_position(delta)
 
+	_update_distance_zoom(delta)
+	_update_camera_tilt(delta)
 	_update_camera_shake(delta)
-	_handle_zoom_input(delta)
 
-func _update_camera_position(delta: float) -> void:
-	"""Update camera position to follow target"""
+func _update_ship_tracking_data(delta: float) -> void:
+	"""Update ship movement data for camera following"""
 	if not target:
 		return
 
-	var desired_position = target.global_position + camera_offset
+	# Get ship's forward direction (assuming ship faces its movement direction)
+	# For now, we'll use the ship's transform.basis.z as forward direction
+	var new_forward = -target.transform.basis.z.normalized()
 
+	# Smooth the direction change to avoid jitter
+	ship_forward_direction = ship_forward_direction.lerp(new_forward, rotation_follow_speed * delta)
+
+	# Track velocity for tilt effects (if enabled)
+	var previous_position = global_position
+	ship_velocity = (target.global_position - previous_position) / delta if delta > 0 else Vector3.ZERO
+
+func _update_mario_kart_camera_position(delta: float) -> void:
+	"""Update camera position behind ship Mario Kart 8 style"""
+	if not target:
+		return
+
+	# Calculate desired position behind ship
+	var behind_offset = ship_forward_direction * current_distance
+	var height_offset = Vector3.UP * camera_height
+	var desired_position = target.global_position - behind_offset + height_offset
+
+	# Smooth camera movement
 	if enable_smoothing:
-		global_position = global_position.lerp(
-			desired_position,
-			follow_speed * delta
-		)
+		global_position = global_position.lerp(desired_position, follow_speed * delta)
 	else:
 		global_position = desired_position
+
+	# Make camera look ahead of ship like Mario Kart 8
+	var look_ahead_distance = 5.0  # Look ahead on the ground plane
+	var ship_forward = -target.transform.basis.z  # Ship's forward direction
+	var look_target = target.global_position + ship_forward * look_ahead_distance + Vector3.UP * 0.8  # Look ahead, slightly above ground
+	look_at(look_target, Vector3.UP)
+
+func _update_distance_zoom(delta: float) -> void:
+	"""Update distance-based zoom system"""
+	if abs(current_distance - target_distance) > 0.01:
+		current_distance = lerp(current_distance, target_distance, 5.0 * delta)
+		_log_message("CameraController3D: Zoom distance updated to %.1f" % current_distance)
+
+func _update_camera_tilt(delta: float) -> void:
+	"""Update camera tilt based on ship movement (if enabled)"""
+	if not enable_camera_tilt:
+		# Reset tilt if disabled
+		if abs(current_tilt) > 0.01:
+			current_tilt = lerp(current_tilt, 0.0, tilt_speed * delta)
+			camera.rotation_degrees.z = current_tilt
+		return
+
+	# Calculate desired tilt based on ship's Y velocity
+	var desired_tilt = 0.0
+	if ship_velocity.length() > 0.1:
+		# Tilt based on Y movement (upward movement = positive tilt)
+		desired_tilt = ship_velocity.y * tilt_amount
+		desired_tilt = clamp(desired_tilt, -tilt_amount, tilt_amount)
+
+	# Smooth tilt transition
+	current_tilt = lerp(current_tilt, desired_tilt, tilt_speed * delta)
+	camera.rotation_degrees.z = current_tilt
 
 func _update_camera_shake(delta: float) -> void:
 	"""Update camera shake effect"""
@@ -117,7 +167,7 @@ func _update_camera_shake(delta: float) -> void:
 		camera.position = Vector3.ZERO
 
 func _handle_zoom_input(delta: float) -> void:
-	"""Handle zoom input controls"""
+	"""Handle zoom input controls (distance-based)"""
 	var zoom_input = 0.0
 
 	if Input.is_action_pressed("zoom_in"):
@@ -126,15 +176,32 @@ func _handle_zoom_input(delta: float) -> void:
 		zoom_input = 1.0
 
 	if zoom_input != 0.0:
-		set_zoom(current_zoom + zoom_input * zoom_speed * delta)
-		_log_message("CameraController3D: Zoom adjusted to %.1f" % current_zoom)
+		set_zoom_distance(target_distance + zoom_input * zoom_speed)
 
-func set_zoom(new_zoom: float) -> void:
-	"""Set camera zoom level"""
-	current_zoom = clamp(new_zoom, min_zoom, max_zoom)
+func set_zoom_distance(new_distance: float) -> void:
+	"""Set camera zoom distance (replaces orthogonal size)"""
+	target_distance = clamp(new_distance, zoom_min_distance, zoom_max_distance)
+	_log_message("CameraController3D: Target zoom distance set to %.1f" % target_distance)
+
+func zoom_in() -> void:
+	"""Zoom camera in (decrease distance)"""
+	set_zoom_distance(target_distance - zoom_speed)
+
+func zoom_out() -> void:
+	"""Zoom camera out (increase distance)"""
+	set_zoom_distance(target_distance + zoom_speed)
+
+func set_camera_fov(new_fov: float) -> void:
+	"""Set camera field of view"""
+	camera_fov = clamp(new_fov, 45.0, 120.0)
 	if camera:
-		camera.size = current_zoom
-		_log_message("CameraController3D: Zoom set to %.1f" % current_zoom)
+		camera.fov = camera_fov
+		_log_message("CameraController3D: FOV set to %.1f degrees" % camera_fov)
+
+func enable_tilt(enabled: bool) -> void:
+	"""Enable or disable camera tilt on turns"""
+	enable_camera_tilt = enabled
+	_log_message("CameraController3D: Camera tilt %s" % ("enabled" if enabled else "disabled"))
 
 func shake(intensity: float, duration: float) -> void:
 	"""Apply camera shake effect"""
@@ -146,25 +213,20 @@ func shake(intensity: float, duration: float) -> void:
 	if duration > 0:
 		shake_fade_speed = intensity / duration
 
-func set_follow_speed(new_speed: float) -> void:
-	"""Set camera follow speed"""
-	follow_speed = new_speed
-	_log_message("CameraController3D: Follow speed set to %.1f" % follow_speed)
-
-func set_camera_angle(new_angle: float) -> void:
-	"""Set camera look angle"""
-	look_angle = new_angle
-	if camera:
-		camera.rotation_degrees.x = look_angle
-		calculate_offset()  # Recalculate offset with new angle
-		_log_message("CameraController3D: Camera angle set to %.1f degrees" % look_angle)
+func set_follow_speeds(position_speed: float, rotation_speed: float) -> void:
+	"""Set camera follow speeds"""
+	follow_speed = position_speed
+	rotation_follow_speed = rotation_speed
+	_log_message("CameraController3D: Follow speeds set - Position: %.1f, Rotation: %.1f" % [follow_speed, rotation_follow_speed])
 
 func reset_camera() -> void:
-	"""Reset camera to default settings"""
-	set_zoom(default_zoom)
-	set_camera_angle(-45.0)
+	"""Reset camera to default Mario Kart 8 settings"""
+	target_distance = camera_distance
+	current_distance = camera_distance
+	current_tilt = 0.0
 	shake_strength = 0.0
-	_log_message("CameraController3D: Camera reset to defaults")
+	set_camera_fov(80.0)
+	_log_message("CameraController3D: Camera reset to Mario Kart 8 defaults")
 
 func _on_target_position_changed(new_position: Vector3) -> void:
 	"""Handle target position change signal"""
@@ -177,11 +239,16 @@ func get_camera_info() -> Dictionary:
 	return {
 		"target": target.name if target else "none",
 		"position": global_position,
-		"zoom": current_zoom,
-		"angle": look_angle,
+		"distance": current_distance,
+		"target_distance": target_distance,
+		"fov": camera_fov,
 		"follow_speed": follow_speed,
+		"rotation_follow_speed": rotation_follow_speed,
 		"shake_strength": shake_strength,
-		"smoothing_enabled": enable_smoothing
+		"smoothing_enabled": enable_smoothing,
+		"tilt_enabled": enable_camera_tilt,
+		"current_tilt": current_tilt,
+		"ship_forward_direction": ship_forward_direction
 	}
 
 func _log_message(message: String) -> void:
@@ -190,7 +257,7 @@ func _log_message(message: String) -> void:
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
 
-# Input actions for zoom (these should be defined in Input Map)
+# Input actions for zoom (mouse wheel)
 func _input(event: InputEvent) -> void:
 	"""Handle additional input events"""
 	if event is InputEventMouseButton:
@@ -198,6 +265,9 @@ func _input(event: InputEvent) -> void:
 		if mouse_event.pressed:
 			match mouse_event.button_index:
 				MOUSE_BUTTON_WHEEL_UP:
-					set_zoom(current_zoom - 5.0)
+					zoom_in()
 				MOUSE_BUTTON_WHEEL_DOWN:
-					set_zoom(current_zoom + 5.0)
+					zoom_out()
+
+	# Handle keyboard zoom input
+	_handle_zoom_input(get_process_delta_time())
