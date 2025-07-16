@@ -26,24 +26,26 @@ extends Node3D
 
 ## Camera banking settings (Mario Kart 8 style)
 @export var enable_camera_banking: bool = true   # Banking on turns like Mario Kart 8!
-@export var banking_amount: float = 20.0         # More aggressive banking angle (degrees)
-@export var banking_speed: float = 6.0           # Faster banking response
+@export var banking_amount: float = 15.0         # Reduced for smoother effect (was 20.0)
+@export var banking_speed: float = 3.0           # Slower for smoother transitions (was 6.0)
 
 ## Camera shake settings
 @export var shake_fade_speed: float = 5.0
 
 @onready var camera: Camera3D = $Camera3D
 
-var target: Node3D = null
-var current_distance: float = 12.0              # Updated to match new close distance
-var target_distance: float = 12.0               # Updated to match new close distance
+# Internal state variables
+var target: CharacterBody3D
+var ship_velocity: Vector3 = Vector3.ZERO
+var ship_forward_direction: Vector3 = Vector3.FORWARD
+var current_distance: float = 12.0
+var target_distance: float = 12.0
+var current_tilt: float = 0.0
+var current_banking: float = 0.0  # Smoothed banking value for gradual transitions
+
+# Camera shake state
 var shake_strength: float = 0.0
 var shake_timer: float = 0.0
-
-# Ship tracking state
-var ship_forward_direction: Vector3 = Vector3.FORWARD
-var ship_velocity: Vector3 = Vector3.ZERO
-var current_tilt: float = 0.0
 
 # Debug logging control (reduced frequency to prevent spam)
 var debug_log_timer: float = 0.0
@@ -159,7 +161,6 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 			[global_position.x, global_position.y, global_position.z,
 			 look_target.x, look_target.y, look_target.z])
 
-	# TEMPORARILY DISABLE BANKING to debug tilting issue
 	# Apply Mario Kart 8 style camera banking when turning (more aggressive)
 	var banking_roll = 0.0
 	if enable_camera_banking:  # Fixed: use the export variable instead of hardcoded false
@@ -170,24 +171,30 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 			var turn_input = ship_body.get_turn_input()
 			banking_roll = turn_input * banking_amount
 		else:
-			# Fallback: only apply banking if there's significant horizontal rotation
+			# Improved: smooth banking calculation with gradual detection
 			var horizontal_velocity = Vector3(ship_velocity.x, 0, ship_velocity.z)
 			var speed = horizontal_velocity.length()
-			if speed > 1.0:  # Only calculate banking if moving
+			if speed > 0.5:  # Lower threshold for smoother activation
 				var velocity_direction = horizontal_velocity.normalized()
 				var forward_direction = Vector3(ship_forward_direction.x, 0, ship_forward_direction.z).normalized()
 				var cross_product = forward_direction.cross(velocity_direction)
-				# Only apply banking if there's significant sideways movement (turning)
-				var sideways_component = abs(cross_product.y)
-				if sideways_component > 0.1:  # Threshold to prevent micro-adjustments
-					banking_roll = cross_product.y * banking_amount * (speed / 10.0)
-			banking_roll = clamp(banking_roll, -banking_amount, banking_amount)
 
-	# Look at target with proper banking support
+				# Smooth banking calculation - no sudden threshold
+				var sideways_component = cross_product.y
+				# Remove threshold - allow smooth gradual banking
+				var speed_factor = clamp(speed / 8.0, 0.0, 1.0)  # Gradual speed scaling
+				banking_roll = sideways_component * banking_amount * speed_factor
+
+		banking_roll = clamp(banking_roll, -banking_amount, banking_amount)
+
+	# Smooth banking transition - add interpolation for current banking
+	current_banking = lerp(current_banking, banking_roll, banking_speed * delta)
+
+	# Look at target with proper banking support using smoothed banking
 	var up_vector = Vector3.UP
-	if banking_roll != 0.0:
+	if abs(current_banking) > 0.01:  # Only apply if there's meaningful banking
 		# Rotate the up vector to create banking effect
-		up_vector = up_vector.rotated(ship_forward_direction.normalized(), deg_to_rad(banking_roll))
+		up_vector = up_vector.rotated(ship_forward_direction.normalized(), deg_to_rad(current_banking))
 
 	# Debug ship forward direction (reduced frequency)
 	if should_log:

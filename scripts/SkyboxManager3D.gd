@@ -216,8 +216,8 @@ func get_layer_by_name(layer_name: String):
 ## Debug and utility methods
 
 func get_skybox_info() -> Dictionary:
-	##Get skybox system configuration info for debugging
-	var layer_info = []
+	# Get skybox system configuration info for debugging
+	var layer_info: Array = []
 	for layer in active_layers:
 		if layer:
 			layer_info.append(layer.get_layer_info())
@@ -232,7 +232,7 @@ func get_skybox_info() -> Dictionary:
 	}
 
 func enable_debug_logging(enabled: bool) -> void:
-	##Enable or disable debug logging for manager and all layers
+	# Enable or disable debug logging for manager and all layers
 	debug_logging = enabled
 	for layer in active_layers:
 		if layer:
