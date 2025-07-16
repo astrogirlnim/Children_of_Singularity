@@ -244,8 +244,8 @@ async def get_player(player_id: str):
                 # Get player data
                 cursor.execute(
                     """
-                    SELECT id, name, credits, progression_path, position_x, position_y, position_z,
-                           created_at, updated_at
+                    SELECT id, name, credits, progression_path, position_x,
+                           position_y, position_z, created_at, updated_at
                     FROM players WHERE id = %s
                 """,
                     (player_id,),
