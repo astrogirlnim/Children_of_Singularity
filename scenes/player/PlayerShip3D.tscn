@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3 uid="uid://bq2j5gk8m7xdh"]
 
 [ext_resource type="Script" path="res://scripts/PlayerShip3D.gd" id="1_0k8x5"]
-[ext_resource type="Texture2D" path="res://assets/sprites/ships/ship_right_vibrant.png" id="2_player_ship"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ships/animation_frames/ship_turn_frame_113.png" id="2_ship_default"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(4, 2, 4)
@@ -20,8 +20,8 @@ script = ExtResource("1_0k8x5")
 [node name="Sprite3D" type="Sprite3D" parent="."]
 billboard = 1
 texture_filter = 0
-texture = ExtResource("2_player_ship")
-pixel_size = 0.0055
+texture = ExtResource("2_ship_default")
+pixel_size = 0.02
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("BoxShape3D_1")
