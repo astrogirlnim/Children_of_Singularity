@@ -5,11 +5,26 @@
 class_name PlayerShip3D
 extends CharacterBody3D
 
-## Movement constants
+## Movement constants (legacy - being replaced with Mario Kart physics)
 const SPEED = 10.0
 const ACCELERATION = 40.0
 const FRICTION = 20.0
 const JUMP_VELOCITY = 8.0  # For floating/hovering mechanics
+
+## Mario Kart Style Physics Parameters
+@export_group("Steering Controls")
+@export var max_turn_speed: float = 90.0           # Max degrees/second at low speed
+@export var turn_speed_at_max_velocity: float = 45.0  # Degrees/second at max speed
+@export var reverse_turn_multiplier: float = 0.7    # Turn speed when reversing
+@export var turn_smoothing: float = 8.0             # Rotation interpolation speed
+
+@export_group("Movement Physics")
+@export var max_forward_speed: float = 15.0         # Maximum forward velocity
+@export var max_reverse_speed: float = 8.0          # Maximum reverse velocity
+@export var acceleration_force: float = 20.0        # Forward acceleration rate
+@export var brake_force: float = 30.0               # Braking force
+@export var friction_force: float = 5.0             # Natural friction when no input
+@export var momentum_factor: float = 0.9            # Momentum preservation
 
 ## Gravity (adjusted for space floating effect)
 var gravity: float = -9.8
@@ -50,9 +65,15 @@ const RIGHT_TURN_END: int = 127
 const ANIMATION_SPEED: float = 12.0  # frames per second
 const FRAME_COUNT: int = 127  # Total number of frames (1-127)
 
-## Movement state
+## Movement state (legacy - being replaced)
 var input_vector: Vector2 = Vector2.ZERO
 var movement_velocity: Vector3 = Vector3.ZERO
+
+## Mario Kart Movement State
+var steering_input: float = 0.0              # Current steering input (-1 to 1)
+var acceleration_input: float = 0.0          # Current acceleration input (-1 to 1)
+var current_velocity: float = 0.0            # Forward/backward velocity
+var current_direction: Vector3 = Vector3.FORWARD  # Ship's facing direction
 
 ## Player state (same as 2D version)
 var player_id: String = "player_001"
@@ -63,7 +84,7 @@ var upgrades: Dictionary = {}
 
 ## Interaction state
 var can_collect: bool = true
-var collection_range: float = 80.0
+var collection_range: float = 3.0  # Touching distance - just overlaps with debris (2.0 radius)
 var nearby_debris: Array[RigidBody3D] = []
 var collection_cooldown: float = 0.5
 
@@ -82,6 +103,17 @@ var max_speed: float = 300.0
 var is_scanner_active: bool = false
 var is_magnet_active: bool = false
 var magnet_range: float = 15.0
+
+## Ship rotation for mouse control
+var target_rotation: float = 0.0
+var current_ship_rotation: float = 0.0
+var ship_rotation_speed: float = 3.0
+var ship_forward_direction: Vector3 = Vector3.FORWARD
+
+## Visual feedback for collection range
+var collection_indicator: MeshInstance3D = null
+var collection_material: StandardMaterial3D = null
+var show_collection_indicator: bool = false  # Set to true to see collection range when near debris
 
 func _ready() -> void:
 	_log_message("PlayerShip3D: Initializing 3D player ship")
@@ -166,6 +198,41 @@ func _setup_collection_area() -> void:
 		collection_area.body_exited.connect(_on_collection_area_body_exited)
 		_log_message("PlayerShip3D: Collection area signals connected")
 
+	# Create visual collection range indicator
+	if show_collection_indicator:
+		_create_collection_range_indicator()
+
+func _create_collection_range_indicator() -> void:
+	##Create a visual indicator for collection range
+	_log_message("PlayerShip3D: Creating collection range indicator")
+
+	# Create the mesh instance for the indicator
+	collection_indicator = MeshInstance3D.new()
+	collection_indicator.name = "CollectionRangeIndicator"
+
+	# Create a sphere mesh for the range indicator
+	var sphere_mesh = SphereMesh.new()
+	sphere_mesh.radius = collection_range
+	sphere_mesh.radial_segments = 16
+	sphere_mesh.rings = 8
+	collection_indicator.mesh = sphere_mesh
+
+	# Create a transparent material for the indicator
+	collection_material = StandardMaterial3D.new()
+	collection_material.albedo_color = Color(0.0, 0.8, 1.0, 0.1)  # Very transparent cyan
+	collection_material.flags_transparent = true
+	collection_material.flags_unshaded = true
+	collection_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	collection_material.no_depth_test = true
+	collection_indicator.material_override = collection_material
+
+	# Start invisible - only show when debris is nearby
+	collection_indicator.visible = false
+
+	# Add to ship
+	add_child(collection_indicator)
+	_log_message("PlayerShip3D: Collection range indicator created (invisible by default)")
+
 func _setup_interaction_area() -> void:
 	##Set up 3D interaction area for NPC detection
 	_log_message("PlayerShip3D: Setting up 3D interaction area")
@@ -207,6 +274,7 @@ func _initialize_player_state() -> void:
 func _physics_process(delta: float) -> void:
 	##Handle 3D physics processing
 	_handle_input()
+	_apply_ship_rotation(delta)
 	_apply_3d_movement(delta)
 	_apply_gravity(delta)
 
@@ -224,60 +292,112 @@ func _physics_process(delta: float) -> void:
 	position_changed.emit(global_position)
 
 func _handle_input() -> void:
-	##Handle input for 3D movement
-	input_vector = Vector2.ZERO
+	##Handle Mario Kart style steering input
+	_log_message("PlayerShip3D: Processing Mario Kart steering input")
 
-	# Reset turning states
-	is_turning_left = false
-	is_turning_right = false
+	# Reset input values
+	steering_input = 0.0
+	acceleration_input = 0.0
 
-	# Get input from all movement actions
+	# Steering input (A/D keys for ship rotation)
 	if Input.is_action_pressed("move_right"):
-		input_vector.x += 1
-		is_turning_right = true
+		steering_input += 1.0  # Steer right
+		_log_message("PlayerShip3D: Steering right")
 	if Input.is_action_pressed("move_left"):
-		input_vector.x -= 1
-		is_turning_left = true
-	if Input.is_action_pressed("move_down"):
-		input_vector.y += 1  # This will map to Z in 3D
+		steering_input -= 1.0  # Steer left
+		_log_message("PlayerShip3D: Steering left")
+
+	# Acceleration input (W/S keys for forward/backward movement)
 	if Input.is_action_pressed("move_up"):
-		input_vector.y -= 1  # This will map to Z in 3D
+		acceleration_input += 1.0  # Accelerate forward
+		_log_message("PlayerShip3D: Accelerating forward")
+	if Input.is_action_pressed("move_down"):
+		acceleration_input -= 1.0  # Reverse/brake
+		_log_message("PlayerShip3D: Braking/reversing")
 
-	# Update ship frame animation based on turning state
-	_update_ship_turning_animation()
+	# Legacy input vector for backward compatibility (will be removed later)
+	input_vector = Vector2(steering_input, -acceleration_input)
 
-	# Normalize diagonal movement
-	if input_vector.length() > 1.0:
-		input_vector = input_vector.normalized()
+	# Reset turning states for animation (now based on steering input)
+	is_turning_left = steering_input < -0.1
+	is_turning_right = steering_input > 0.1
 
 	# Optional: Handle jump/float for Y-axis movement
 	if Input.is_action_just_pressed("collect") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
+		_log_message("PlayerShip3D: Jump/float activated")
 
 func _apply_3d_movement(delta: float) -> void:
-	##Apply 3D movement on X-Z plane
-	# Calculate desired velocity on X-Z plane (Y input maps to Z axis)
-	var desired_velocity = Vector3(
-		input_vector.x * SPEED,
-		0,  # Y will be handled by gravity
-		input_vector.y * SPEED  # Y input maps to Z axis movement
-	)
+	##Apply Mario Kart style forward/backward movement only
+	_log_message("PlayerShip3D: Applying Mario Kart movement - Accel: %.2f, Current Vel: %.2f" % [acceleration_input, current_velocity])
 
-	# Apply acceleration or friction
-	if input_vector.length() > 0:
-		movement_velocity = movement_velocity.move_toward(
-			desired_velocity,
-			ACCELERATION * delta
-		)
-	else:
-		movement_velocity = movement_velocity.move_toward(
-			Vector3.ZERO,
-			FRICTION * delta
-		)
+	# Apply acceleration based on input
+	_apply_acceleration(delta, acceleration_input)
+
+	# Apply movement only in ship's facing direction (no lateral movement)
+	current_direction = -transform.basis.z.normalized()
+	var movement_vector = current_direction * current_velocity
 
 	# Apply to character velocity (preserve Y for gravity)
-	velocity.x = movement_velocity.x
-	velocity.z = movement_velocity.z
+	velocity.x = movement_vector.x
+	velocity.z = movement_vector.z
+
+	_log_message("PlayerShip3D: Applied velocity - X: %.2f, Z: %.2f, Direction: %s" % [velocity.x, velocity.z, current_direction])
+
+func _apply_acceleration(delta: float, accel_input: float) -> void:
+	##Apply Mario Kart style acceleration/deceleration
+	if accel_input > 0:
+		# Forward acceleration
+		current_velocity = move_toward(current_velocity, max_forward_speed, acceleration_force * delta)
+		_log_message("PlayerShip3D: Forward acceleration - Velocity: %.2f / %.2f" % [current_velocity, max_forward_speed])
+	elif accel_input < 0:
+		# Reverse/braking
+		if current_velocity > 0:
+			# Braking while moving forward
+			current_velocity = move_toward(current_velocity, 0, brake_force * delta)
+			_log_message("PlayerShip3D: Braking - Velocity: %.2f" % current_velocity)
+		else:
+			# Reverse acceleration
+			current_velocity = move_toward(current_velocity, -max_reverse_speed, acceleration_force * delta)
+			_log_message("PlayerShip3D: Reverse acceleration - Velocity: %.2f / %.2f" % [current_velocity, -max_reverse_speed])
+	else:
+		# No input - apply friction
+		current_velocity = move_toward(current_velocity, 0, friction_force * delta)
+		if abs(current_velocity) > 0.1:
+			_log_message("PlayerShip3D: Applying friction - Velocity: %.2f" % current_velocity)
+
+func _apply_ship_rotation(delta: float) -> void:
+	##Apply Mario Kart style steering rotation
+	_apply_steering(delta)
+
+	# Update ship forward direction for movement
+	ship_forward_direction = -transform.basis.z.normalized()
+
+func _apply_steering(delta: float) -> void:
+	##Apply Mario Kart style steering based on A/D keys
+	if abs(steering_input) > 0.1:
+		_log_message("PlayerShip3D: Applying steering - Input: %.2f, Current Velocity: %.2f" % [steering_input, current_velocity])
+
+		# Calculate turn speed based on current velocity (slower turning at high speed)
+		var velocity_factor = clamp(abs(current_velocity) / max_forward_speed, 0.2, 1.0)
+		var effective_turn_speed = lerp(max_turn_speed, turn_speed_at_max_velocity, velocity_factor)
+
+		# Handle reverse turning (slower when moving backward)
+		if current_velocity < 0:
+			effective_turn_speed *= reverse_turn_multiplier
+
+		# Apply steering rotation around Y-axis (yaw)
+		# Note: Negative because positive Y rotation in Godot is counterclockwise (left turn)
+		var turn_amount = -steering_input * effective_turn_speed * delta
+		rotation.y += deg_to_rad(turn_amount)
+
+		# Update ship animation to show turning
+		_update_turning_animation(steering_input)
+
+		_log_message("PlayerShip3D: Steering applied - Turn amount: %.2f deg, New rotation: %.2f deg" % [turn_amount, rad_to_deg(rotation.y)])
+	else:
+		# Not turning - reset animation to straight
+		_update_turning_animation(0.0)
 
 func _apply_gravity(delta: float) -> void:
 	##Apply gravity for floating/jumping mechanics
@@ -366,6 +486,15 @@ func _collect_debris_object(debris_object: RigidBody3D) -> void:
 	# Emit signal
 	debris_collected.emit(debris_type, debris_value)
 
+	# Sync inventory item with backend API
+	if zone_main and zone_main.has_method("get_api_client"):
+		var api_client = zone_main.get_api_client()
+		if api_client and api_client.has_method("add_inventory_item"):
+			api_client.add_inventory_item(debris_item)
+			_log_message("PlayerShip3D: Synced inventory item with backend API - %s" % debris_type)
+	else:
+		_log_message("PlayerShip3D: Warning - Backend API sync not available for inventory item")
+
 	# Trigger debris collection through the debris manager
 	if zone_main and zone_main.has_method("get_debris_manager"):
 		var debris_manager = zone_main.get_debris_manager()
@@ -386,6 +515,9 @@ func _on_collection_area_body_entered(body: Node3D) -> void:
 		nearby_debris.append(body)
 		_log_message("PlayerShip3D: Debris entered 3D collection range - %s" % debris_3d.get_debris_type())
 
+		# Show collection range indicator when debris is nearby
+		_update_collection_indicator_visibility()
+
 func _on_collection_area_body_exited(body: Node3D) -> void:
 	##Handle debris exiting collection range in 3D
 	if body in nearby_debris:
@@ -393,6 +525,25 @@ func _on_collection_area_body_exited(body: Node3D) -> void:
 		var debris_3d = body as DebrisObject3D
 		if debris_3d:
 			_log_message("PlayerShip3D: Debris exited 3D collection range - %s" % debris_3d.get_debris_type())
+
+		# Update collection range indicator visibility
+		_update_collection_indicator_visibility()
+
+func _update_collection_indicator_visibility() -> void:
+	##Update visibility of collection range indicator based on nearby debris
+	if collection_indicator:
+		var should_show = nearby_debris.size() > 0 and show_collection_indicator
+		if collection_indicator.visible != should_show:
+			collection_indicator.visible = should_show
+			if should_show:
+				_log_message("PlayerShip3D: Collection range indicator shown (debris nearby)")
+			else:
+				_log_message("PlayerShip3D: Collection range indicator hidden (no debris nearby)")
+
+		# Update material color based on debris count
+		if collection_material and should_show:
+			var alpha = min(0.2 + (nearby_debris.size() * 0.05), 0.5)  # More opaque with more debris
+			collection_material.albedo_color.a = alpha
 
 func _on_interaction_area_body_entered(body: Node3D) -> void:
 	##Handle NPC entering interaction range in 3D
@@ -446,6 +597,16 @@ func _log_message(message: String) -> void:
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
+
+## Mario Kart steering interface methods for camera controller
+
+func get_current_steering_input() -> float:
+	##Get current steering input for camera banking (-1 to 1)
+	return steering_input
+
+func get_current_velocity() -> float:
+	##Get current forward/backward velocity for camera effects
+	return current_velocity
 
 # Player state management methods (same API as 2D version)
 func get_player_info() -> Dictionary:
@@ -508,11 +669,15 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 		"inventory_expansion":
 			inventory_capacity = 10 + (level * 5)
 		"collection_efficiency":
-			collection_range = 80.0 + (level * 20.0)
+			collection_range = 3.0 + (level * 2.0)  # Base 3.0, small upgrades to maintain close collection
 			collection_cooldown = max(0.1, 0.5 - (level * 0.05))
 			# Update collection area size
 			if collection_collision and collection_collision.shape:
 				collection_collision.shape.radius = collection_range
+			# Update visual indicator size
+			if collection_indicator and collection_indicator.mesh:
+				collection_indicator.mesh.radius = collection_range
+				_log_message("PlayerShip3D: Updated collection range indicator to %.1f units" % collection_range)
 		"zone_access":
 			# This will be handled by the zone system
 			pass
@@ -711,20 +876,41 @@ func _set_ship_frame(frame_number: int) -> void:
 	else:
 		_log_message("PlayerShip3D: Could not set frame %d" % frame_number)
 
-func _update_ship_turning_animation() -> void:
-	##Update ship turning animation based on movement direction
+func _update_turning_animation(steer_input: float) -> void:
+	##Update ship turning animation based on steering input (Mario Kart style)
 	var target_frame = DEFAULT_FRAME  # Frame 113 (straight)
 
-	if is_turning_left and not is_turning_right:
-		target_frame = LEFT_TURN_END  # Frame 98 (full left turn)
-	elif is_turning_right and not is_turning_left:
-		target_frame = RIGHT_TURN_END  # Frame 127 (full right turn)
+	if abs(steer_input) > 0.1:
+		if steer_input < 0:
+			# Turning left - blend based on steering intensity
+			var blend_factor = clamp(abs(steer_input), 0.0, 1.0)
+			target_frame = int(lerp(DEFAULT_FRAME, LEFT_TURN_END, blend_factor))
+			_log_message("PlayerShip3D: Left turn animation - Steer: %.2f, Frame: %d" % [steer_input, target_frame])
+		else:
+			# Turning right - blend based on steering intensity
+			var blend_factor = clamp(abs(steer_input), 0.0, 1.0)
+			target_frame = int(lerp(DEFAULT_FRAME, RIGHT_TURN_END, blend_factor))
+			_log_message("PlayerShip3D: Right turn animation - Steer: %.2f, Frame: %d" % [steer_input, target_frame])
 	else:
 		target_frame = DEFAULT_FRAME  # Frame 113 (straight)
 
 	# Smoothly animate to target frame if different from current
 	if target_frame != current_frame:
 		_animate_to_frame(target_frame)
+
+func _update_ship_visual_rotation() -> void:
+	##Update ship visual rotation to match actual rotation (Mario Kart style)
+	# Convert rotation to frame index (0-126 range)
+	var normalized_rotation = fmod(rotation.y + PI, 2 * PI) / (2 * PI)  # 0-1
+	var target_frame = int(normalized_rotation * (FRAME_COUNT - 1)) + 1  # 1-127
+
+	# Clamp to valid range
+	target_frame = clamp(target_frame, 1, FRAME_COUNT)
+
+	# Update sprite frame if different
+	if target_frame != current_frame:
+		_set_ship_frame(target_frame)
+		_log_message("PlayerShip3D: Visual rotation update - Rotation: %.2f degrees, Frame: %d" % [rad_to_deg(rotation.y), target_frame])
 
 func _animate_to_frame(target_frame: int) -> void:
 	##Smoothly animate from current frame to target frame

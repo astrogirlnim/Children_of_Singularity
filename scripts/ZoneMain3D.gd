@@ -28,6 +28,10 @@ signal npc_hub_entered()
 @onready var hud: Control = $UILayer/HUD
 @onready var debug_label: Label = $UILayer/HUD/DebugLabel
 @onready var log_label: Label = $UILayer/HUD/LogLabel
+@onready var inventory_status: Label = $UILayer/HUD/InventoryPanel/InventoryStatus
+@onready var inventory_grid: GridContainer = $UILayer/HUD/InventoryPanel/InventoryGrid
+@onready var credits_label: Label = $UILayer/HUD/StatsPanel/CreditsLabel
+@onready var debris_count_label: Label = $UILayer/HUD/StatsPanel/DebrisCountLabel
 @onready var api_client: Node = $APIClient
 @onready var upgrade_system: Node = $UpgradeSystem
 @onready var ai_communicator: Node = $AICommunicator
@@ -63,6 +67,11 @@ var game_logs: Array[String] = []
 var position_sync_timer: float = 0.0
 var position_sync_interval: float = 5.0  # Sync position every 5 seconds
 var last_synced_position: Vector3 = Vector3.ZERO
+
+# Inventory display tracking
+var inventory_items: Array[Control] = []
+var last_inventory_size: int = 0
+var last_inventory_hash: String = ""
 
 func _ready() -> void:
 	_log_message("ZoneMain3D: Initializing 3D zone controller")
@@ -120,6 +129,11 @@ func _initialize_3d_zone() -> void:
 	# Initialize HUD
 	if debug_label:
 		debug_label.text = "Children of the Singularity - %s [3D DEBUG]" % zone_name
+
+	# Initialize inventory display with any existing items
+	if player_ship and player_ship.current_inventory.size() > 0:
+		_update_grouped_inventory_display(player_ship.current_inventory)
+		_log_message("ZoneMain3D: Initialized inventory display with %d existing items" % player_ship.current_inventory.size())
 
 	_log_message("ZoneMain3D: 3D zone initialization complete")
 
@@ -385,6 +399,30 @@ func test_3d_functionality() -> void:
 func _on_debris_collected(debris_type: String, value: int) -> void:
 	##Handle debris collection from player ship
 	_log_message("ZoneMain3D: Player collected debris - %s (Value: %d)" % [debris_type, value])
+
+	# Immediately update inventory UI when debris is collected (don't wait for timer)
+	if player_ship and inventory_status:
+		var current_size = player_ship.current_inventory.size()
+		var max_size = player_ship.inventory_capacity
+		inventory_status.text = "%d/%d Items" % [current_size, max_size]
+
+		# Color code based on fullness
+		if current_size >= max_size:
+			inventory_status.modulate = Color.RED
+		elif current_size >= max_size * 0.8:
+			inventory_status.modulate = Color.YELLOW
+		else:
+			inventory_status.modulate = Color.WHITE
+
+		# Update grouped inventory display
+		_update_grouped_inventory_display(player_ship.current_inventory)
+
+		_log_message("ZoneMain3D: Inventory UI updated immediately - %d/%d items with grouped display" % [current_size, max_size])
+
+	# Update credits display if available
+	if player_ship and credits_label:
+		credits_label.text = "Credits: %d" % player_ship.credits
+
 	debris_collected.emit(debris_type, value)
 
 func _on_npc_hub_entered(hub_type: String) -> void:
@@ -614,3 +652,118 @@ func _sync_player_position_to_backend() -> void:
 		api_client.save_player_data(player_data)
 		last_synced_position = current_position
 		_log_message("ZoneMain3D: Player 3D position synced to backend - X:%.1f Y:%.1f Z:%.1f" % [current_position.x, current_position.y, current_position.z])
+
+## Grouped Inventory Display Methods
+
+func _update_grouped_inventory_display(inventory_data: Array) -> void:
+	##Update the inventory display grid with grouped quantities by type
+	_log_message("ZoneMain3D: Updating grouped inventory display with %d items" % inventory_data.size())
+
+	if not inventory_grid:
+		_log_message("ZoneMain3D: Warning - inventory_grid not found!")
+		return
+
+	# Clear existing items
+	for item in inventory_items:
+		if item:
+			item.queue_free()
+	inventory_items.clear()
+
+	# Group inventory items by type and count quantities
+	var grouped_inventory = _group_inventory_by_type(inventory_data)
+	_log_message("ZoneMain3D: Grouped %d individual items into %d types" % [inventory_data.size(), grouped_inventory.size()])
+
+	# Add grouped items to display
+	for item_type in grouped_inventory:
+		var group_data = grouped_inventory[item_type]
+		var item_control = _create_grouped_inventory_item_control(item_type, group_data)
+		inventory_grid.add_child(item_control)
+		inventory_items.append(item_control)
+		_log_message("ZoneMain3D: Added %s x%d to inventory display" % [item_type, group_data.quantity])
+
+	# Update tracking variables
+	last_inventory_size = inventory_data.size()
+	last_inventory_hash = str(inventory_data.hash())
+
+func _group_inventory_by_type(inventory_data: Array) -> Dictionary:
+	##Group inventory items by type and calculate totals
+	var grouped = {}
+
+	for item_data in inventory_data:
+		var item_type = item_data.get("type", "Unknown")
+		var item_value = item_data.get("value", 0)
+
+		if not grouped.has(item_type):
+			grouped[item_type] = {
+				"quantity": 0,
+				"total_value": 0,
+				"individual_value": item_value
+			}
+
+		grouped[item_type].quantity += 1
+		grouped[item_type].total_value += item_value
+
+	return grouped
+
+func _create_grouped_inventory_item_control(item_type: String, group_data: Dictionary) -> Control:
+	##Create a control for a grouped inventory item with quantity and value display
+	var item_panel = Panel.new()
+	item_panel.custom_minimum_size = Vector2(120, 80)
+
+	# Use the new generated theme styling with proper margins
+	item_panel.theme_type_variation = "InventoryPanel"
+
+	# Use VBoxContainer for clean layout
+	var vbox = VBoxContainer.new()
+	item_panel.add_child(vbox)
+	vbox.anchors_preset = Control.PRESET_FULL_RECT
+	vbox.add_theme_constant_override("separation", 4)
+
+	# Item type label
+	var type_label = Label.new()
+	type_label.text = item_type.capitalize().replace("_", " ")
+	type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	type_label.add_theme_font_size_override("font_size", 11)
+	vbox.add_child(type_label)
+
+	# Quantity label (cyan color)
+	var quantity_label = Label.new()
+	quantity_label.text = "x%d" % group_data.quantity
+	quantity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	quantity_label.add_theme_color_override("font_color", Color.CYAN)
+	quantity_label.add_theme_font_size_override("font_size", 12)
+	vbox.add_child(quantity_label)
+
+	# Total value label (yellow color)
+	var total_value_label = Label.new()
+	total_value_label.text = "%d credits" % group_data.total_value
+	total_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	total_value_label.add_theme_color_override("font_color", Color.YELLOW)
+	total_value_label.add_theme_font_size_override("font_size", 10)
+	vbox.add_child(total_value_label)
+
+	# Individual value label (gray color)
+	var individual_value_label = Label.new()
+	individual_value_label.text = "(%d each)" % group_data.individual_value
+	individual_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	individual_value_label.add_theme_color_override("font_color", Color.GRAY)
+	individual_value_label.add_theme_font_size_override("font_size", 9)
+	vbox.add_child(individual_value_label)
+
+	return item_panel
+
+func _get_rarity_color(item_type: String) -> Color:
+	##Get color based on debris rarity/value
+	match item_type:
+		"scrap_metal":
+			return Color.GRAY  # Common
+		"bio_waste":
+			return Color.GREEN  # Uncommon
+		"broken_satellite":
+			return Color.BLUE  # Rare
+		"ai_component":
+			return Color.PURPLE  # Epic
+		"unknown_artifact":
+			return Color.GOLD  # Legendary
+		_:
+			return Color.WHITE  # Default

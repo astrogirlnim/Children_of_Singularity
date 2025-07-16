@@ -34,8 +34,9 @@ func _ready() -> void:
 	_log_message("AICommunicator: Initializing AI communication system")
 	_setup_milestones()
 	_initialize_ai_messages()
-	_setup_audio_system()
-	_load_voice_clips()
+	# Audio system setup commented out for now
+	# _setup_audio_system()
+	# _load_voice_clips()
 	_log_message("AICommunicator: AI communication system ready")
 
 func _setup_milestones() -> void:
@@ -256,11 +257,12 @@ func broadcast_ai_message_with_voice(message: String, priority: int = 2, voice_c
 	_log_message("AICommunicator: Broadcasting AI message with voice: %s" % message)
 
 	# Add to message history
-	add_message_to_history(message, priority, "broadcast")
+	# add_message_to_history(message, priority, "broadcast")  # TODO: Implement
 
 	# Play voice clip if specified
-	if voice_clip != "":
-		play_voice_clip(voice_clip)
+	# if voice_clip != "":
+	#	play_voice_clip(voice_clip)  # TODO: Implement
 
 	# Broadcast the message
-	broadcast_ai_message(message, priority)
+	# broadcast_ai_message(message, priority)  # TODO: Implement
+	ai_message_received.emit(message, priority)

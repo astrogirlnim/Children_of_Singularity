@@ -143,7 +143,7 @@ func update_collection_range(range_value: float, upgrade_bonus: int = 0) -> void
 		collection_range_label.text = range_text
 
 func update_inventory_display(inventory_data: Array) -> void:
-	##Update the inventory display grid
+	##Update the inventory display grid with grouped quantities by type
 	if not inventory_grid:
 		return
 
@@ -153,9 +153,13 @@ func update_inventory_display(inventory_data: Array) -> void:
 			item.queue_free()
 	inventory_items.clear()
 
-	# Add new items
-	for item_data in inventory_data:
-		var item_control = _create_inventory_item_control(item_data)
+	# Group inventory items by type and count quantities
+	var grouped_inventory = _group_inventory_by_type(inventory_data)
+
+	# Add grouped items to display
+	for item_type in grouped_inventory:
+		var group_data = grouped_inventory[item_type]
+		var item_control = _create_grouped_inventory_item_control(item_type, group_data)
 		inventory_grid.add_child(item_control)
 		inventory_items.append(item_control)
 
@@ -163,26 +167,94 @@ func update_inventory_display(inventory_data: Array) -> void:
 	last_inventory_size = inventory_data.size()
 	last_inventory_hash = str(inventory_data.hash())
 
-func _create_inventory_item_control(item_data: Dictionary) -> Control:
-	##Create a control for an inventory item
+func _group_inventory_by_type(inventory_data: Array) -> Dictionary:
+	##Group inventory items by type and calculate totals
+	var grouped = {}
+
+	for item_data in inventory_data:
+		var item_type = item_data.get("type", "Unknown")
+		var item_value = item_data.get("value", 0)
+
+		if not grouped.has(item_type):
+			grouped[item_type] = {
+				"quantity": 0,
+				"total_value": 0,
+				"individual_value": item_value
+			}
+
+		grouped[item_type].quantity += 1
+		grouped[item_type].total_value += item_value
+
+	return grouped
+
+func _create_grouped_inventory_item_control(item_type: String, group_data: Dictionary) -> Control:
+	##Create a control for a grouped inventory item showing quantity
 	var item_panel = Panel.new()
-	item_panel.custom_minimum_size = Vector2(80, 80)
+	item_panel.custom_minimum_size = Vector2(120, 90)
 
+	# The new StyleBoxFlat theme handles all styling and margins automatically
+	# No need for manual styling - just use theme type
+	item_panel.theme_type_variation = "InventoryPanel"
+
+	# Use VBoxContainer for clean layout - theme margins will handle spacing
+	var vbox = VBoxContainer.new()
+	item_panel.add_child(vbox)
+	vbox.anchors_preset = Control.PRESET_FULL_RECT
+	vbox.add_theme_constant_override("separation", 4)  # Space between text elements
+
+	# Item type name (formatted nicely)
 	var item_label = Label.new()
-	item_label.text = item_data.get("type", "Unknown")
+	item_label.text = _format_item_name(item_type)
 	item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	item_label.position = Vector2(10, 10)
+	item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	item_label.add_theme_font_size_override("font_size", 12)
+	vbox.add_child(item_label)
 
+	# Quantity display
+	var quantity_label = Label.new()
+	quantity_label.text = "x%d" % group_data.quantity
+	quantity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	quantity_label.add_theme_color_override("font_color", Color.CYAN)
+	quantity_label.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(quantity_label)
+
+	# Total value display
 	var value_label = Label.new()
-	value_label.text = str(item_data.get("value", 0))
+	value_label.text = "%d credits" % group_data.total_value
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value_label.position = Vector2(10, 50)
-	value_label.modulate = Color.YELLOW
+	value_label.add_theme_color_override("font_color", Color.YELLOW)
+	value_label.add_theme_font_size_override("font_size", 11)
+	vbox.add_child(value_label)
 
-	item_panel.add_child(item_label)
-	item_panel.add_child(value_label)
+	# Individual value (smaller text)
+	var unit_value_label = Label.new()
+	unit_value_label.text = "(%d each)" % group_data.individual_value
+	unit_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	unit_value_label.add_theme_color_override("font_color", Color.GRAY)
+	unit_value_label.add_theme_font_size_override("font_size", 9)
+	vbox.add_child(unit_value_label)
 
 	return item_panel
+
+func _format_item_name(item_type: String) -> String:
+	##Format item name for display (replace underscores with spaces and capitalize)
+	return item_type.replace("_", " ").capitalize()
+
+func _get_rarity_color(item_type: String) -> Color:
+	##Get color based on item rarity
+	match item_type:
+		"scrap_metal", "bio_waste":
+			return Color.GRAY  # Common
+		"broken_satellite", "energy_cell":
+			return Color.GREEN  # Uncommon
+		"ai_component", "nano_material":
+			return Color.BLUE  # Rare
+		"quantum_core":
+			return Color.PURPLE  # Epic
+		"unknown_artifact":
+			return Color.GOLD  # Legendary
+		_:
+			return Color.WHITE  # Default
 
 func update_upgrade_status_display(upgrades: Dictionary, upgrade_system: Node = null) -> void:
 	##Update the upgrade status display

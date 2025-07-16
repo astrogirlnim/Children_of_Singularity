@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/SkyboxManager3D.gd" id="7_skybox_manager"]
 [ext_resource type="PackedScene" uid="uid://dltt2lxq3l5a0" path="res://scenes/objects/TradingHub3D.tscn" id="8_trading_hub"]
 [ext_resource type="PackedScene" uid="uid://dt50q3oh0r0g4" path="res://scenes/objects/UpgradeHub3D.tscn" id="9_upgrade_hub"]
+[ext_resource type="Theme" path="res://resources/themes/SpaceCustomTheme.tres" id="10_custom_theme"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -106,6 +107,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("10_custom_theme")
 
 [node name="DebugLabel" type="Label" parent="UILayer/HUD"]
 layout_mode = 0
@@ -126,15 +128,17 @@ vertical_alignment = 2
 layout_mode = 0
 anchor_left = 0.02
 anchor_top = 0.1
-anchor_right = 0.25
-anchor_bottom = 0.4
+anchor_right = 0.35
+anchor_bottom = 0.55
+theme_type_variation = "InventoryPanel"
 
 [node name="InventoryTitle" type="Label" parent="UILayer/HUD/InventoryPanel"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.1
-text = "INVENTORY"
+text = "◦ INVENTORY ◦"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="InventoryGrid" type="GridContainer" parent="UILayer/HUD/InventoryPanel"]
 layout_mode = 0
@@ -156,16 +160,18 @@ horizontal_alignment = 1
 [node name="StatsPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
 anchor_left = 0.02
-anchor_top = 0.45
-anchor_right = 0.25
-anchor_bottom = 0.65
+anchor_top = 0.6
+anchor_right = 0.35
+anchor_bottom = 0.98
+theme_type_variation = "SmallPanel"
 
 [node name="StatsTitle" type="Label" parent="UILayer/HUD/StatsPanel"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.2
-text = "PLAYER STATS"
+text = "📊 PLAYER STATS"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="CreditsLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
 layout_mode = 0
@@ -193,17 +199,19 @@ text = "Collection Range: 80"
 
 [node name="UpgradeStatusPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.02
-anchor_top = 0.7
-anchor_right = 0.25
-anchor_bottom = 0.85
+anchor_left = 0.65
+anchor_top = 0.6
+anchor_right = 0.98
+anchor_bottom = 0.98
+theme_type_variation = "SmallPanel"
 
 [node name="UpgradeStatusTitle" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.2
-text = "UPGRADES"
+text = "⚡ UPGRADES"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="UpgradeStatusText" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
 layout_mode = 0
@@ -216,17 +224,19 @@ vertical_alignment = 1
 
 [node name="ControlsPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.75
+anchor_left = 0.65
 anchor_top = 0.1
 anchor_right = 0.98
-anchor_bottom = 0.4
+anchor_bottom = 0.55
+theme_type_variation = "HorizontalPanel"
 
 [node name="ControlsTitle" type="Label" parent="UILayer/HUD/ControlsPanel"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.15
-text = "CONTROLS"
+text = "🎮 CONTROLS"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="ControlsText" type="Label" parent="UILayer/HUD/ControlsPanel"]
 layout_mode = 0
