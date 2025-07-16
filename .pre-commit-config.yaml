@@ -12,7 +12,7 @@ repos:
         entry: gitleaks protect --config .gitleaks.toml --staged --verbose
         language: golang
         types: [text]
-        stages: [commit]
+        stages: [pre-commit]
 
   # Built-in pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -98,7 +98,7 @@ repos:
 
 # Global configuration
 default_install_hook_types: [pre-commit]
-default_stages: [commit]
+default_stages: [pre-commit]
 ci:
   autofix_commit_msg: |
     [pre-commit.ci] auto fixes from pre-commit hooks
