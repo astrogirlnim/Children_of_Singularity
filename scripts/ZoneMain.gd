@@ -277,6 +277,14 @@ func _on_debris_collected(debris_type: String, value: int) -> void:
 	##Handle debris collection by player
 	_log_message("Collected %s worth %d credits" % [debris_type, value])
 
+	# Immediately update UI when debris is collected (don't wait for timer)
+	if ui_manager and player_ship:
+		ui_manager.update_inventory_status(player_ship.current_inventory.size(), player_ship.inventory_capacity)
+		# Update inventory display if UI manager supports immediate updates
+		if ui_manager.has_method("update_inventory_display"):
+			ui_manager.update_inventory_display(player_ship.current_inventory)
+		_log_message("ZoneMain: UI updated immediately after debris collection")
+
 	# Update AI handler
 	if ai_handler:
 		ai_handler.on_debris_collected(debris_type, value)

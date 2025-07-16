@@ -28,6 +28,10 @@ signal npc_hub_entered()
 @onready var hud: Control = $UILayer/HUD
 @onready var debug_label: Label = $UILayer/HUD/DebugLabel
 @onready var log_label: Label = $UILayer/HUD/LogLabel
+@onready var inventory_status: Label = $UILayer/HUD/InventoryPanel/InventoryStatus
+@onready var inventory_grid: GridContainer = $UILayer/HUD/InventoryPanel/InventoryGrid
+@onready var credits_label: Label = $UILayer/HUD/StatsPanel/CreditsLabel
+@onready var debris_count_label: Label = $UILayer/HUD/StatsPanel/DebrisCountLabel
 @onready var api_client: Node = $APIClient
 @onready var upgrade_system: Node = $UpgradeSystem
 @onready var ai_communicator: Node = $AICommunicator
@@ -385,6 +389,27 @@ func test_3d_functionality() -> void:
 func _on_debris_collected(debris_type: String, value: int) -> void:
 	##Handle debris collection from player ship
 	_log_message("ZoneMain3D: Player collected debris - %s (Value: %d)" % [debris_type, value])
+
+	# Immediately update inventory UI when debris is collected (don't wait for timer)
+	if player_ship and inventory_status:
+		var current_size = player_ship.current_inventory.size()
+		var max_size = player_ship.inventory_capacity
+		inventory_status.text = "%d/%d Items" % [current_size, max_size]
+
+		# Color code based on fullness
+		if current_size >= max_size:
+			inventory_status.modulate = Color.RED
+		elif current_size >= max_size * 0.8:
+			inventory_status.modulate = Color.YELLOW
+		else:
+			inventory_status.modulate = Color.WHITE
+
+		_log_message("ZoneMain3D: Inventory UI updated immediately - %d/%d items" % [current_size, max_size])
+
+	# Update credits display if available
+	if player_ship and credits_label:
+		credits_label.text = "Credits: %d" % player_ship.credits
+
 	debris_collected.emit(debris_type, value)
 
 func _on_npc_hub_entered(hub_type: String) -> void:
