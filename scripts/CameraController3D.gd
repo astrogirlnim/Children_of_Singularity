@@ -1,12 +1,15 @@
 # CameraController3D.gd
 # Mario Kart 8 style follow camera for Children of the Singularity
-# Handles perspective camera positioned behind ship with smooth following and zoom
+# Features:
+# - Perspective camera positioned behind ship with smooth following and zoom
+# - Mario Kart 8 style camera banking (tilts when turning for G-force effect)
+# - Ultra-low ground perspective with upward tilt for racing feel
 
 extends Node3D
 
 ## Camera configuration for Mario Kart 8 style
 @export var camera_distance: float = 10.0        # Distance behind ship (Mario Kart 8 style)
-@export var camera_height: float = 1.5           # Height above ship (lower for ground-level Mario Kart 8 feel)
+@export var camera_height: float = 0.8           # Height above ship (ultra-low Mario Kart 8 feel)
 @export var camera_fov: float = 65.0             # Field of view (degrees) - console racing standard
 @export var follow_speed: float = 5.0            # Camera follow responsiveness
 @export var rotation_follow_speed: float = 3.0   # Rotation following speed
@@ -17,10 +20,10 @@ extends Node3D
 @export var zoom_max_distance: float = 15.0      # Furthest zoom (Mario Kart 8 style)
 @export var zoom_speed: float = 2.0              # Zoom speed multiplier
 
-## Camera tilt settings
-@export var enable_camera_tilt: bool = false     # Banking on turns
-@export var tilt_amount: float = 10.0            # Max tilt angle (degrees)
-@export var tilt_speed: float = 3.0              # Tilt response speed
+## Camera banking settings (Mario Kart 8 style)
+@export var enable_camera_banking: bool = true   # Banking on turns like Mario Kart 8!
+@export var banking_amount: float = 15.0         # Max banking angle (degrees)
+@export var banking_speed: float = 4.0           # Banking response speed
 
 ## Camera shake settings
 @export var shake_fade_speed: float = 5.0
@@ -118,11 +121,35 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	else:
 		global_position = desired_position
 
-	# Make camera look upward like Mario Kart 8 - low angle looking ahead with ship in lower third
+	# Make camera look upward like Mario Kart 8 - ultra-low angle with ship in lower third
 	var look_ahead_distance = 30.0  # Look ahead toward horizon
 	var ship_forward = -target.transform.basis.z  # Ship's forward direction
-	var look_target = target.global_position + ship_forward * look_ahead_distance + Vector3.UP * (camera_height + 25.0)  # Look even more upward to position ship in lower third
-	look_at(look_target, Vector3.UP)
+	var look_target = target.global_position + ship_forward * look_ahead_distance + Vector3.UP * (camera_height + 40.0)  # Look EVEN MORE upward to position ship in lower third
+
+	# Apply Mario Kart 8 style camera banking when turning
+	var banking_roll = 0.0
+	if enable_camera_banking and target:
+		# Get the ship's angular velocity (how fast it's turning)
+		var ship_body = target as RigidBody3D
+		if ship_body:
+			var angular_velocity = ship_body.angular_velocity.y  # Y-axis rotation (turning left/right)
+			# Convert angular velocity to banking angle (banking in opposite direction of turn)
+			banking_roll = -angular_velocity * banking_amount
+			# Clamp to max banking amount
+			banking_roll = clamp(banking_roll, -banking_amount, banking_amount)
+
+			# Debug output for banking
+			if abs(banking_roll) > 1.0:  # Only log significant banking
+				print("[%s] CameraController3D: Mario Kart 8 banking active - Roll: %.1f° (Angular velocity: %.2f)" %
+					[Time.get_time_string_from_system(), banking_roll, angular_velocity])
+
+	# Look at target with banking applied
+	var up_vector = Vector3.UP
+	if banking_roll != 0.0:
+		# Rotate the up vector to create banking effect
+		up_vector = up_vector.rotated(ship_forward.normalized(), deg_to_rad(banking_roll))
+
+	look_at(look_target, up_vector)
 
 func _update_distance_zoom(delta: float) -> void:
 	"""Update distance-based zoom system"""
@@ -132,10 +159,10 @@ func _update_distance_zoom(delta: float) -> void:
 
 func _update_camera_tilt(delta: float) -> void:
 	"""Update camera tilt based on ship movement (if enabled)"""
-	if not enable_camera_tilt:
+	if not enable_camera_banking:
 		# Reset tilt if disabled
 		if abs(current_tilt) > 0.01:
-			current_tilt = lerp(current_tilt, 0.0, tilt_speed * delta)
+			current_tilt = lerp(current_tilt, 0.0, banking_speed * delta)
 			camera.rotation_degrees.z = current_tilt
 		return
 
@@ -143,11 +170,11 @@ func _update_camera_tilt(delta: float) -> void:
 	var desired_tilt = 0.0
 	if ship_velocity.length() > 0.1:
 		# Tilt based on Y movement (upward movement = positive tilt)
-		desired_tilt = ship_velocity.y * tilt_amount
-		desired_tilt = clamp(desired_tilt, -tilt_amount, tilt_amount)
+		desired_tilt = ship_velocity.y * banking_amount
+		desired_tilt = clamp(desired_tilt, -banking_amount, banking_amount)
 
 	# Smooth tilt transition
-	current_tilt = lerp(current_tilt, desired_tilt, tilt_speed * delta)
+	current_tilt = lerp(current_tilt, desired_tilt, banking_speed * delta)
 	camera.rotation_degrees.z = current_tilt
 
 func _update_camera_shake(delta: float) -> void:
@@ -198,10 +225,10 @@ func set_camera_fov(new_fov: float) -> void:
 		camera.fov = camera_fov
 		_log_message("CameraController3D: FOV set to %.1f degrees" % camera_fov)
 
-func enable_tilt(enabled: bool) -> void:
-	"""Enable or disable camera tilt on turns"""
-	enable_camera_tilt = enabled
-	_log_message("CameraController3D: Camera tilt %s" % ("enabled" if enabled else "disabled"))
+func enable_banking(enabled: bool) -> void:
+	"""Enable or disable camera banking on turns (Mario Kart 8 style)"""
+	enable_camera_banking = enabled
+	_log_message("CameraController3D: Camera banking %s" % ("enabled" if enabled else "disabled"))
 
 func shake(intensity: float, duration: float) -> void:
 	"""Apply camera shake effect"""
@@ -246,7 +273,7 @@ func get_camera_info() -> Dictionary:
 		"rotation_follow_speed": rotation_follow_speed,
 		"shake_strength": shake_strength,
 		"smoothing_enabled": enable_smoothing,
-		"tilt_enabled": enable_camera_tilt,
+		"banking_enabled": enable_camera_banking,
 		"current_tilt": current_tilt,
 		"ship_forward_direction": ship_forward_direction
 	}
