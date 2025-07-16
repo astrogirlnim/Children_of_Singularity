@@ -10,7 +10,7 @@
 [ext_resource type="Script" path="res://scripts/SkyboxManager3D.gd" id="7_skybox_manager"]
 [ext_resource type="PackedScene" uid="uid://dltt2lxq3l5a0" path="res://scenes/objects/TradingHub3D.tscn" id="8_trading_hub"]
 [ext_resource type="PackedScene" uid="uid://dt50q3oh0r0g4" path="res://scenes/objects/UpgradeHub3D.tscn" id="9_upgrade_hub"]
-[ext_resource type="Theme" uid="uid://c7qx9nkf8vqxe" path="res://resources/themes/SpaceHologramTheme.tres" id="10_hologram_theme"]
+[ext_resource type="Theme" path="res://resources/themes/SpaceCustomTheme.tres" id="10_custom_theme"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -107,7 +107,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("10_hologram_theme")
+theme = ExtResource("10_custom_theme")
 
 [node name="DebugLabel" type="Label" parent="UILayer/HUD"]
 layout_mode = 0
