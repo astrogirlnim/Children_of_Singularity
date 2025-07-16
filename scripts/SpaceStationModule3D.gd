@@ -410,20 +410,6 @@ func _rotate_sprite() -> void:
 	_log_message("SpaceStationModule3D: Legacy _rotate_sprite called - using new animation system instead")
 	return
 
-	# Original rotation code (disabled)
-	# if not sprite_3d or station_sprite_textures.size() <= 1:
-	# 	return
-	#
-	# # Move to next sprite in sequence
-	# current_sprite_index = (current_sprite_index + 1) % station_sprite_textures.size()
-	#
-	# # Update the sprite texture
-	# sprite_3d.texture = station_sprite_textures[current_sprite_index]
-	#
-	# # Log rotation for debugging (reduced frequency to avoid spam)
-	# if current_sprite_index == 0:  # Only log when completing a full cycle
-	# 	_log_message("SpaceStationModule3D: Completed rotation cycle - Now showing sprite v%d" % (current_sprite_index + 1))
-
 func _log_message(message: String) -> void:
 	"""Log a message with timestamp"""
 	var timestamp = Time.get_datetime_string_from_system()
