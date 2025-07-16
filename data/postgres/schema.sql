@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS players (
     progression_path VARCHAR(50) NOT NULL DEFAULT 'rogue',
     position_x FLOAT NOT NULL DEFAULT 0.0,
     position_y FLOAT NOT NULL DEFAULT 0.0,
+    position_z FLOAT NOT NULL DEFAULT 0.0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -143,11 +144,11 @@ CREATE TRIGGER initialize_new_player_upgrades AFTER INSERT ON players
     FOR EACH ROW EXECUTE FUNCTION initialize_player_upgrades();
 
 -- Create some sample data for testing
-INSERT INTO players (id, name, credits, progression_path, position_x, position_y)
+INSERT INTO players (id, name, credits, progression_path, position_x, position_y, position_z)
 VALUES
-    ('550e8400-e29b-41d4-a716-446655440000', 'Test Salvager', 100, 'rogue', 0.0, 0.0),
-    ('550e8400-e29b-41d4-a716-446655440001', 'Corporate Drone', 250, 'corporate', 100.0, 50.0),
-    ('550e8400-e29b-41d4-a716-446655440002', 'AI Hybrid', 500, 'ai_integration', -50.0, -75.0)
+    ('550e8400-e29b-41d4-a716-446655440000', 'Test Salvager', 100, 'rogue', 0.0, 0.0, 0.0),
+    ('550e8400-e29b-41d4-a716-446655440001', 'Corporate Drone', 250, 'corporate', 100.0, 50.0, 0.0),
+    ('550e8400-e29b-41d4-a716-446655440002', 'AI Hybrid', 500, 'ai_integration', -50.0, -75.0, 0.0)
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert sample zones
@@ -175,6 +176,7 @@ SELECT
     p.progression_path,
     p.position_x,
     p.position_y,
+    p.position_z,
     p.created_at,
     p.last_login,
     COUNT(DISTINCT i.id) as inventory_count,
@@ -184,7 +186,7 @@ FROM players p
 LEFT JOIN inventory i ON p.id = i.player_id
 LEFT JOIN zones z ON p.id = z.player_id
 LEFT JOIN upgrades u ON p.id = u.player_id
-GROUP BY p.id, p.name, p.credits, p.progression_path, p.position_x, p.position_y, p.created_at, p.last_login;
+GROUP BY p.id, p.name, p.credits, p.progression_path, p.position_x, p.position_y, p.position_z, p.created_at, p.last_login;
 
 -- Log schema creation
 INSERT INTO ai_interactions (player_id, interaction_type, message_content, milestone_reached) VALUES

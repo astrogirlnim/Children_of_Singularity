@@ -99,7 +99,7 @@ func send_player_update(player_data: Dictionary) -> void:
 		return
 
 	var player_id = multiplayer.get_unique_id()
-	var position = player_data.get("position", Vector2.ZERO)
+	var position = player_data.get("position", Vector3.ZERO)
 	var inventory = player_data.get("inventory", [])
 
 	_log_message("NetworkManager: Sending player update - ID: %d, Position: %s, Inventory: %d items" % [player_id, position, inventory.size()])
@@ -173,7 +173,7 @@ func _on_peer_connected(id: int) -> void:
 	if is_server:
 		var player_data = {
 			"player_id": id,
-			"position": Vector2(randf_range(-500, 500), randf_range(-500, 500)),
+			"position": Vector3(randf_range(-500, 500), 2.0, randf_range(-500, 500)),
 			"inventory": [],
 			"credits": 0,
 			"connected_time": Time.get_ticks_msec()
@@ -268,7 +268,7 @@ func _on_player_joined(player_id: int, player_data: Dictionary) -> void:
 	"""Notification of new player joining"""
 	if player_id not in current_players:
 		current_players[player_id] = player_data
-		player_positions[player_id] = player_data.get("position", Vector2.ZERO)
+		player_positions[player_id] = player_data.get("position", Vector3.ZERO)
 		_log_message("NetworkManager: Player %d joined the game" % player_id)
 
 @rpc("authority", "call_local", "reliable")
@@ -285,7 +285,7 @@ func _receive_initial_state(players: Dictionary, debris: Dictionary) -> void:
 	zone_debris = debris
 
 	for player_id in players:
-		player_positions[player_id] = players[player_id].get("position", Vector2.ZERO)
+		player_positions[player_id] = players[player_id].get("position", Vector3.ZERO)
 
 	_log_message("NetworkManager: Received initial state - %d players, %d debris" % [players.size(), debris.size()])
 
@@ -301,14 +301,14 @@ func _update_player_state(player_id: int, player_data: Dictionary) -> void:
 	if player_id in current_players:
 		current_players[player_id].merge(player_data)
 
-		var position = player_data.get("position", Vector2.ZERO)
-		if position != Vector2.ZERO:
+		var position = player_data.get("position", Vector3.ZERO)
+		if position != Vector3.ZERO:
 			player_positions[player_id] = position
 			# Broadcast position update to all clients
 			rpc("_player_position_update", player_id, position)
 
 @rpc("authority", "call_local", "unreliable")
-func _player_position_update(player_id: int, position: Vector2) -> void:
+func _player_position_update(player_id: int, position: Vector3) -> void:
 	"""Receive player position update"""
 	if player_id in player_positions:
 		player_positions[player_id] = position

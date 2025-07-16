@@ -88,6 +88,7 @@ def initialize_database():
                             progression_path VARCHAR(50) NOT NULL DEFAULT 'rogue',
                             position_x FLOAT NOT NULL DEFAULT 0.0,
                             position_y FLOAT NOT NULL DEFAULT 0.0,
+                            position_z FLOAT NOT NULL DEFAULT 0.0,
                             created_at TIMESTAMP WITH TIME ZONE DEFAULT
                                 CURRENT_TIMESTAMP,
                             updated_at TIMESTAMP WITH TIME ZONE DEFAULT
@@ -109,7 +110,7 @@ class PlayerData(BaseModel):
     name: str
     credits: int
     progression_path: str
-    position: Dict[str, float]
+    position: Dict[str, float]  # 3D coordinates: x, y, z (z added for 2.5D support)
     upgrades: Dict[str, int]
 
 
@@ -177,11 +178,11 @@ def _create_test_data():
                     cursor.execute(
                         """
                         INSERT INTO players (name, credits, progression_path,
-                                           position_x, position_y)
-                        VALUES (%s, %s, %s, %s, %s)
+                                           position_x, position_y, position_z)
+                        VALUES (%s, %s, %s, %s, %s, %s)
                         RETURNING id
                     """,
-                        ("Test Salvager", 100, "rogue", 0.0, 0.0),
+                        ("Test Salvager", 100, "rogue", 0.0, 0.0, 0.0),
                     )
 
                     player_id = cursor.fetchone()["id"]
@@ -243,7 +244,7 @@ async def get_player(player_id: str):
                 # Get player data
                 cursor.execute(
                     """
-                    SELECT id, name, credits, progression_path, position_x, position_y,
+                    SELECT id, name, credits, progression_path, position_x, position_y, position_z,
                            created_at, updated_at
                     FROM players WHERE id = %s
                 """,
@@ -275,6 +276,7 @@ async def get_player(player_id: str):
                     "position": {
                         "x": player_row["position_x"],
                         "y": player_row["position_y"],
+                        "z": player_row["position_z"],
                     },
                     "upgrades": upgrades,
                 }
@@ -314,7 +316,7 @@ async def create_or_update_player(player_id: str, player_data: PlayerData):
                         """
                         UPDATE players
                         SET name = %s, credits = %s, progression_path = %s,
-                            position_x = %s, position_y = %s,
+                            position_x = %s, position_y = %s, position_z = %s,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = %s
                     """,
@@ -324,6 +326,7 @@ async def create_or_update_player(player_id: str, player_data: PlayerData):
                             player_data.progression_path,
                             player_data.position.get("x", 0.0),
                             player_data.position.get("y", 0.0),
+                            player_data.position.get("z", 0.0),
                             player_id,
                         ),
                     )
@@ -333,8 +336,8 @@ async def create_or_update_player(player_id: str, player_data: PlayerData):
                     cursor.execute(
                         """
                         INSERT INTO players (id, name, credits, progression_path,
-                                           position_x, position_y)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                                           position_x, position_y, position_z)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
                         (
                             player_id,
@@ -343,6 +346,7 @@ async def create_or_update_player(player_id: str, player_data: PlayerData):
                             player_data.progression_path,
                             player_data.position.get("x", 0.0),
                             player_data.position.get("y", 0.0),
+                            player_data.position.get("z", 0.0),
                         ),
                     )
                     logger.info(f"Created new player: {player_id}")

@@ -58,12 +58,25 @@ var zone_id: String = "zone_alpha_3d_01"
 var zone_bounds: Vector3 = Vector3(400, 50, 400)  # 3D bounds - expanded playable area
 var game_logs: Array[String] = []
 
+# Position sync system for backend integration
+var position_sync_timer: float = 0.0
+var position_sync_interval: float = 5.0  # Sync position every 5 seconds
+var last_synced_position: Vector3 = Vector3.ZERO
+
 func _ready() -> void:
 	_log_message("ZoneMain3D: Initializing 3D zone controller")
 	_initialize_3d_zone()
 	_update_debug_display()
 	_log_message("ZoneMain3D: 3D Zone ready for gameplay")
 	zone_ready.emit()
+
+func _process(delta: float) -> void:
+	"""Handle periodic updates including position sync"""
+	# Handle position sync timer
+	position_sync_timer += delta
+	if position_sync_timer >= position_sync_interval:
+		position_sync_timer = 0.0
+		_sync_player_position_to_backend()
 
 func _initialize_3d_zone() -> void:
 	"""Initialize the 3D zone with basic settings"""
@@ -551,3 +564,39 @@ func get_station_data() -> Array[Dictionary]:
 	if space_station_manager and space_station_manager.has_method("get_station_data"):
 		return space_station_manager.get_station_data()
 	return []
+
+func _sync_player_position_to_backend() -> void:
+	"""Sync player 3D position to backend via APIClient"""
+	if not player_ship or not api_client:
+		return
+
+	var current_position = player_ship.global_position
+
+	# Only sync if position has changed significantly (avoid unnecessary API calls)
+	if current_position.distance_to(last_synced_position) < 1.0:
+		return
+
+	_log_message("ZoneMain3D: Syncing 3D position to backend: %s" % current_position)
+
+	# Get complete player data for backend sync
+	var player_info = player_ship.get_player_info()
+
+	# Convert Vector3 position to the format expected by backend
+	var player_data = {
+		"player_id": player_info.player_id,
+		"name": "Player",  # Could be made dynamic
+		"credits": player_info.credits,
+		"progression_path": "rogue",  # Could be made dynamic
+		"position": {
+			"x": current_position.x,
+			"y": current_position.y,
+			"z": current_position.z
+		},
+		"upgrades": player_info.upgrades
+	}
+
+	# Send to backend
+	if api_client.has_method("save_player_data"):
+		api_client.save_player_data(player_data)
+		last_synced_position = current_position
+		_log_message("ZoneMain3D: Player 3D position synced to backend - X:%.1f Y:%.1f Z:%.1f" % [current_position.x, current_position.y, current_position.z])
