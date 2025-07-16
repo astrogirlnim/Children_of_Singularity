@@ -359,7 +359,9 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
           COMMIT_HASH: ${{ github.sha }}
         run: |
-          # Install AWS CLI
+          # Install dependencies and AWS CLI
+          sudo apt-get update
+          sudo apt-get install -y curl unzip
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
           sudo ./aws/install
@@ -436,7 +438,9 @@ jobs:
           AWS_REGION: ${{ vars.AWS_REGION || 'us-west-2' }}
           S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME || 'children-of-singularity-releases' }}
         run: |
-          # Install AWS CLI
+          # Install dependencies and AWS CLI
+          sudo apt-get update
+          sudo apt-get install -y curl unzip
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
           sudo ./aws/install

@@ -160,7 +160,9 @@ The documentation is stored at the root level of the S3 bucket for easy access a
    brew install awscli
 
    # Linux
-   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+   # Install dependencies first
+sudo apt-get update && sudo apt-get install -y curl unzip
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
    unzip awscliv2.zip
    sudo ./aws/install
 
