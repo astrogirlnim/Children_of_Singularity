@@ -69,7 +69,7 @@ func _process(delta: float) -> void:
 		_update_log_display()
 
 func _setup_ui_connections() -> void:
-	"""Setup signal connections for UI elements"""
+	##Setup signal connections for UI elements
 	if sell_all_button:
 		sell_all_button.pressed.connect(_on_sell_all_pressed)
 
@@ -79,7 +79,7 @@ func _setup_ui_connections() -> void:
 	print("ZoneUIManager: UI connections established")
 
 func _initialize_ui_components() -> void:
-	"""Initialize UI components with default values"""
+	##Initialize UI components with default values
 	if trading_interface:
 		trading_interface.visible = false
 
@@ -92,12 +92,12 @@ func _initialize_ui_components() -> void:
 	print("ZoneUIManager: UI components initialized")
 
 func _update_ui_elements() -> void:
-	"""Update all UI elements - called by external systems"""
+	##Update all UI elements - called by external systems
 	# This method is called by ZoneMain to update UI
 	pass
 
 func _update_log_display() -> void:
-	"""Update the log display with recent messages"""
+	##Update the log display with recent messages
 	if not log_label:
 		return
 
@@ -112,12 +112,12 @@ func _update_log_display() -> void:
 ## Public API Methods
 
 func update_credits_display(credits: int) -> void:
-	"""Update the credits display"""
+	##Update the credits display
 	if credits_label:
 		credits_label.text = "Credits: %d" % credits
 
 func update_inventory_status(current_size: int, max_size: int) -> void:
-	"""Update inventory status display"""
+	##Update inventory status display
 	if inventory_status:
 		inventory_status.text = "%d/%d Items" % [current_size, max_size]
 
@@ -130,12 +130,12 @@ func update_inventory_status(current_size: int, max_size: int) -> void:
 			inventory_status.modulate = Color.WHITE
 
 func update_debris_count(count: int) -> void:
-	"""Update debris count display"""
+	##Update debris count display
 	if debris_count_label:
 		debris_count_label.text = "Nearby Debris: %d" % count
 
 func update_collection_range(range_value: float, upgrade_bonus: int = 0) -> void:
-	"""Update collection range display"""
+	##Update collection range display
 	if collection_range_label:
 		var range_text = "Collection Range: %.0f" % range_value
 		if upgrade_bonus > 0:
@@ -143,7 +143,7 @@ func update_collection_range(range_value: float, upgrade_bonus: int = 0) -> void
 		collection_range_label.text = range_text
 
 func update_inventory_display(inventory_data: Array) -> void:
-	"""Update the inventory display grid"""
+	##Update the inventory display grid
 	if not inventory_grid:
 		return
 
@@ -164,7 +164,7 @@ func update_inventory_display(inventory_data: Array) -> void:
 	last_inventory_hash = str(inventory_data.hash())
 
 func _create_inventory_item_control(item_data: Dictionary) -> Control:
-	"""Create a control for an inventory item"""
+	##Create a control for an inventory item
 	var item_panel = Panel.new()
 	item_panel.custom_minimum_size = Vector2(80, 80)
 
@@ -185,7 +185,7 @@ func _create_inventory_item_control(item_data: Dictionary) -> Control:
 	return item_panel
 
 func update_upgrade_status_display(upgrades: Dictionary, upgrade_system: Node = null) -> void:
-	"""Update the upgrade status display"""
+	##Update the upgrade status display
 	if not upgrade_status_text:
 		return
 
@@ -212,7 +212,7 @@ func update_upgrade_status_display(upgrades: Dictionary, upgrade_system: Node = 
 		upgrade_status_text.modulate = Color.WHITE
 
 func update_debug_display(debug_info: Dictionary) -> void:
-	"""Update the debug display"""
+	##Update the debug display
 	if not debug_label:
 		return
 
@@ -223,7 +223,7 @@ func update_debug_display(debug_info: Dictionary) -> void:
 	debug_label.text = debug_text.strip_edges()
 
 func show_trading_interface(hub_type: String) -> void:
-	"""Show the trading interface"""
+	##Show the trading interface
 	if not trading_interface:
 		return
 
@@ -241,7 +241,7 @@ func show_trading_interface(hub_type: String) -> void:
 	print("ZoneUIManager: Trading interface opened for %s" % hub_type)
 
 func hide_trading_interface() -> void:
-	"""Hide the trading interface"""
+	##Hide the trading interface
 	if trading_interface:
 		trading_interface.visible = false
 
@@ -251,13 +251,13 @@ func hide_trading_interface() -> void:
 	print("ZoneUIManager: Trading interface closed")
 
 func display_trading_result(result_text: String) -> void:
-	"""Display trading result message"""
+	##Display trading result message
 	if trading_result:
 		trading_result.text = result_text
 		trading_result.modulate = Color.GREEN
 
 func show_ai_message(message: String, duration: float = 3.0) -> void:
-	"""Show AI message overlay"""
+	##Show AI message overlay
 	if not ai_message_overlay or not ai_message_label:
 		return
 
@@ -269,12 +269,12 @@ func show_ai_message(message: String, duration: float = 3.0) -> void:
 	print("ZoneUIManager: AI message displayed: %s" % message)
 
 func _hide_ai_message() -> void:
-	"""Hide AI message overlay"""
+	##Hide AI message overlay
 	if ai_message_overlay:
 		ai_message_overlay.visible = false
 
 func log_message(message: String) -> void:
-	"""Add a message to the game log"""
+	##Add a message to the game log
 	game_logs.append(message)
 
 	# Keep only last 50 messages
@@ -284,7 +284,7 @@ func log_message(message: String) -> void:
 	print("ZoneUIManager: Log message added: %s" % message)
 
 func get_trading_status() -> Dictionary:
-	"""Get current trading interface status"""
+	##Get current trading interface status
 	return {
 		"open": trading_open,
 		"hub_type": current_hub_type
@@ -293,24 +293,24 @@ func get_trading_status() -> Dictionary:
 ## Signal handlers
 
 func _on_sell_all_pressed() -> void:
-	"""Handle sell all button press"""
+	##Handle sell all button press
 	sell_all_requested.emit()
 	print("ZoneUIManager: Sell all requested")
 
 func _on_trading_close_pressed() -> void:
-	"""Handle trading close button press"""
+	##Handle trading close button press
 	hide_trading_interface()
 
 ## UI optimization methods
 
 func needs_inventory_update(current_inventory: Array) -> bool:
-	"""Check if inventory display needs updating"""
+	##Check if inventory display needs updating
 	var current_size = current_inventory.size()
 	var current_hash = str(current_inventory.hash())
 
 	return current_size != last_inventory_size or current_hash != last_inventory_hash
 
 func force_ui_update() -> void:
-	"""Force immediate UI update"""
+	##Force immediate UI update
 	ui_update_timer = ui_update_interval
 	_update_ui_elements()

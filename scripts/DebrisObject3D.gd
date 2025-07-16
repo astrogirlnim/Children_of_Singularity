@@ -46,12 +46,12 @@ func _ready() -> void:
 	_log_message("DebrisObject3D: 3D debris object ready - Type: %s, Value: %d" % [debris_type, value])
 
 func _setup_debris_id() -> void:
-	"""Generate unique debris ID if not set"""
+	##Generate unique debris ID if not set
 	if debris_id.is_empty():
 		debris_id = "debris_3d_%d_%s" % [Time.get_ticks_msec(), debris_type]
 
 func _setup_3d_physics() -> void:
-	"""Configure 3D physics properties"""
+	##Configure 3D physics properties
 	_log_message("DebrisObject3D: Setting up 3D physics")
 
 	# Configure physics for space environment
@@ -67,7 +67,7 @@ func _setup_3d_physics() -> void:
 	initial_position = position
 
 func _setup_3d_sprite() -> void:
-	"""Configure 3D sprite properties"""
+	##Configure 3D sprite properties
 	_log_message("DebrisObject3D: Setting up 3D sprite with billboard configuration")
 
 	if not sprite_3d:
@@ -79,6 +79,11 @@ func _setup_3d_sprite() -> void:
 	sprite_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	sprite_3d.pixel_size = 0.0055  # Same size as player ship for visual consistency
 	sprite_3d.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+
+	# Ensure visibility and disable any automatic culling
+	sprite_3d.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	sprite_3d.visibility_range_end = 0.0  # Disable distance-based visibility culling
+	sprite_3d.visibility_range_begin = 0.0
 
 	_log_message("DebrisObject3D: Sprite3D configured - pixel_size: %.10f, billboard: %d, filter: %d" % [sprite_3d.pixel_size, sprite_3d.billboard, sprite_3d.texture_filter])
 
@@ -100,7 +105,7 @@ func _setup_3d_sprite() -> void:
 		pending_debris_type = ""
 
 func _setup_collection_area() -> void:
-	"""Set up collection area for player interaction"""
+	##Set up collection area for player interaction
 	_log_message("DebrisObject3D: Setting up collection area")
 
 	if collection_area:
@@ -120,7 +125,7 @@ func _setup_collection_area() -> void:
 			collection_collision.shape = sphere_shape
 
 func _setup_initial_animation() -> void:
-	"""Set up initial animation state"""
+	##Set up initial animation state
 	_log_message("DebrisObject3D: Setting up initial animation")
 
 	# Random initial spin for variety - make it more visible
@@ -134,7 +139,7 @@ func _setup_initial_animation() -> void:
 	float_offset = randf() * TAU
 
 func _physics_process(delta: float) -> void:
-	"""Handle physics and animation updates"""
+	##Handle physics and animation updates
 	if is_collected or not is_inside_tree():
 		return
 
@@ -142,7 +147,7 @@ func _physics_process(delta: float) -> void:
 	_update_rotation_animation(delta)
 
 func _update_floating_animation(delta: float) -> void:
-	"""Update gentle floating motion"""
+	##Update gentle floating motion
 	if not is_inside_tree() or is_collected:
 		return
 
@@ -158,7 +163,7 @@ func _update_floating_animation(delta: float) -> void:
 		apply_central_force(force_direction * 2.0)
 
 func _update_rotation_animation(_delta: float) -> void:
-	"""Update rotation animation"""
+	##Update rotation animation
 	if not is_inside_tree() or is_collected:
 		return
 
@@ -174,20 +179,20 @@ func _update_rotation_animation(_delta: float) -> void:
 	apply_torque(rotation_force)
 
 func _on_collection_area_entered(body: Node3D) -> void:
-	"""Handle player entering collection area"""
+	##Handle player entering collection area
 	# Only log once when player enters, avoid spam
 	if body.has_method("collect_debris") and not is_collected:
 		_log_message("DebrisObject3D: Player entered collection area")
 		# Player will handle collection through their collection area
 
 func _on_collection_area_exited(body: Node3D) -> void:
-	"""Handle player exiting collection area"""
+	##Handle player exiting collection area
 	# Only log for actual player, avoid spam
 	if body.has_method("collect_debris"):
 		_log_message("DebrisObject3D: Player exited collection area")
 
 func collect() -> void:
-	"""Handle debris collection"""
+	##Handle debris collection
 	if is_collected:
 		return
 
@@ -203,19 +208,19 @@ func collect() -> void:
 ## Public API methods
 
 func get_debris_id() -> String:
-	"""Get unique debris ID for network synchronization"""
+	##Get unique debris ID for network synchronization
 	return debris_id
 
 func get_debris_type() -> String:
-	"""Get debris type"""
+	##Get debris type
 	return debris_type
 
 func get_debris_value() -> int:
-	"""Get debris value"""
+	##Get debris value
 	return value
 
 func get_debris_data() -> Dictionary:
-	"""Get complete debris data for network sync"""
+	##Get complete debris data for network sync
 	# Check if the node is still in the scene tree before accessing transform data
 	if not is_inside_tree():
 		_log_message("DebrisObject3D: Warning - get_debris_data() called on node not in scene tree")
@@ -240,7 +245,7 @@ func get_debris_data() -> Dictionary:
 	}
 
 func apply_network_state(state_data: Dictionary) -> void:
-	"""Apply network state to debris object"""
+	##Apply network state to debris object
 	# Check if the node is still in the scene tree before applying state
 	if not is_inside_tree():
 		_log_message("DebrisObject3D: Warning - apply_network_state() called on node not in scene tree")
@@ -263,7 +268,7 @@ func apply_network_state(state_data: Dictionary) -> void:
 		angular_velocity = state_data.angular_velocity
 
 func set_debris_data(type: String, val: int, color: Color) -> void:
-	"""Set debris data and visual properties"""
+	##Set debris data and visual properties
 	_log_message("DebrisObject3D: Setting debris data - Type: %s, Value: %d" % [type, val])
 
 	debris_type = type
@@ -298,6 +303,6 @@ func set_debris_texture(texture: Texture2D, texture_debris_type: String) -> void
 		_log_message("DebrisObject3D: Texture stored as pending for debris type: %s (size: %s)" % [texture_debris_type, texture.get_size()])
 
 func _log_message(message: String) -> void:
-	"""Log message with timestamp"""
+	##Log message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	print("[%s] %s" % [timestamp, message])

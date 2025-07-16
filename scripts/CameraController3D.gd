@@ -26,35 +26,37 @@ extends Node3D
 
 ## Camera banking settings (Mario Kart 8 style)
 @export var enable_camera_banking: bool = true   # Banking on turns like Mario Kart 8!
-@export var banking_amount: float = 20.0         # More aggressive banking angle (degrees)
-@export var banking_speed: float = 6.0           # Faster banking response
+@export var banking_amount: float = 15.0         # Reduced for smoother effect (was 20.0)
+@export var banking_speed: float = 3.0           # Slower for smoother transitions (was 6.0)
 
 ## Camera shake settings
 @export var shake_fade_speed: float = 5.0
 
 @onready var camera: Camera3D = $Camera3D
 
-var target: Node3D = null
-var current_distance: float = 12.0              # Updated to match new close distance
-var target_distance: float = 12.0               # Updated to match new close distance
+# Internal state variables
+var target: CharacterBody3D
+var ship_velocity: Vector3 = Vector3.ZERO
+var ship_forward_direction: Vector3 = Vector3.FORWARD
+var current_distance: float = 12.0
+var target_distance: float = 12.0
+var current_tilt: float = 0.0
+var current_banking: float = 0.0  # Smoothed banking value for gradual transitions
+
+# Camera shake state
 var shake_strength: float = 0.0
 var shake_timer: float = 0.0
 
-# Ship tracking state
-var ship_forward_direction: Vector3 = Vector3.FORWARD
-var ship_velocity: Vector3 = Vector3.ZERO
-var current_tilt: float = 0.0
-
-# Debug logging control
+# Debug logging control (reduced frequency to prevent spam)
 var debug_log_timer: float = 0.0
-var debug_log_interval: float = 1.0  # Log every 1 second instead of every frame
+var debug_log_interval: float = 5.0  # Log every 5 seconds instead of every frame
 
 func _ready() -> void:
 	setup_mario_kart_camera()
 	_log_message("CameraController3D: Mario Kart 8 style camera controller initialized")
 
 func setup_mario_kart_camera() -> void:
-	"""Configure the 3D camera for Mario Kart 8 style perspective"""
+	##Configure the 3D camera for Mario Kart 8 style perspective
 	_log_message("CameraController3D: Setting up Mario Kart 8 style close-up perspective camera")
 
 	# Create Camera3D if it doesn't exist
@@ -66,8 +68,8 @@ func setup_mario_kart_camera() -> void:
 	# FORCE PERSPECTIVE projection (override scene file)
 	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
 	camera.fov = camera_fov
-	camera.near = 0.3   # Very close for detailed view
-	camera.far = 300.0  # Far enough for zone boundaries
+	camera.near = 0.5   # Increased from 0.3 for better depth precision
+	camera.far = 1600.0  # Reduced from 2000.0 but still accommodates skybox at 1500.0 radius
 
 	# Clear any manual transform from scene file - let script control everything
 	camera.transform = Transform3D.IDENTITY
@@ -87,7 +89,7 @@ func setup_mario_kart_camera() -> void:
 	_log_message("CameraController3D: Camera rotation reset to prevent tilting issues")
 
 func set_target(new_target: Node3D) -> void:
-	"""Set the target ship for the camera to follow"""
+	##Set the target ship for the camera to follow
 	target = new_target
 	if target:
 		_log_message("CameraController3D: Target set to %s" % target.name)
@@ -99,7 +101,7 @@ func set_target(new_target: Node3D) -> void:
 		_log_message("CameraController3D: Target cleared")
 
 func _physics_process(delta: float) -> void:
-	"""Update camera position and effects (Mario Kart 8 style)"""
+	##Update camera position and effects (Mario Kart 8 style)
 	# Update debug timer
 	debug_log_timer += delta
 
@@ -112,7 +114,7 @@ func _physics_process(delta: float) -> void:
 	_update_camera_shake(delta)
 
 func _update_ship_tracking_data(delta: float) -> void:
-	"""Update ship movement data for camera following"""
+	##Update ship movement data for camera following
 	if not target:
 		return
 
@@ -128,7 +130,7 @@ func _update_ship_tracking_data(delta: float) -> void:
 	ship_velocity = (target.global_position - previous_position) / delta if delta > 0 else Vector3.ZERO
 
 func _update_mario_kart_camera_position(delta: float) -> void:
-	"""Update camera position behind ship Mario Kart 8 style"""
+	##Update camera position behind ship Mario Kart 8 style
 	if not target:
 		return
 
@@ -159,36 +161,42 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 			[global_position.x, global_position.y, global_position.z,
 			 look_target.x, look_target.y, look_target.z])
 
-	# TEMPORARILY DISABLE BANKING to debug tilting issue
 	# Apply Mario Kart 8 style camera banking when turning (more aggressive)
 	var banking_roll = 0.0
-	if false:  # Disabled banking temporarily
-		# Get the ship's angular velocity (how fast it's turning)
-		# NOTE: PlayerShip3D is CharacterBody3D, not RigidBody3D!
-		var ship_body = target as CharacterBody3D  # Fixed casting
-		if ship_body:
-			# CharacterBody3D doesn't have angular_velocity - we need a different approach
-			# For now, calculate turn rate from velocity change
-			var current_velocity = ship_body.velocity
-			var velocity_change = current_velocity - ship_velocity
-			var turn_rate = velocity_change.length() * 0.1  # Rough approximation
+	if enable_camera_banking:  # Fixed: use the export variable instead of hardcoded false
+		# Get the ship's turning input rather than velocity changes
+		var ship_body = target as CharacterBody3D
+		if ship_body and ship_body.has_method("get_turn_input"):
+			# Use actual steering input for banking (only when turning)
+			var turn_input = ship_body.get_turn_input()
+			banking_roll = turn_input * banking_amount
+		else:
+			# Improved: smooth banking calculation with gradual detection
+			var horizontal_velocity = Vector3(ship_velocity.x, 0, ship_velocity.z)
+			var speed = horizontal_velocity.length()
+			if speed > 0.5:  # Lower threshold for smoother activation
+				var velocity_direction = horizontal_velocity.normalized()
+				var forward_direction = Vector3(ship_forward_direction.x, 0, ship_forward_direction.z).normalized()
+				var cross_product = forward_direction.cross(velocity_direction)
 
-			# Convert turn rate to banking angle
-			banking_roll = turn_rate * banking_amount
-			banking_roll = clamp(banking_roll, -banking_amount, banking_amount)
+				# Smooth banking calculation - no sudden threshold
+				var sideways_component = cross_product.y
+				# Remove threshold - allow smooth gradual banking
+				var speed_factor = clamp(speed / 8.0, 0.0, 1.0)  # Gradual speed scaling
+				banking_roll = sideways_component * banking_amount * speed_factor
 
-			# Debug output for banking
-			if abs(banking_roll) > 1.0:
-				print("[%s] CameraController3D: Banking active - Roll: %.1f° (Turn rate: %.2f)" %
-					[Time.get_time_string_from_system(), banking_roll, turn_rate])
+		banking_roll = clamp(banking_roll, -banking_amount, banking_amount)
 
-	# Look at target with NO BANKING (for now) - use pure UP vector
+	# Smooth banking transition - add interpolation for current banking
+	current_banking = lerp(current_banking, banking_roll, banking_speed * delta)
+
+	# Look at target with proper banking support using smoothed banking
 	var up_vector = Vector3.UP
-	# DISABLED: if banking_roll != 0.0:
+	if abs(current_banking) > 0.01:  # Only apply if there's meaningful banking
 		# Rotate the up vector to create banking effect
-		# up_vector = up_vector.rotated(ship_forward_direction.normalized(), deg_to_rad(banking_roll))
+		up_vector = up_vector.rotated(ship_forward_direction.normalized(), deg_to_rad(current_banking))
 
-	# Debug ship forward direction
+	# Debug ship forward direction (reduced frequency)
 	if should_log:
 		_log_message("CameraController3D: Ship forward direction: %.2f,%.2f,%.2f" %
 			[ship_forward_direction.x, ship_forward_direction.y, ship_forward_direction.z])
@@ -196,18 +204,12 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	look_at(look_target, up_vector)
 
 func _update_distance_zoom(delta: float) -> void:
-	"""Update distance-based zoom system"""
+	##Update distance-based zoom system
 	if abs(current_distance - target_distance) > 0.01:
 		current_distance = lerp(current_distance, target_distance, 5.0 * delta)
-		_log_message("CameraController3D: Zoom distance updated to %.1f" % current_distance)
 
 func _update_camera_tilt(delta: float) -> void:
-	"""Update camera tilt based on ship movement (if enabled)"""
-	# TEMPORARILY DISABLED to debug tilting issue
-	# TODO: Re-enable banking when tilting issues are resolved
-	if true:  # Disabled for now
-		return
-
+	##Update camera tilt based on ship movement (re-enabled)
 	if not enable_camera_banking:
 		# Reset tilt if disabled
 		if abs(current_tilt) > 0.01:
@@ -215,19 +217,21 @@ func _update_camera_tilt(delta: float) -> void:
 			camera.rotation_degrees.z = current_tilt
 		return
 
+	# DISABLED: Y-velocity based tilt was causing unwanted rotation during forward movement
 	# Calculate desired tilt based on ship's Y velocity
 	var desired_tilt = 0.0
-	if ship_velocity.length() > 0.1:
-		# Tilt based on Y movement (upward movement = positive tilt)
-		desired_tilt = ship_velocity.y * banking_amount
-		desired_tilt = clamp(desired_tilt, -banking_amount, banking_amount)
+	# Removed Y-velocity tilt to prevent unwanted rotation when moving straight
+	# Only apply tilt if there's actual turning motion (handled by banking system above)
 
-	# Smooth tilt transition
+	# Apply smooth tilt transition
 	current_tilt = lerp(current_tilt, desired_tilt, banking_speed * delta)
-	camera.rotation_degrees.z = current_tilt
+
+	# Apply tilt to camera
+	if camera:
+		camera.rotation_degrees.z = current_tilt
 
 func _update_camera_shake(delta: float) -> void:
-	"""Update camera shake effect"""
+	##Update camera shake effect
 	if shake_strength > 0:
 		shake_timer += delta
 		var shake_offset = Vector3(
@@ -243,7 +247,7 @@ func _update_camera_shake(delta: float) -> void:
 		camera.position = Vector3.ZERO
 
 func _handle_zoom_input(_delta: float) -> void:
-	"""Handle zoom input controls (distance-based)"""
+	##Handle zoom input controls (distance-based)
 	var zoom_input = 0.0
 
 	if Input.is_action_pressed("zoom_in"):
@@ -255,32 +259,32 @@ func _handle_zoom_input(_delta: float) -> void:
 		set_zoom_distance(target_distance + zoom_input * zoom_speed)
 
 func set_zoom_distance(new_distance: float) -> void:
-	"""Set camera zoom distance (replaces orthogonal size)"""
+	##Set camera zoom distance (replaces orthogonal size)
 	target_distance = clamp(new_distance, zoom_min_distance, zoom_max_distance)
 	_log_message("CameraController3D: Target zoom distance set to %.1f" % target_distance)
 
 func zoom_in() -> void:
-	"""Zoom camera in (decrease distance)"""
+	##Zoom camera in (decrease distance)
 	set_zoom_distance(target_distance - zoom_speed)
 
 func zoom_out() -> void:
-	"""Zoom camera out (increase distance)"""
+	##Zoom camera out (increase distance)
 	set_zoom_distance(target_distance + zoom_speed)
 
 func set_camera_fov(new_fov: float) -> void:
-	"""Set camera field of view"""
+	##Set camera field of view
 	camera_fov = clamp(new_fov, 45.0, 120.0)
 	if camera:
 		camera.fov = camera_fov
 		_log_message("CameraController3D: FOV set to %.1f degrees" % camera_fov)
 
 func enable_banking(enabled: bool) -> void:
-	"""Enable or disable camera banking on turns (Mario Kart 8 style)"""
+	##Enable or disable camera banking on turns (Mario Kart 8 style)
 	enable_camera_banking = enabled
 	_log_message("CameraController3D: Camera banking %s" % ("enabled" if enabled else "disabled"))
 
 func shake(intensity: float, duration: float) -> void:
-	"""Apply camera shake effect"""
+	##Apply camera shake effect
 	shake_strength = intensity
 	shake_timer = 0.0
 	_log_message("CameraController3D: Camera shake applied - Intensity: %.2f, Duration: %.2f" % [intensity, duration])
@@ -290,13 +294,13 @@ func shake(intensity: float, duration: float) -> void:
 		shake_fade_speed = intensity / duration
 
 func set_follow_speeds(position_speed: float, rotation_speed: float) -> void:
-	"""Set camera follow speeds"""
+	##Set camera follow speeds
 	follow_speed = position_speed
 	rotation_follow_speed = rotation_speed
 	_log_message("CameraController3D: Follow speeds set - Position: %.1f, Rotation: %.1f" % [follow_speed, rotation_follow_speed])
 
 func reset_camera() -> void:
-	"""Reset camera to default Mario Kart 8 settings"""
+	##Reset camera to default Mario Kart 8 settings
 	target_distance = camera_distance
 	current_distance = camera_distance
 	current_tilt = 0.0
@@ -305,13 +309,13 @@ func reset_camera() -> void:
 	_log_message("CameraController3D: Camera reset to Mario Kart 8 defaults")
 
 func _on_target_position_changed(_new_position: Vector3) -> void:
-	"""Handle target position change signal"""
+	##Handle target position change signal
 	# This is called when the target emits position_changed signal
 	# We don't need to do anything here as _physics_process handles following
 	pass
 
 func get_camera_info() -> Dictionary:
-	"""Get current camera information"""
+	##Get current camera information
 	return {
 		"target": target.name if target else "none",
 		"position": global_position,
@@ -328,14 +332,14 @@ func get_camera_info() -> Dictionary:
 	}
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
 
 # Input actions for zoom (mouse wheel)
 func _input(event: InputEvent) -> void:
-	"""Handle additional input events"""
+	##Handle additional input events
 	if event is InputEventMouseButton:
 		var mouse_event = event as InputEventMouseButton
 		if mouse_event.pressed:

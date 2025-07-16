@@ -63,7 +63,7 @@ func _ready() -> void:
 	_log_message("ZoneDebrisManager3D: 3D debris manager initialized")
 
 func _load_debris_scene() -> void:
-	"""Load the 3D debris scene"""
+	##Load the 3D debris scene
 	debris_3d_scene = preload("res://scenes/objects/Debris3D.tscn")
 	if debris_3d_scene:
 		_log_message("ZoneDebrisManager3D: Debris3D scene loaded successfully")
@@ -71,7 +71,7 @@ func _load_debris_scene() -> void:
 		push_error("ZoneDebrisManager3D: Failed to load Debris3D scene!")
 
 func _load_debris_textures() -> void:
-	"""Load debris textures from files or create fallback textures"""
+	##Load debris textures from files or create fallback textures
 	_log_message("ZoneDebrisManager3D: Loading debris textures")
 
 	for debris_type in debris_types:
@@ -99,7 +99,7 @@ func _load_debris_textures() -> void:
 	_log_message("ZoneDebrisManager3D: Loaded %d debris textures total" % debris_textures.size())
 
 func _create_fallback_texture(color: Color) -> Texture2D:
-	"""Create a fallback colored texture for debris"""
+	##Create a fallback colored texture for debris
 	var texture = ImageTexture.new()
 	var image = Image.create(32, 32, false, Image.FORMAT_RGBA8)
 	image.fill(color)
@@ -107,12 +107,12 @@ func _create_fallback_texture(color: Color) -> Texture2D:
 	return texture
 
 func _process(delta: float) -> void:
-	"""Handle debris spawning and cleanup"""
+	##Handle debris spawning and cleanup
 	_update_spawn_timer(delta)
 	_update_cleanup_timer(delta)
 
 func _update_cleanup_timer(delta: float) -> void:
-	"""Update cleanup timer to prevent excessive cleanup calls"""
+	##Update cleanup timer to prevent excessive cleanup calls
 	cleanup_timer += delta
 
 	if cleanup_timer >= cleanup_interval:
@@ -120,13 +120,13 @@ func _update_cleanup_timer(delta: float) -> void:
 		_cleanup_distant_debris()
 
 func _emit_count_change_if_needed() -> void:
-	"""Only emit count change signal if count actually changed"""
+	##Only emit count change signal if count actually changed
 	if current_debris_count != last_emitted_count:
 		last_emitted_count = current_debris_count
 		debris_count_changed.emit(current_debris_count)
 
 func _update_spawn_timer(delta: float) -> void:
-	"""Update spawn timer and attempt spawning"""
+	##Update spawn timer and attempt spawning
 	spawn_timer += delta
 
 	if spawn_timer >= spawn_interval:
@@ -134,7 +134,7 @@ func _update_spawn_timer(delta: float) -> void:
 		_attempt_debris_spawn()
 
 func _build_weighted_spawn_table() -> void:
-	"""Build weighted spawn table for debris types"""
+	##Build weighted spawn table for debris types
 	weighted_spawn_table.clear()
 
 	for debris_type in debris_types:
@@ -148,7 +148,7 @@ func _build_weighted_spawn_table() -> void:
 	_log_message("ZoneDebrisManager3D: Weighted spawn table built with %d entries" % weighted_spawn_table.size())
 
 func _spawn_initial_debris() -> void:
-	"""Spawn initial debris to populate the 3D zone"""
+	##Spawn initial debris to populate the 3D zone
 	_log_message("ZoneDebrisManager3D: Spawning initial debris in 3D space")
 
 	var initial_count = min(max_debris_count * 0.7, 30)  # Start with 70% of max or 30
@@ -159,7 +159,7 @@ func _spawn_initial_debris() -> void:
 	_log_message("ZoneDebrisManager3D: Spawned %d initial debris in 3D" % initial_count)
 
 func _attempt_debris_spawn() -> void:
-	"""Attempt to spawn new debris if under the limit"""
+	##Attempt to spawn new debris if under the limit
 	if current_debris_count >= max_debris_count:
 		return
 
@@ -172,7 +172,7 @@ func _attempt_debris_spawn() -> void:
 		_spawn_debris_at_position_3d(spawn_position)
 
 func _spawn_debris_at_random_3d_position() -> void:
-	"""Spawn debris at a random 3D position within zone bounds"""
+	##Spawn debris at a random 3D position within zone bounds
 	var random_pos = Vector3(
 		randf_range(-zone_bounds.x / 2, zone_bounds.x / 2),
 		randf_range(debris_spawn_height_range.x, debris_spawn_height_range.y),
@@ -182,7 +182,7 @@ func _spawn_debris_at_random_3d_position() -> void:
 	_spawn_debris_at_position_3d(random_pos)
 
 func _get_spawn_position_away_from_player_3d() -> Vector3:
-	"""Get spawn position that's away from the player in 3D space"""
+	##Get spawn position that's away from the player in 3D space
 	if not player_ship:
 		return Vector3.ZERO
 
@@ -205,7 +205,7 @@ func _get_spawn_position_away_from_player_3d() -> Vector3:
 	return Vector3.ZERO  # Failed to find suitable position
 
 func _spawn_debris_at_position_3d(spawn_position: Vector3) -> void:
-	"""Spawn debris at specific 3D position"""
+	##Spawn debris at specific 3D position
 	if not debris_container:
 		push_error("ZoneDebrisManager3D: No debris container assigned!")
 		return
@@ -237,7 +237,7 @@ func _spawn_debris_at_position_3d(spawn_position: Vector3) -> void:
 		_log_message("ZoneDebrisManager3D: Spawned %s at 3D position %s" % [debris_type.get("type", "unknown"), spawn_position])
 
 func _get_random_debris_type() -> Dictionary:
-	"""Get random debris type based on weighted probabilities"""
+	##Get random debris type based on weighted probabilities
 	if weighted_spawn_table.is_empty():
 		return debris_types[0]  # Fallback
 
@@ -250,7 +250,7 @@ func _get_random_debris_type() -> Dictionary:
 	return debris_types[0]  # Fallback
 
 func _create_debris_node_3d(debris_type: Dictionary, _spawn_position: Vector3) -> DebrisObject3D:
-	"""Create a 3D debris node with proper components"""
+	##Create a 3D debris node with proper components
 	var debris_node = debris_3d_scene.instantiate() as DebrisObject3D
 	if not debris_node:
 		push_error("ZoneDebrisManager3D: Failed to instantiate debris scene!")
@@ -285,7 +285,7 @@ func _create_debris_node_3d(debris_type: Dictionary, _spawn_position: Vector3) -
 	return debris_node
 
 func _cleanup_distant_debris() -> void:
-	"""Remove debris that's too far from player in 3D space"""
+	##Remove debris that's too far from player in 3D space
 	if not player_ship:
 		return
 
@@ -305,7 +305,7 @@ func _cleanup_distant_debris() -> void:
 		_remove_debris_3d(debris)
 
 func _remove_debris_3d(debris: DebrisObject3D) -> void:
-	"""Remove a 3D debris node from the game"""
+	##Remove a 3D debris node from the game
 	if debris in active_debris:
 		active_debris.erase(debris)
 		current_debris_count -= 1
@@ -319,7 +319,7 @@ func _remove_debris_3d(debris: DebrisObject3D) -> void:
 		_log_message("ZoneDebrisManager3D: Removed debris, count now: %d" % current_debris_count)
 
 func _on_debris_collected_3d(debris_object: DebrisObject3D) -> void:
-	"""Handle debris collection signal from 3D debris"""
+	##Handle debris collection signal from 3D debris
 	if not debris_object:
 		return
 
@@ -340,16 +340,16 @@ func _on_debris_collected_3d(debris_object: DebrisObject3D) -> void:
 ## Public API Methods
 
 func set_player_reference(player: CharacterBody3D) -> void:
-	"""Set player reference for distance calculations"""
+	##Set player reference for distance calculations
 	player_ship = player
 	_log_message("ZoneDebrisManager3D: Player reference set to: %s" % (player.name if player else "none"))
 
 func get_debris_count() -> int:
-	"""Get current debris count"""
+	##Get current debris count
 	return current_debris_count
 
 func get_debris_in_3d_range(center: Vector3, radius: float) -> Array[DebrisObject3D]:
-	"""Get all debris within range of a 3D position"""
+	##Get all debris within range of a 3D position
 	var debris_in_range: Array[DebrisObject3D] = []
 
 	for debris in active_debris:
@@ -362,7 +362,7 @@ func get_debris_in_3d_range(center: Vector3, radius: float) -> Array[DebrisObjec
 	return debris_in_range
 
 func collect_debris_3d(debris: DebrisObject3D) -> Dictionary:
-	"""Collect a 3D debris item and return its data"""
+	##Collect a 3D debris item and return its data
 	if not debris or not debris in active_debris:
 		return {}
 
@@ -374,7 +374,7 @@ func collect_debris_3d(debris: DebrisObject3D) -> Dictionary:
 	return debris_data
 
 func force_spawn_debris_3d(debris_type_name: String, spawn_position: Vector3) -> DebrisObject3D:
-	"""Force spawn specific debris type at 3D position"""
+	##Force spawn specific debris type at 3D position
 	var debris_type = _get_debris_type_by_name(debris_type_name)
 	if debris_type.is_empty():
 		push_error("ZoneDebrisManager3D: Unknown debris type: %s" % debris_type_name)
@@ -404,14 +404,14 @@ func force_spawn_debris_3d(debris_type_name: String, spawn_position: Vector3) ->
 	return null
 
 func _get_debris_type_by_name(type_name: String) -> Dictionary:
-	"""Get debris type data by name"""
+	##Get debris type data by name
 	for debris_type in debris_types:
 		if debris_type.get("type", "") == type_name:
 			return debris_type
 	return {}
 
 func clear_all_debris() -> void:
-	"""Clear all debris from the 3D zone"""
+	##Clear all debris from the 3D zone
 	for debris in active_debris:
 		if is_instance_valid(debris):
 			debris.queue_free()
@@ -423,18 +423,18 @@ func clear_all_debris() -> void:
 	_log_message("ZoneDebrisManager3D: All debris cleared from 3D zone")
 
 func set_spawn_settings(new_max_count: int, new_spawn_interval: float) -> void:
-	"""Update spawn settings"""
+	##Update spawn settings
 	max_debris_count = new_max_count
 	spawn_interval = new_spawn_interval
 	_log_message("ZoneDebrisManager3D: Spawn settings updated - max: %d, interval: %.2f" % [max_debris_count, spawn_interval])
 
 func set_zone_bounds_3d(new_bounds: Vector3) -> void:
-	"""Set 3D zone bounds for debris spawning"""
+	##Set 3D zone bounds for debris spawning
 	zone_bounds = new_bounds
 	_log_message("ZoneDebrisManager3D: Zone bounds updated: %s" % zone_bounds)
 
 func get_debris_stats() -> Dictionary:
-	"""Get debris statistics"""
+	##Get debris statistics
 	var stats = {
 		"current_count": current_debris_count,
 		"max_count": max_debris_count,
@@ -456,6 +456,6 @@ func get_debris_stats() -> Dictionary:
 	return stats
 
 func _log_message(message: String) -> void:
-	"""Log message with timestamp"""
+	##Log message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	print("[%s] %s" % [timestamp, message])

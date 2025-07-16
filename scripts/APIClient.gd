@@ -108,7 +108,7 @@ func check_health() -> void:
 		api_error.emit("Failed to initiate health check request")
 
 func _make_request(url: String, method: HTTPClient.Method, headers: Array, request_type: String, body: String = "") -> int:
-	"""Make an HTTP request and track it"""
+	##Make an HTTP request and track it
 	var request_id = request_id_counter
 	request_id_counter += 1
 
@@ -127,7 +127,7 @@ func _make_request(url: String, method: HTTPClient.Method, headers: Array, reque
 	return request_id
 
 func _on_request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	"""Handle HTTP request completion"""
+	##Handle HTTP request completion
 	var response_text = body.get_string_from_utf8()
 	_log_message("APIClient: Request completed - Code: %d, Response: %s" % [response_code, response_text])
 
@@ -150,7 +150,7 @@ func _on_request_completed(_result: int, response_code: int, _headers: PackedStr
 		_handle_error_response(response_code, response_data)
 
 func _handle_successful_response(response_data: Dictionary) -> void:
-	"""Handle successful API responses"""
+	##Handle successful API responses
 	_log_message("APIClient: Successful response received")
 
 	# Determine response type based on content (since we don't have request tracking)
@@ -170,7 +170,7 @@ func _handle_successful_response(response_data: Dictionary) -> void:
 		_log_message("APIClient: Generic success response")
 
 func _handle_error_response(response_code: int, response_data: Dictionary) -> void:
-	"""Handle API error responses"""
+	##Handle API error responses
 	var error_message = "API Error %d" % response_code
 	if "detail" in response_data:
 		error_message += ": %s" % response_data.detail
@@ -181,7 +181,7 @@ func _handle_error_response(response_code: int, response_data: Dictionary) -> vo
 	api_error.emit(error_message)
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)

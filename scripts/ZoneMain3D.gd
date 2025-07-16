@@ -22,6 +22,7 @@ signal npc_hub_entered()
 @onready var debris_container: Node3D = $DebrisContainer
 @onready var npc_hub_container: Node3D = $NPCHubContainer
 @onready var player_ship: CharacterBody3D = $PlayerShip3D
+@onready var skybox_manager_3d: Node3D = $SkyboxManager3D
 
 # System nodes (shared with 2D version)
 @onready var hud: Control = $UILayer/HUD
@@ -58,6 +59,11 @@ var zone_id: String = "zone_alpha_3d_01"
 var zone_bounds: Vector3 = Vector3(400, 50, 400)  # 3D bounds - expanded playable area
 var game_logs: Array[String] = []
 
+# Position sync system for backend integration
+var position_sync_timer: float = 0.0
+var position_sync_interval: float = 5.0  # Sync position every 5 seconds
+var last_synced_position: Vector3 = Vector3.ZERO
+
 func _ready() -> void:
 	_log_message("ZoneMain3D: Initializing 3D zone controller")
 	_initialize_3d_zone()
@@ -65,8 +71,16 @@ func _ready() -> void:
 	_log_message("ZoneMain3D: 3D Zone ready for gameplay")
 	zone_ready.emit()
 
+func _process(delta: float) -> void:
+	##Handle periodic updates including position sync
+	# Handle position sync timer
+	position_sync_timer += delta
+	if position_sync_timer >= position_sync_interval:
+		position_sync_timer = 0.0
+		_sync_player_position_to_backend()
+
 func _initialize_3d_zone() -> void:
-	"""Initialize the 3D zone with basic settings"""
+	##Initialize the 3D zone with basic settings
 	_log_message("ZoneMain3D: Setting up 3D zone environment")
 
 	# Ensure player ship is at the expected spawn position
@@ -100,7 +114,8 @@ func _initialize_3d_zone() -> void:
 	_initialize_zone_boundaries()
 
 	# Initialize background system (layered background elements with parallax)
-	_initialize_background_system()
+	# BackgroundManager3D disabled for skybox revamp Phase 0
+	# _initialize_background_system()
 
 	# Initialize HUD
 	if debug_label:
@@ -109,7 +124,7 @@ func _initialize_3d_zone() -> void:
 	_log_message("ZoneMain3D: 3D zone initialization complete")
 
 func _ensure_player_spawn_position() -> void:
-	"""Ensure the player ship spawns at the expected position for space station coordination"""
+	##Ensure the player ship spawns at the expected position for space station coordination
 	var expected_spawn_position = Vector3(0, 2, 0)
 
 	if player_ship:
@@ -119,7 +134,7 @@ func _ensure_player_spawn_position() -> void:
 		_log_message("ZoneMain3D: WARNING - Player ship not found, cannot set spawn position")
 
 func _initialize_debris_manager_3d() -> void:
-	"""Initialize the 3D debris manager"""
+	##Initialize the 3D debris manager
 	_log_message("ZoneMain3D: Initializing 3D debris manager")
 
 	# Create debris manager instance
@@ -147,7 +162,7 @@ func _initialize_debris_manager_3d() -> void:
 	_log_message("ZoneMain3D: 3D debris manager initialized and ready")
 
 func _initialize_npc_hubs() -> void:
-	"""Initialize the 3D NPC hub system with separate managers for space stations and trading hubs"""
+	##Initialize the 3D NPC hub system with separate managers for space stations and trading hubs
 	_log_message("ZoneMain3D: Initializing 3D space station and trading hub systems with proper separation")
 
 	# Remove old static hubs that are positioned far from player
@@ -162,7 +177,7 @@ func _initialize_npc_hubs() -> void:
 	_log_message("ZoneMain3D: Both space station (UFO) and trading hub (mechanical) systems initialized with proper separation")
 
 func _remove_old_static_hubs() -> void:
-	"""Remove the old static trading and upgrade hubs that are positioned far from player"""
+	##Remove the old static trading and upgrade hubs that are positioned far from player
 	_log_message("ZoneMain3D: Removing old static hubs positioned far from player")
 
 	# Remove old trading hub
@@ -180,7 +195,7 @@ func _remove_old_static_hubs() -> void:
 	_log_message("ZoneMain3D: Old static hubs removed")
 
 func _initialize_space_station_manager() -> void:
-	"""Initialize the SpaceStationManager3D system to spawn stations near player"""
+	##Initialize the SpaceStationManager3D system to spawn stations near player
 	_log_message("ZoneMain3D: Creating SpaceStationManager3D system for single space station")
 
 	# Create the space station manager instance
@@ -209,7 +224,7 @@ func _initialize_space_station_manager() -> void:
 	call_deferred("_log_space_station_positions")
 
 func _initialize_trading_hub_manager() -> void:
-	"""Initialize the TradingHubManager3D system to spawn trading hubs near player"""
+	##Initialize the TradingHubManager3D system to spawn trading hubs near player
 	_log_message("ZoneMain3D: Creating TradingHubManager3D system for single trading hub")
 
 	# Create the trading hub manager instance
@@ -237,7 +252,7 @@ func _initialize_trading_hub_manager() -> void:
 	call_deferred("_log_trading_hub_positions")
 
 func _initialize_zone_boundaries() -> void:
-	"""Initialize the 3D zone boundary system with invisible collision walls"""
+	##Initialize the 3D zone boundary system with invisible collision walls
 	_log_message("ZoneMain3D: Initializing 3D zone boundary system")
 
 	# Create the zone boundary manager instance
@@ -265,7 +280,7 @@ func _initialize_zone_boundaries() -> void:
 	_log_message("ZoneMain3D: Zone boundary system initialized - Invisible walls created around zone bounds: %s" % zone_bounds)
 
 func _initialize_background_system() -> void:
-	"""Initialize the 3D background system with layered elements and parallax scrolling"""
+	##Initialize the 3D background system with layered elements and parallax scrolling
 	_log_message("ZoneMain3D: Initializing background system for enhanced depth perception")
 
 	# Create and configure background manager
@@ -296,26 +311,38 @@ func _initialize_background_system() -> void:
 	_log_message("ZoneMain3D: Background system initialized with layered elements")
 
 func _on_background_ready() -> void:
-	"""Handle background system ready signal"""
+	##Handle background system ready signal
 	_log_message("ZoneMain3D: Background system fully loaded with %d layers" % background_manager.get_layer_count())
 
 	# Update debug display to show background info
 	_update_debug_display()
 
 func _on_background_layer_visibility_changed(layer_name: String, layer_visible: bool) -> void:
-	"""Handle background layer visibility changes for performance monitoring"""
+	##Handle background layer visibility changes for performance monitoring
 	_log_message("ZoneMain3D: Background layer '%s' visibility changed to %s" % [layer_name, layer_visible])
 
 func _update_debug_display() -> void:
-	"""Update the debug information display"""
+	##Update the debug information display
 	if debug_label:
 		var bg_info = ""
 		if background_manager:
 			bg_info = " | BG Layers: %d" % background_manager.get_layer_count()
 		debug_label.text = "Children of the Singularity - %s [3D DEBUG] | Environment: 3D%s" % [zone_name, bg_info]
 
+func _input(event):
+	## Handle input events, including skybox visibility toggle for testing
+	if event is InputEventKey and event.pressed:
+		# Toggle skybox visibility with F9 key (for testing skybox interference)
+		if event.keycode == KEY_F9:
+			if skybox_manager_3d:
+				# Toggle between visible and invisible
+				var current_visible = skybox_manager_3d.active_layers.size() > 0 and skybox_manager_3d.active_layers[0].visible
+				skybox_manager_3d.toggle_skybox_visibility(not current_visible)
+				var state_text = "HIDDEN" if current_visible else "VISIBLE"
+				_log_message("ZoneMain3D: Skybox toggled - Now %s (F9 to toggle)" % state_text)
+
 func _log_message(message: String) -> void:
-	"""Add a message to the game log and display it"""
+	##Add a message to the game log and display it
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 
@@ -356,89 +383,89 @@ func test_3d_functionality() -> void:
 
 ## Signal handlers for player ship events
 func _on_debris_collected(debris_type: String, value: int) -> void:
-	"""Handle debris collection from player ship"""
+	##Handle debris collection from player ship
 	_log_message("ZoneMain3D: Player collected debris - %s (Value: %d)" % [debris_type, value])
 	debris_collected.emit(debris_type, value)
 
 func _on_npc_hub_entered(hub_type: String) -> void:
-	"""Handle player entering NPC hub"""
+	##Handle player entering NPC hub
 	_log_message("ZoneMain3D: Player entered NPC hub - %s" % hub_type)
 	npc_hub_entered.emit()
 
 func _on_npc_hub_exited() -> void:
-	"""Handle player exiting NPC hub"""
+	##Handle player exiting NPC hub
 	_log_message("ZoneMain3D: Player exited NPC hub")
 
 ## Camera and player access methods
 func get_player_ship() -> CharacterBody3D:
-	"""Get reference to the player ship"""
+	##Get reference to the player ship
 	return player_ship
 
 func get_camera_controller() -> Node3D:
-	"""Get reference to the camera controller"""
+	##Get reference to the camera controller
 	return camera_controller
 
 func shake_camera(intensity: float, duration: float) -> void:
-	"""Apply camera shake effect"""
+	##Apply camera shake effect
 	if camera_controller and camera_controller.has_method("shake"):
 		camera_controller.shake(intensity, duration)
 		_log_message("ZoneMain3D: Camera shake applied - Intensity: %.2f, Duration: %.2f" % [intensity, duration])
 
 func set_camera_zoom(zoom_level: float) -> void:
-	"""Set camera zoom level"""
+	##Set camera zoom level
 	if camera_controller and camera_controller.has_method("set_zoom"):
 		camera_controller.set_zoom(zoom_level)
 		_log_message("ZoneMain3D: Camera zoom set to %.1f" % zoom_level)
 
 ## Signal handlers for debris manager
 func _on_debris_count_changed(count: int) -> void:
-	"""Handle debris count changes"""
+	##Handle debris count changes
 	_log_message("ZoneMain3D: Debris count changed - Current: %d" % count)
 
 func _on_debris_spawned(debris: DebrisObject3D) -> void:
-	"""Handle debris spawning"""
+	##Handle debris spawning
 	if debris:
 		_log_message("ZoneMain3D: Debris spawned - Type: %s, Position: %s" % [debris.get_debris_type(), debris.global_position])
 
 ## Signal handlers for NPC hubs
 func _on_hub_entered(hub_type: String, _hub: Node3D) -> void:
-	"""Handle player entering NPC hub"""
+	##Handle player entering NPC hub
 	_log_message("ZoneMain3D: Player entered %s hub" % hub_type)
 	npc_hub_entered.emit()
 
 func _on_hub_exited(hub_type: String, _hub: Node3D) -> void:
-	"""Handle player exiting NPC hub"""
+	##Handle player exiting NPC hub
 	_log_message("ZoneMain3D: Player exited %s hub" % hub_type)
 
 ## Signal handlers for space station manager (legacy - may be unused now)
 func _on_player_entered_module(module_type: String, _module: Node3D) -> void:
-	"""Handle player entering space station module"""
+	##Handle player entering space station module
 	_log_message("ZoneMain3D: Player entered space station module - %s" % module_type)
 	npc_hub_entered.emit()
 
 func _on_player_exited_module(module_type: String, _module: Node3D) -> void:
-	"""Handle player exiting space station module"""
+	##Handle player exiting space station module
 	_log_message("ZoneMain3D: Player exited space station module - %s" % module_type)
 
 func _on_module_created(module: Node3D) -> void:
-	"""Handle space station module creation"""
+	##Handle space station module creation
 	_log_message("ZoneMain3D: Space station module created at %s" % module.global_position)
 
 func _on_hub_created(hub: Node3D) -> void:
-	"""Handle trading hub creation"""
+	##Handle trading hub creation
 	_log_message("ZoneMain3D: Trading hub created at %s" % hub.global_position)
 
 func _on_player_entered_hub(hub_type: String, _hub: Node3D) -> void:
-	"""Handle player entering trading hub"""
+	##Handle player entering trading hub
 	_log_message("ZoneMain3D: Player entered trading hub: %s" % hub_type)
 	npc_hub_entered.emit()
 
 func _on_player_exited_hub(hub_type: String, _hub: Node3D) -> void:
-	"""Handle player exiting trading hub"""
+	##Handle player exiting trading hub
 	_log_message("ZoneMain3D: Player exited trading hub: %s" % hub_type)
 
 func _log_space_station_positions() -> void:
-	"""Log space station positions after initialization"""
+	##Log space station positions after initialization
 	if space_station_manager and space_station_manager.has_method("get_station_count"):
 		var station_positions = space_station_manager.station_positions
 		if station_positions.size() > 0:
@@ -449,7 +476,7 @@ func _log_space_station_positions() -> void:
 			_log_message("ZoneMain3D: WARNING - No station positions calculated")
 
 func _log_trading_hub_positions() -> void:
-	"""Log trading hub positions after initialization"""
+	##Log trading hub positions after initialization
 	if trading_hub_manager and trading_hub_manager.has_method("get_hub_count"):
 		var hub_positions = trading_hub_manager.hub_positions
 		if hub_positions.size() > 0:
@@ -462,7 +489,7 @@ func _log_trading_hub_positions() -> void:
 ## Signal handlers for zone boundaries
 
 func _on_boundary_warning(distance: float, direction: String) -> void:
-	"""Handle boundary warning when player approaches zone edge"""
+	##Handle boundary warning when player approaches zone edge
 	_log_message("ZoneMain3D: BOUNDARY WARNING - %.1f units from %s boundary" % [distance, direction])
 
 	# Display warning message to player (could be integrated with UI system)
@@ -471,83 +498,119 @@ func _on_boundary_warning(distance: float, direction: String) -> void:
 		# This could be expanded to show a visual warning in the UI
 		_log_message("ZoneMain3D: Warning displayed to player: %s" % warning_message)
 
-func _on_boundary_collision(position: Vector3, boundary_type: String) -> void:
-	"""Handle boundary collision when player hits zone wall"""
-	_log_message("ZoneMain3D: BOUNDARY COLLISION - Player hit %s at position %s" % [boundary_type, position])
+func _on_boundary_collision(collision_position: Vector3, boundary_type: String) -> void:
+	##Handle boundary collision when player hits zone wall
+	_log_message("ZoneMain3D: BOUNDARY COLLISION - Player hit %s at position %s" % [boundary_type, collision_position])
 
 	# Optional: Add camera shake or other feedback
 	if camera_controller and camera_controller.has_method("shake"):
 		camera_controller.shake(2.0, 0.3)
 
 func _on_boundary_safe() -> void:
-	"""Handle when player returns to safe zone area"""
+	##Handle when player returns to safe zone area
 	_log_message("ZoneMain3D: Player returned to safe zone area")
 
 ## Debris manager access methods
 func get_debris_manager() -> ZoneDebrisManager3D:
-	"""Get reference to the debris manager"""
+	##Get reference to the debris manager
 	return debris_manager_3d
 
 func get_debris_count() -> int:
-	"""Get current debris count"""
+	##Get current debris count
 	if debris_manager_3d:
 		return debris_manager_3d.get_debris_count()
 	return 0
 
 func get_debris_stats() -> Dictionary:
-	"""Get debris statistics"""
+	##Get debris statistics
 	if debris_manager_3d:
 		return debris_manager_3d.get_debris_stats()
 	return {}
 
 ## Zone boundary manager access methods
 func get_boundary_manager() -> ZoneBoundaryManager3D:
-	"""Get reference to the zone boundary manager"""
+	##Get reference to the zone boundary manager
 	return zone_boundary_manager
 
 func get_boundary_info() -> Dictionary:
-	"""Get zone boundary information"""
+	##Get zone boundary information
 	if zone_boundary_manager:
 		return zone_boundary_manager.get_boundary_info()
 	return {}
 
-func is_position_in_bounds(position: Vector3) -> bool:
-	"""Check if a position is within zone boundaries"""
+func is_position_in_bounds(check_position: Vector3) -> bool:
+	##Check if a position is within zone boundaries
 	if zone_boundary_manager:
-		return zone_boundary_manager.is_position_in_bounds(position)
+		return zone_boundary_manager.is_position_in_bounds(check_position)
 	return true
 
 func enable_visual_boundaries(enabled: bool) -> void:
-	"""Enable or disable visual boundary indicators for debugging"""
+	##Enable or disable visual boundary indicators for debugging
 	if zone_boundary_manager:
 		zone_boundary_manager.enable_visual_boundaries(enabled)
 		_log_message("ZoneMain3D: Visual boundaries %s" % ("enabled" if enabled else "disabled"))
 
 ## Space station manager access methods
 func get_space_station_manager() -> Node3D:
-	"""Get reference to the space station manager"""
+	##Get reference to the space station manager
 	return space_station_manager
 
 func get_station_count() -> int:
-	"""Get the number of space stations"""
+	##Get the number of space stations
 	if space_station_manager and space_station_manager.has_method("get_station_count"):
 		return space_station_manager.get_station_count()
 	return 0
 
 func get_module_count() -> int:
-	"""Get the total number of station modules"""
+	##Get the total number of station modules
 	if space_station_manager and space_station_manager.has_method("get_module_count"):
 		return space_station_manager.get_module_count()
 	return 0
 
 func get_trading_modules() -> Array:
-	"""Get all trading modules for compatibility with existing systems"""
+	##Get all trading modules for compatibility with existing systems
 	if space_station_manager and space_station_manager.has_method("get_trading_modules"):
 		return space_station_manager.get_trading_modules()
 	return []
 
 func get_station_data() -> Array[Dictionary]:
-	"""Get comprehensive data about all space stations"""
+	##Get comprehensive data about all space stations
 	if space_station_manager and space_station_manager.has_method("get_station_data"):
 		return space_station_manager.get_station_data()
 	return []
+
+func _sync_player_position_to_backend() -> void:
+	##Sync player 3D position to backend via APIClient
+	if not player_ship or not api_client:
+		return
+
+	var current_position = player_ship.global_position
+
+	# Only sync if position has changed significantly (avoid unnecessary API calls)
+	if current_position.distance_to(last_synced_position) < 1.0:
+		return
+
+	_log_message("ZoneMain3D: Syncing 3D position to backend: %s" % current_position)
+
+	# Get complete player data for backend sync
+	var player_info = player_ship.get_player_info()
+
+	# Convert Vector3 position to the format expected by backend
+	var player_data = {
+		"player_id": player_info.player_id,
+		"name": "Player",  # Could be made dynamic
+		"credits": player_info.credits,
+		"progression_path": "rogue",  # Could be made dynamic
+		"position": {
+			"x": current_position.x,
+			"y": current_position.y,
+			"z": current_position.z
+		},
+		"upgrades": player_info.upgrades
+	}
+
+	# Send to backend
+	if api_client.has_method("save_player_data"):
+		api_client.save_player_data(player_data)
+		last_synced_position = current_position
+		_log_message("ZoneMain3D: Player 3D position synced to backend - X:%.1f Y:%.1f Z:%.1f" % [current_position.x, current_position.y, current_position.z])

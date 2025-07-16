@@ -53,14 +53,14 @@ func _process(delta: float) -> void:
 		_check_boundary_proximity()
 
 func _setup_boundary_container() -> void:
-	"""Set up container for boundary walls"""
+	##Set up container for boundary walls
 	boundary_container = Node3D.new()
 	boundary_container.name = "BoundaryWalls"
 	add_child(boundary_container)
 	_log_message("ZoneBoundaryManager3D: Boundary container created")
 
 func _create_boundary_walls() -> void:
-	"""Create invisible collision walls around the zone boundaries"""
+	##Create invisible collision walls around the zone boundaries
 	_log_message("ZoneBoundaryManager3D: Creating boundary collision walls")
 
 	# Calculate wall positions based on zone bounds
@@ -112,11 +112,11 @@ func _create_boundary_walls() -> void:
 
 	_log_message("ZoneBoundaryManager3D: Created 6 boundary walls (N/S/E/W/Top/Bottom)")
 
-func _create_boundary_wall(wall_name: String, position: Vector3, size: Vector3) -> StaticBody3D:
-	"""Create a single boundary wall with collision"""
+func _create_boundary_wall(wall_name: String, wall_position: Vector3, size: Vector3) -> StaticBody3D:
+	##Create a single boundary wall with collision
 	var wall = StaticBody3D.new()
 	wall.name = wall_name
-	wall.position = position
+	wall.position = wall_position
 
 	# Set collision layer for boundaries (layer 5)
 	wall.collision_layer = 16  # Layer 5 (2^4 = 16)
@@ -153,7 +153,7 @@ func _create_boundary_wall(wall_name: String, position: Vector3, size: Vector3) 
 	return wall
 
 func _check_boundary_proximity() -> void:
-	"""Check if player is approaching any boundary and emit warnings"""
+	##Check if player is approaching any boundary and emit warnings
 	if not player_ship:
 		return
 
@@ -199,12 +199,12 @@ func _check_boundary_proximity() -> void:
 ## Public API Methods
 
 func set_player_reference(player: CharacterBody3D) -> void:
-	"""Set reference to player ship for boundary checking"""
+	##Set reference to player ship for boundary checking
 	player_ship = player
 	_log_message("ZoneBoundaryManager3D: Player reference set to: %s" % (player.name if player else "none"))
 
 func set_zone_bounds(new_bounds: Vector3) -> void:
-	"""Update zone bounds and recreate boundary walls"""
+	##Update zone bounds and recreate boundary walls
 	zone_bounds = new_bounds
 	_log_message("ZoneBoundaryManager3D: Zone bounds updated to: %s" % zone_bounds)
 
@@ -217,12 +217,12 @@ func set_zone_bounds(new_bounds: Vector3) -> void:
 	call_deferred("_create_boundary_walls")
 
 func enable_boundary_warnings(enabled: bool) -> void:
-	"""Enable or disable boundary warnings"""
+	##Enable or disable boundary warnings
 	enable_warnings = enabled
 	_log_message("ZoneBoundaryManager3D: Boundary warnings %s" % ("enabled" if enabled else "disabled"))
 
 func enable_visual_boundaries(enabled: bool) -> void:
-	"""Enable or disable visual boundary indicators (for debugging)"""
+	##Enable or disable visual boundary indicators (for debugging)
 	enable_visual_indicators = enabled
 	_log_message("ZoneBoundaryManager3D: Visual boundaries %s" % ("enabled" if enabled else "disabled"))
 
@@ -234,7 +234,7 @@ func enable_visual_boundaries(enabled: bool) -> void:
 				visual_indicator.visible = enabled
 
 func get_boundary_info() -> Dictionary:
-	"""Get information about current boundary state"""
+	##Get information about current boundary state
 	return {
 		"zone_bounds": zone_bounds,
 		"warning_distance": warning_distance,
@@ -244,29 +244,29 @@ func get_boundary_info() -> Dictionary:
 		"warnings_enabled": enable_warnings
 	}
 
-func get_distance_to_nearest_boundary(position: Vector3) -> float:
-	"""Get distance from a position to the nearest boundary"""
+func get_distance_to_nearest_boundary(check_position: Vector3) -> float:
+	##Get distance from a position to the nearest boundary
 	var distances = [
-		(zone_bounds.z / 2.0) - position.z,      # North
-		position.z - (-zone_bounds.z / 2.0),     # South
-		(zone_bounds.x / 2.0) - position.x,      # East
-		position.x - (-zone_bounds.x / 2.0),     # West
-		(zone_bounds.y) - position.y,            # Top
-		position.y - 0                           # Bottom
+		(zone_bounds.z / 2.0) - check_position.z,      # North
+		check_position.z - (-zone_bounds.z / 2.0),     # South
+		(zone_bounds.x / 2.0) - check_position.x,      # East
+		check_position.x - (-zone_bounds.x / 2.0),     # West
+		(zone_bounds.y) - check_position.y,            # Top
+		check_position.y - 0                           # Bottom
 	]
 
 	return distances.min()
 
-func is_position_in_bounds(position: Vector3) -> bool:
-	"""Check if a position is within zone boundaries"""
+func is_position_in_bounds(check_position: Vector3) -> bool:
+	##Check if a position is within zone boundaries
 	return (
-		position.x >= -zone_bounds.x / 2.0 and position.x <= zone_bounds.x / 2.0 and
-		position.y >= 0 and position.y <= zone_bounds.y and
-		position.z >= -zone_bounds.z / 2.0 and position.z <= zone_bounds.z / 2.0
+		check_position.x >= -zone_bounds.x / 2.0 and check_position.x <= zone_bounds.x / 2.0 and
+		check_position.y >= 0 and check_position.y <= zone_bounds.y and
+		check_position.z >= -zone_bounds.z / 2.0 and check_position.z <= zone_bounds.z / 2.0
 	)
 
 func clamp_position_to_bounds(position: Vector3) -> Vector3:
-	"""Clamp a position to stay within zone boundaries"""
+	##Clamp a position to stay within zone boundaries
 	return Vector3(
 		clamp(position.x, -zone_bounds.x / 2.0, zone_bounds.x / 2.0),
 		clamp(position.y, 0, zone_bounds.y),
@@ -276,12 +276,12 @@ func clamp_position_to_bounds(position: Vector3) -> Vector3:
 ## Signal handlers
 
 func _on_boundary_collision(body: Node3D) -> void:
-	"""Handle collision with boundary wall"""
+	##Handle collision with boundary wall
 	if body == player_ship:
 		boundary_collision.emit(body.global_position, "boundary_wall")
 		_log_message("ZoneBoundaryManager3D: Player collided with boundary wall at %s" % body.global_position)
 
 func _log_message(message: String) -> void:
-	"""Log message with timestamp"""
+	##Log message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	print("[%s] %s" % [timestamp, message])

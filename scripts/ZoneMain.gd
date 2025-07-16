@@ -57,7 +57,7 @@ func _process(delta: float) -> void:
 		_update_network_systems()
 
 func _setup_components() -> void:
-	"""Setup and configure all zone components"""
+	##Setup and configure all zone components
 	print("ZoneMainRefactored: Setting up components")
 
 	# Setup camera controller
@@ -102,7 +102,7 @@ func _setup_components() -> void:
 		print("ZoneMainRefactored: AI handler configured")
 
 func _connect_signals() -> void:
-	"""Connect all component signals"""
+	##Connect all component signals
 	print("ZoneMainRefactored: Connecting signals")
 
 	# Player ship signals
@@ -164,7 +164,7 @@ func _connect_signals() -> void:
 		ai_handler.ai_broadcast_ready.connect(_on_ai_broadcast_ready)
 
 func _initialize_zone() -> void:
-	"""Initialize the zone environment"""
+	##Initialize the zone environment
 	print("ZoneMainRefactored: Initializing zone environment")
 	zone_state = "loading"
 	zone_state_changed.emit(zone_state)
@@ -183,7 +183,7 @@ func _initialize_zone() -> void:
 		api_client.check_health()
 
 func _finalize_setup() -> void:
-	"""Finalize zone setup"""
+	##Finalize zone setup
 	print("ZoneMainRefactored: Finalizing setup")
 	zone_state = "ready"
 	zone_state_changed.emit(zone_state)
@@ -193,7 +193,7 @@ func _finalize_setup() -> void:
 	_log_message("Zone ready for gameplay")
 
 func _setup_zone_background() -> void:
-	"""Set up the zone background"""
+	##Set up the zone background
 	print("ZoneMainRefactored: Setting up zone background")
 
 	# Create space background
@@ -220,19 +220,19 @@ func _setup_zone_background() -> void:
 	add_child(stars_container)
 
 func _setup_npc_hubs() -> void:
-	"""Setup NPC trading hubs"""
+	##Setup NPC trading hubs
 	print("ZoneMainRefactored: Setting up NPC hubs")
 	# NPC hub setup logic would go here
 	# For now, assume hubs are already in the scene
 
 func _initialize_networking() -> void:
-	"""Initialize networking systems"""
+	##Initialize networking systems
 	if network_manager:
 		# Try to start as server first, fall back to client
 		print("ZoneMainRefactored: Initializing networking")
 
 func _update_ui_systems() -> void:
-	"""Update UI systems with current game state"""
+	##Update UI systems with current game state
 	if not ui_manager or not player_ship:
 		return
 
@@ -260,13 +260,13 @@ func _update_ui_systems() -> void:
 	ui_manager.update_debug_display(debug_info)
 
 func _update_network_systems() -> void:
-	"""Update network systems"""
+	##Update network systems
 	if network_manager:
 		# Network updates would go here
 		pass
 
 func _log_message(message: String) -> void:
-	"""Log a message to the UI system"""
+	##Log a message to the UI system
 	if ui_manager:
 		ui_manager.log_message(message)
 	print("ZoneMainRefactored: %s" % message)
@@ -274,7 +274,7 @@ func _log_message(message: String) -> void:
 ## Signal handlers
 
 func _on_debris_collected(debris_type: String, value: int) -> void:
-	"""Handle debris collection by player"""
+	##Handle debris collection by player
 	_log_message("Collected %s worth %d credits" % [debris_type, value])
 
 	# Update AI handler
@@ -282,22 +282,22 @@ func _on_debris_collected(debris_type: String, value: int) -> void:
 		ai_handler.on_debris_collected(debris_type, value)
 
 func _on_player_position_changed(position: Vector2) -> void:
-	"""Handle player position changes"""
+	##Handle player position changes
 	# Position updates handled by camera controller automatically
 	pass
 
 func _on_npc_hub_entered() -> void:
-	"""Handle entering NPC hub"""
+	##Handle entering NPC hub
 	if ui_manager:
 		ui_manager.show_trading_interface("Trading Hub")
 
 func _on_npc_hub_exited() -> void:
-	"""Handle exiting NPC hub"""
+	##Handle exiting NPC hub
 	if ui_manager:
 		ui_manager.hide_trading_interface()
 
 func _on_upgrade_purchased(upgrade_type: String, cost: int) -> void:
-	"""Handle upgrade purchase"""
+	##Handle upgrade purchase
 	_log_message("Purchased upgrade: %s for %d credits" % [upgrade_type, cost])
 
 	# Update AI handler
@@ -305,61 +305,61 @@ func _on_upgrade_purchased(upgrade_type: String, cost: int) -> void:
 		ai_handler.on_upgrade_purchased(upgrade_type, cost)
 
 func _on_upgrade_purchase_failed(upgrade_type: String, reason: String) -> void:
-	"""Handle upgrade purchase failure"""
+	##Handle upgrade purchase failure
 	_log_message("Upgrade purchase failed: %s - %s" % [upgrade_type, reason])
 
 func _on_upgrade_effects_applied(effects: Dictionary) -> void:
-	"""Handle upgrade effects being applied"""
+	##Handle upgrade effects being applied
 	_log_message("Upgrade effects applied: %s" % effects)
 
 func _on_sell_all_requested() -> void:
-	"""Handle sell all request"""
+	##Handle sell all request
 	if api_client and api_client.has_method("sell_all_inventory"):
 		api_client.sell_all_inventory()
 
 func _on_ai_message_received(message: String, priority: int) -> void:
-	"""Handle AI message received"""
+	##Handle AI message received
 	if ui_manager:
 		ui_manager.show_ai_message(message, 3.0)
 
 func _on_milestone_reached(milestone_type: String, value: int) -> void:
-	"""Handle milestone reached"""
+	##Handle milestone reached
 	_log_message("Milestone reached: %s = %d" % [milestone_type, value])
 
 func _on_ai_broadcast_ready(broadcast_data: Dictionary) -> void:
-	"""Handle AI broadcast ready"""
+	##Handle AI broadcast ready
 	_log_message("AI broadcast ready: %s" % broadcast_data)
 
 func _on_debris_spawned(debris: Node2D) -> void:
-	"""Handle debris spawned"""
+	##Handle debris spawned
 	# Debris spawning handled by manager
 	pass
 
 func _on_debris_collected_by_manager(debris_type: String, value: int) -> void:
-	"""Handle debris collected by manager"""
+	##Handle debris collected by manager
 	# Forward to main debris collection handler
 	_on_debris_collected(debris_type, value)
 
 func _on_debris_count_changed(count: int) -> void:
-	"""Handle debris count changes"""
+	##Handle debris count changes
 	# Count updates handled by UI manager
 	pass
 
 func _on_camera_zoom_changed(new_zoom: float) -> void:
-	"""Handle camera zoom changes"""
+	##Handle camera zoom changes
 	# Camera zoom handled by camera controller
 	pass
 
 func _on_camera_bounds_exceeded(position: Vector2) -> void:
-	"""Handle camera bounds exceeded"""
+	##Handle camera bounds exceeded
 	_log_message("Camera bounds exceeded at: %s" % position)
 
 func _on_trading_interface_opened(hub_type: String) -> void:
-	"""Handle trading interface opened"""
+	##Handle trading interface opened
 	_log_message("Trading interface opened: %s" % hub_type)
 
 func _on_trading_interface_closed() -> void:
-	"""Handle trading interface closed"""
+	##Handle trading interface closed
 	_log_message("Trading interface closed")
 
 # API and Network signal handlers (simplified)
@@ -399,37 +399,37 @@ func _on_network_server_state_updated(state: Dictionary) -> void:
 ## Public API
 
 func get_zone_state() -> String:
-	"""Get current zone state"""
+	##Get current zone state
 	return zone_state
 
 func get_zone_bounds() -> Rect2:
-	"""Get zone bounds"""
+	##Get zone bounds
 	return zone_bounds
 
 func force_ui_update() -> void:
-	"""Force immediate UI update"""
+	##Force immediate UI update
 	if ui_manager:
 		ui_manager.force_ui_update()
 
 func get_game_stats() -> Dictionary:
-	"""Get current game statistics"""
+	##Get current game statistics
 	if ai_handler:
 		return ai_handler.get_game_stats()
 	return {}
 
 func request_ai_analysis() -> void:
-	"""Request AI analysis"""
+	##Request AI analysis
 	if ai_handler:
 		ai_handler.request_ai_analysis()
 
 func get_debris_stats() -> Dictionary:
-	"""Get debris statistics"""
+	##Get debris statistics
 	if debris_manager:
 		return debris_manager.get_debris_stats()
 	return {}
 
 func reset_zone() -> void:
-	"""Reset zone to initial state"""
+	##Reset zone to initial state
 	print("ZoneMainRefactored: Resetting zone")
 
 	if debris_manager:

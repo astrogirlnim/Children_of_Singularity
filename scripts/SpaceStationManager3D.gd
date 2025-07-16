@@ -66,7 +66,7 @@ func _ready() -> void:
 	_log_message("SpaceStationManager3D: Generated %d modular space stations with %d total modules" % [active_stations.size(), all_modules.size()])
 
 func _setup_station_container() -> void:
-	"""Set up the container for station modules"""
+	##Set up the container for station modules
 	if not station_container:
 		station_container = Node3D.new()
 		station_container.name = "SpaceStationsContainer"
@@ -74,7 +74,7 @@ func _setup_station_container() -> void:
 		_log_message("SpaceStationManager3D: Created station container")
 
 func _calculate_station_positions() -> void:
-	"""Calculate positions for space stations near player spawn location"""
+	##Calculate positions for space stations near player spawn location
 	_log_message("SpaceStationManager3D: Calculating station positions near player spawn")
 	station_positions.clear()
 
@@ -116,7 +116,7 @@ func _calculate_station_positions() -> void:
 		_log_message("SpaceStationManager3D: Station %d positioned near player spawn at: %s (distance from player: %.1f)" % [i, position, position.distance_to(player_spawn_position)])
 
 func _generate_space_stations() -> void:
-	"""Generate all space stations using templates"""
+	##Generate all space stations using templates
 	_log_message("SpaceStationManager3D: Generating space stations")
 
 	for i in range(station_count):
@@ -129,7 +129,7 @@ func _generate_space_stations() -> void:
 		_log_message("SpaceStationManager3D: Created station '%s' at %s with %d modules" % [template.name, station_position, template.modules.size()])
 
 func _create_space_station(template: Dictionary, base_position: Vector3, station_id: int) -> Dictionary:
-	"""Create a single space station from a template"""
+	##Create a single space station from a template
 	var station_node = Node3D.new()
 	station_node.name = "Station_%d_%s" % [station_id, template.name.replace(" ", "_")]
 	station_node.position = base_position
@@ -169,7 +169,7 @@ func _create_space_station(template: Dictionary, base_position: Vector3, station
 	return station_data
 
 func _create_station_module(module_type: ModuleType, relative_position: Vector3, parent: Node3D, module_index: int) -> Node3D:
-	"""Create a single station module"""
+	##Create a single station module
 	# Create a StaticBody3D as required by SpaceStationModule3D script
 	var module = StaticBody3D.new()
 	module.set_script(SpaceStationModule3DScript)
@@ -203,21 +203,21 @@ func _create_station_module(module_type: ModuleType, relative_position: Vector3,
 	return module
 
 func _on_module_entered(module_type: String, module: Node3D) -> void:
-	"""Handle player entering any module"""
+	##Handle player entering any module
 	_log_message("SpaceStationManager3D: Player entered %s module" % module_type)
 	player_entered_module.emit(module_type, module)
 
 func _on_module_exited(module_type: String, module: Node3D) -> void:
-	"""Handle player exiting any module"""
+	##Handle player exiting any module
 	_log_message("SpaceStationManager3D: Player exited %s module" % module_type)
 	player_exited_module.emit(module_type, module)
 
 func get_all_modules() -> Array[Node3D]:
-	"""Get all station modules"""
+	##Get all station modules
 	return all_modules
 
 func get_modules_by_type(module_type: ModuleType) -> Array[Node3D]:
-	"""Get all modules of a specific type"""
+	##Get all modules of a specific type
 	var filtered_modules: Array[Node3D] = []
 
 	for module in all_modules:
@@ -227,19 +227,19 @@ func get_modules_by_type(module_type: ModuleType) -> Array[Node3D]:
 	return filtered_modules
 
 func get_trading_modules() -> Array[Node3D]:
-	"""Get all trading modules for compatibility with existing systems"""
+	##Get all trading modules for compatibility with existing systems
 	return get_modules_by_type(ModuleType.TRADING)
 
 func get_station_count() -> int:
-	"""Get the number of active stations"""
+	##Get the number of active stations
 	return active_stations.size()
 
 func get_module_count() -> int:
-	"""Get the total number of modules"""
+	##Get the total number of modules
 	return all_modules.size()
 
 func get_station_data() -> Array[Dictionary]:
-	"""Get data for all stations"""
+	##Get data for all stations
 	var station_data: Array[Dictionary] = []
 
 	for station in active_stations:
@@ -259,14 +259,14 @@ func get_station_data() -> Array[Dictionary]:
 	return station_data
 
 func add_connecting_structures() -> void:
-	"""Add connecting structures between modules in each station"""
+	##Add connecting structures between modules in each station
 	_log_message("SpaceStationManager3D: Adding connecting structures between modules")
 
 	for station in active_stations:
 		_add_station_connections(station)
 
 func _add_station_connections(station: Dictionary) -> void:
-	"""Add connecting structures for a single station"""
+	##Add connecting structures for a single station
 	var modules = station.get("modules", [])
 	var station_node = station.get("node")
 
@@ -290,7 +290,7 @@ func _add_station_connections(station: Dictionary) -> void:
 				_create_connection_tube(module_a, module_b, connections_container)
 
 func _create_connection_tube(module_a: Node3D, module_b: Node3D, parent: Node3D) -> void:
-	"""Create a connecting tube between two modules"""
+	##Create a connecting tube between two modules
 	var tube = MeshInstance3D.new()
 	var cylinder_mesh = CylinderMesh.new()
 
@@ -321,7 +321,7 @@ func _create_connection_tube(module_a: Node3D, module_b: Node3D, parent: Node3D)
 	_log_message("SpaceStationManager3D: Created connection tube between modules (distance: %.1f)" % distance)
 
 func create_custom_station(station_name: String, position: Vector3, module_types: Array) -> Dictionary:
-	"""Create a custom station with specified module types"""
+	##Create a custom station with specified module types
 	_log_message("SpaceStationManager3D: Creating custom station '%s' at %s" % [station_name, position])
 
 	var custom_template = {
@@ -355,7 +355,7 @@ func create_custom_station(station_name: String, position: Vector3, module_types
 	return station_data
 
 func remove_simple_npc_hubs() -> void:
-	"""Remove the old simple NPC hub boxes"""
+	##Remove the old simple NPC hub boxes
 	_log_message("SpaceStationManager3D: Removing old simple NPC hub boxes")
 
 	# Find and remove old NPCHub nodes
@@ -370,7 +370,7 @@ func remove_simple_npc_hubs() -> void:
 				child.queue_free()
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)

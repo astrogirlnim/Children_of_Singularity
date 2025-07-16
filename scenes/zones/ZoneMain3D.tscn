@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://bq1gxmesdiqw3" path="res://scripts/AICommunicator.gd" id="5_ai_communicator"]
 [ext_resource type="Script" uid="uid://cox1r776hv26p" path="res://scripts/NetworkManager.gd" id="6_network_manager"]
 [ext_resource type="Script" uid="uid://dxyovdofojcgl" path="res://scripts/CameraController3D.gd" id="7_camera_controller"]
+[ext_resource type="Script" path="res://scripts/SkyboxManager3D.gd" id="7_skybox_manager"]
 [ext_resource type="PackedScene" uid="uid://dltt2lxq3l5a0" path="res://scenes/objects/TradingHub3D.tscn" id="8_trading_hub"]
 [ext_resource type="PackedScene" uid="uid://dt50q3oh0r0g4" path="res://scenes/objects/UpgradeHub3D.tscn" id="9_upgrade_hub"]
 
@@ -64,6 +65,10 @@ banking_amount = 20.0
 banking_speed = 6.0
 
 [node name="Camera3D" type="Camera3D" parent="CameraController3D"]
+
+[node name="SkyboxManager3D" type="Node3D" parent="."]
+script = ExtResource("7_skybox_manager")
+camera_reference = NodePath("CameraController3D/Camera3D")
 
 [node name="PlayerShip3D" parent="." instance=ExtResource("2_player_ship")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)

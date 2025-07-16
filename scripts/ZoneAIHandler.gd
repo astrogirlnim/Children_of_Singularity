@@ -64,7 +64,7 @@ func _process(delta: float) -> void:
 		_check_milestones()
 
 func _setup_ai_connections() -> void:
-	"""Setup connections with AI communicator"""
+	## Setup connections with AI communicator
 	if ai_communicator:
 		if ai_communicator.has_signal("ai_message_received"):
 			ai_communicator.ai_message_received.connect(_on_ai_message_received)
@@ -76,14 +76,14 @@ func _setup_ai_connections() -> void:
 		print("ZoneAIHandler: AI communicator connections established")
 
 func _initialize_milestones() -> void:
-	"""Initialize milestone tracking"""
+	## Initialize milestone tracking
 	for milestone_type in milestone_thresholds:
 		reached_milestones[milestone_type] = []
 
 	print("ZoneAIHandler: Milestone tracking initialized")
 
 func _perform_ai_analysis() -> void:
-	"""Perform periodic AI analysis of game state"""
+	## Perform periodic AI analysis of game state
 	var analysis_data = {
 		"timestamp": Time.get_ticks_msec(),
 		"game_stats": game_stats.duplicate(),
@@ -99,7 +99,7 @@ func _perform_ai_analysis() -> void:
 	print("ZoneAIHandler: AI analysis performed")
 
 func _check_milestones() -> void:
-	"""Check if any milestones have been reached"""
+	## Check if any milestones have been reached
 	for milestone_type in milestone_thresholds:
 		var current_value = game_stats.get(milestone_type, 0)
 		var thresholds = milestone_thresholds[milestone_type]
@@ -111,7 +111,7 @@ func _check_milestones() -> void:
 				_trigger_milestone(milestone_type, threshold)
 
 func _trigger_milestone(milestone_type: String, value: int) -> void:
-	"""Trigger milestone achievement"""
+	##Trigger milestone achievement
 	var milestone_data = {
 		"type": milestone_type,
 		"value": value,
@@ -129,7 +129,7 @@ func _trigger_milestone(milestone_type: String, value: int) -> void:
 	print("ZoneAIHandler: Milestone reached - %s: %d" % [milestone_type, value])
 
 func _generate_milestone_message(milestone_type: String, value: int) -> String:
-	"""Generate contextual message for milestone"""
+	##Generate contextual message for milestone
 	match milestone_type:
 		"debris_collected":
 			match value:
@@ -165,7 +165,7 @@ func _generate_milestone_message(milestone_type: String, value: int) -> String:
 	return ""
 
 func _get_recent_milestones() -> Array:
-	"""Get recently reached milestones"""
+	##Get recently reached milestones
 	var recent: Array = []
 	var current_time = Time.get_ticks_msec()
 
@@ -179,23 +179,23 @@ func _get_recent_milestones() -> Array:
 ## Public API Methods
 
 func update_game_stat(stat_name: String, value: int) -> void:
-	"""Update a game statistic"""
+	##Update a game statistic
 	if stat_name in game_stats:
 		game_stats[stat_name] = value
 		print("ZoneAIHandler: Updated %s to %d" % [stat_name, value])
 
 func increment_game_stat(stat_name: String, amount: int = 1) -> void:
-	"""Increment a game statistic"""
+	##Increment a game statistic
 	if stat_name in game_stats:
 		game_stats[stat_name] += amount
 		print("ZoneAIHandler: Incremented %s by %d (now %d)" % [stat_name, amount, game_stats[stat_name]])
 
 func send_ai_message(message: String, priority: int = 1) -> void:
-	"""Send message to AI system"""
+	##Send message to AI system
 	_queue_ai_message(message, priority)
 
 func _queue_ai_message(message: String, priority: int) -> void:
-	"""Queue an AI message for processing"""
+	##Queue an AI message for processing
 	var message_data = {
 		"content": message,
 		"priority": priority,
@@ -212,15 +212,15 @@ func _queue_ai_message(message: String, priority: int) -> void:
 	print("ZoneAIHandler: AI message queued: %s" % message)
 
 func request_ai_analysis() -> void:
-	"""Request immediate AI analysis"""
+	##Request immediate AI analysis
 	_perform_ai_analysis()
 
 func get_game_stats() -> Dictionary:
-	"""Get current game statistics"""
+	##Get current game statistics
 	return game_stats.duplicate()
 
 func get_milestone_progress() -> Dictionary:
-	"""Get milestone progress data"""
+	##Get milestone progress data
 	var progress = {}
 
 	for milestone_type in milestone_thresholds:
@@ -245,7 +245,7 @@ func get_milestone_progress() -> Dictionary:
 	return progress
 
 func clear_old_messages() -> void:
-	"""Clear old AI messages"""
+	##Clear old AI messages
 	var current_time = Time.get_ticks_msec()
 	var fresh_messages: Array[Dictionary] = []
 
@@ -258,7 +258,7 @@ func clear_old_messages() -> void:
 	print("ZoneAIHandler: Cleared old messages, %d remaining" % active_messages.size())
 
 func reset_session() -> void:
-	"""Reset session data"""
+	##Reset session data
 	game_stats = {
 		"debris_collected": 0,
 		"credits_earned": 0,
@@ -277,33 +277,33 @@ func reset_session() -> void:
 ## Signal handlers
 
 func _on_ai_message_received(message: String, priority: int) -> void:
-	"""Handle AI message received from communicator"""
+	##Handle AI message received from communicator
 	ai_message_received.emit(message, priority)
 	print("ZoneAIHandler: AI message forwarded: %s" % message)
 
 func _on_milestone_reached(milestone_type: String, value: int) -> void:
-	"""Handle milestone reached from communicator"""
+	##Handle milestone reached from communicator
 	milestone_reached.emit(milestone_type, value)
 	print("ZoneAIHandler: Milestone forwarded: %s = %d" % [milestone_type, value])
 
 func _on_ai_broadcast_ready(broadcast_data: Dictionary) -> void:
-	"""Handle AI broadcast ready from communicator"""
+	##Handle AI broadcast ready from communicator
 	ai_broadcast_ready.emit(broadcast_data)
 	print("ZoneAIHandler: AI broadcast ready")
 
 ## Event handlers for game events
 
 func on_debris_collected(debris_type: String, value: int) -> void:
-	"""Handle debris collection event"""
+	##Handle debris collection event
 	increment_game_stat("debris_collected")
 	increment_game_stat("credits_earned", value)
 
 func on_upgrade_purchased(upgrade_type: String, cost: int) -> void:
-	"""Handle upgrade purchase event"""
+	##Handle upgrade purchase event
 	increment_game_stat("upgrades_purchased")
 
 func on_player_action(action_type: String, data: Dictionary = {}) -> void:
-	"""Handle general player action for AI context"""
+	##Handle general player action for AI context
 	var action_message = "Player performed: %s" % action_type
 	if data.size() > 0:
 		action_message += " - %s" % data

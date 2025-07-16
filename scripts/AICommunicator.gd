@@ -22,14 +22,24 @@ var milestone_triggers: Dictionary = {}
 var voice_clips_available: bool = false
 var current_progression_path: String = "rogue"
 
+## Message history storage
+var message_history: Array[Dictionary] = []
+var max_history_size: int = 100  # Maximum number of messages to store
+
+## Audio system for voice clips
+var audio_player: AudioStreamPlayer
+var voice_clips: Dictionary = {}
+
 func _ready() -> void:
 	_log_message("AICommunicator: Initializing AI communication system")
 	_setup_milestones()
 	_initialize_ai_messages()
+	_setup_audio_system()
+	_load_voice_clips()
 	_log_message("AICommunicator: AI communication system ready")
 
 func _setup_milestones() -> void:
-	"""Set up milestone triggers for AI communications"""
+	##Set up milestone triggers for AI communications
 	_log_message("AICommunicator: Setting up milestone triggers")
 
 	milestone_triggers = {
@@ -63,7 +73,7 @@ func _setup_milestones() -> void:
 	_log_message("AICommunicator: Milestone triggers configured: %d milestones" % milestone_triggers.size())
 
 func _initialize_ai_messages() -> void:
-	"""Initialize AI message templates"""
+	##Initialize AI message templates
 	_log_message("AICommunicator: Initializing AI message templates")
 
 	ai_messages = [
@@ -93,7 +103,7 @@ func _initialize_ai_messages() -> void:
 
 ## Triggers a specific milestone and sends appropriate AI message
 func trigger_milestone(milestone_name: String) -> void:
-	"""Trigger a milestone event"""
+	##Trigger a milestone event
 	_log_message("AICommunicator: Triggering milestone: %s" % milestone_name)
 
 	if milestone_name in milestone_triggers:
@@ -118,7 +128,7 @@ func trigger_milestone(milestone_name: String) -> void:
 
 ## Sends an AI message based on progression path
 func send_contextual_message(message_type: String) -> void:
-	"""Send a contextual AI message based on current progression path"""
+	##Send a contextual AI message based on current progression path
 	_log_message("AICommunicator: Sending contextual message: %s for path: %s" % [message_type, current_progression_path])
 
 	for message in ai_messages:
@@ -131,20 +141,20 @@ func send_contextual_message(message_type: String) -> void:
 
 ## Sets the current progression path for contextual messages
 func set_progression_path(path: String) -> void:
-	"""Set the current progression path"""
+	##Set the current progression path
 	_log_message("AICommunicator: Setting progression path to: %s" % path)
 	current_progression_path = path
 
 ## Checks if a milestone has been triggered
 func is_milestone_triggered(milestone_name: String) -> bool:
-	"""Check if a milestone has been triggered"""
+	##Check if a milestone has been triggered
 	if milestone_name in milestone_triggers:
 		return milestone_triggers[milestone_name].triggered
 	return false
 
 ## Gets all triggered milestones
 func get_triggered_milestones() -> Array[String]:
-	"""Get list of all triggered milestones"""
+	##Get list of all triggered milestones
 	var triggered = []
 	for milestone_name in milestone_triggers:
 		if milestone_triggers[milestone_name].triggered:
@@ -153,13 +163,13 @@ func get_triggered_milestones() -> Array[String]:
 
 ## Resets all milestone triggers (for testing)
 func reset_milestones() -> void:
-	"""Reset all milestone triggers"""
+	##Reset all milestone triggers
 	_log_message("AICommunicator: Resetting all milestone triggers")
 	for milestone_name in milestone_triggers:
 		milestone_triggers[milestone_name].triggered = false
 
 func _send_ai_message(message_type: String, content: String) -> void:
-	"""Send an AI message"""
+	##Send an AI message
 	_log_message("AICommunicator: Sending AI message - Type: %s, Content: %s" % [message_type, content])
 
 	var message_data = {
@@ -173,7 +183,7 @@ func _send_ai_message(message_type: String, content: String) -> void:
 	broadcast_ready.emit(message_data)
 
 func _trigger_voice_clip(clip_name: String) -> void:
-	"""Trigger an AI voice clip"""
+	##Trigger an AI voice clip
 	_log_message("AICommunicator: Triggering voice clip: %s" % clip_name)
 
 	# TODO: Implement actual voice clip playback
@@ -181,14 +191,14 @@ func _trigger_voice_clip(clip_name: String) -> void:
 	ai_voice_triggered.emit(clip_name)
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
 
 ## Simulate AI broadcast for testing
 func simulate_broadcast(message_type: String = "system") -> void:
-	"""Simulate an AI broadcast for testing purposes"""
+	##Simulate an AI broadcast for testing purposes
 	var test_messages = [
 		"System diagnostics complete. All salvage operations are functioning within normal parameters.",
 		"Reminder: Efficient collection and processing of debris contributes to overall system optimization.",
@@ -200,8 +210,57 @@ func simulate_broadcast(message_type: String = "system") -> void:
 	_send_ai_message(message_type, random_message)
 
 ## Get message history
-func get_message_history() -> Array[Dictionary]:
-	"""Get the history of AI messages"""
-	# TODO: Implement message history storage
-	_log_message("AICommunicator: Retrieving message history (stub)")
-	return []
+func get_message_history(count: int = 10) -> Array[Dictionary]:
+	##Get recent message history
+	var recent_messages = message_history.slice(-count) if message_history.size() > count else message_history
+	_log_message("AICommunicator: Retrieved %d recent messages from history" % recent_messages.size())
+	return recent_messages
+
+func clear_message_history() -> void:
+	##Clear all message history
+	var previous_count = message_history.size()
+	message_history.clear()
+	_log_message("AICommunicator: Cleared message history (%d messages removed)" % previous_count)
+
+func get_message_stats() -> Dictionary:
+	##Get statistics about message history
+	var stats = {
+		"total_messages": message_history.size(),
+		"high_priority": 0,
+		"medium_priority": 0,
+		"low_priority": 0,
+		"types": {}
+	}
+
+	for entry in message_history:
+		# Count by priority
+		match entry.priority:
+			3:
+				stats.high_priority += 1
+			2:
+				stats.medium_priority += 1
+			1:
+				stats.low_priority += 1
+
+		# Count by type
+		var msg_type = entry.get("type", "standard")
+		if stats.types.has(msg_type):
+			stats.types[msg_type] += 1
+		else:
+			stats.types[msg_type] = 1
+
+	return stats
+
+func broadcast_ai_message_with_voice(message: String, priority: int = 2, voice_clip: String = "") -> void:
+	##Enhanced message broadcast with voice clip support
+	_log_message("AICommunicator: Broadcasting AI message with voice: %s" % message)
+
+	# Add to message history
+	add_message_to_history(message, priority, "broadcast")
+
+	# Play voice clip if specified
+	if voice_clip != "":
+		play_voice_clip(voice_clip)
+
+	# Broadcast the message
+	broadcast_ai_message(message, priority)

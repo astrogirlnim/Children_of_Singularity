@@ -35,13 +35,13 @@ func _ready() -> void:
 	_log_message("BackgroundLayer3D: Layer '%s' ready at depth %.1f" % [layer_name, layer_depth])
 
 func _process(delta: float) -> void:
-	"""Handle auto-scrolling if enabled"""
+	##Handle auto-scrolling if enabled
 	if enable_auto_scroll and scroll_speed.length() > 0:
 		scroll_time += delta
 		_apply_auto_scroll(delta)
 
 func _apply_auto_scroll(delta: float) -> void:
-	"""Apply automatic scrolling movement"""
+	##Apply automatic scrolling movement
 	var scroll_offset = Vector3(
 		scroll_speed.x * delta,
 		0,
@@ -52,34 +52,34 @@ func _apply_auto_scroll(delta: float) -> void:
 	layer_moved.emit(position)
 
 func set_layer_depth(depth: float) -> void:
-	"""Set the layer depth and update position"""
+	##Set the layer depth and update position
 	layer_depth = depth
 	position.z = layer_depth
 	_log_message("BackgroundLayer3D: Layer '%s' depth set to %.1f" % [layer_name, layer_depth])
 
 func set_parallax_factor(factor: Vector2) -> void:
-	"""Set the parallax factor for this layer"""
+	##Set the parallax factor for this layer
 	parallax_factor = factor
 	_log_message("BackgroundLayer3D: Layer '%s' parallax factor set to %s" % [layer_name, parallax_factor])
 
 func set_auto_scroll(speed: Vector2) -> void:
-	"""Enable auto-scrolling with specified speed"""
+	##Enable auto-scrolling with specified speed
 	scroll_speed = speed
 	enable_auto_scroll = speed.length() > 0
 	_log_message("BackgroundLayer3D: Layer '%s' auto-scroll set to %s" % [layer_name, scroll_speed])
 
 func set_layer_alpha(alpha: float) -> void:
-	"""Set the alpha transparency for all materials in this layer"""
+	##Set the alpha transparency for all materials in this layer
 	layer_alpha = clamp(alpha, 0.0, 1.0)
 	_apply_alpha_to_children()
 	_log_message("BackgroundLayer3D: Layer '%s' alpha set to %.2f" % [layer_name, layer_alpha])
 
 func _apply_alpha_to_children() -> void:
-	"""Apply alpha setting to all child nodes with materials"""
+	##Apply alpha setting to all child nodes with materials
 	_recursive_apply_alpha(self)
 
 func _recursive_apply_alpha(node: Node) -> void:
-	"""Recursively apply alpha to all materials in the node tree"""
+	##Recursively apply alpha to all materials in the node tree
 	if node is MeshInstance3D:
 		var mesh_instance = node as MeshInstance3D
 		if mesh_instance.material_override:
@@ -100,12 +100,12 @@ func _recursive_apply_alpha(node: Node) -> void:
 		_recursive_apply_alpha(child)
 
 func reset_to_original_position() -> void:
-	"""Reset layer to its original position"""
+	##Reset layer to its original position
 	position = original_position
 	_log_message("BackgroundLayer3D: Layer '%s' reset to original position" % layer_name)
 
 func move_by_parallax(camera_movement: Vector3, parallax_strength: float) -> void:
-	"""Move layer based on camera movement and parallax settings"""
+	##Move layer based on camera movement and parallax settings
 	var parallax_offset = Vector3(
 		camera_movement.x * parallax_factor.x * parallax_strength,
 		0,  # Don't parallax on Y axis for 2.5D consistency
@@ -116,14 +116,14 @@ func move_by_parallax(camera_movement: Vector3, parallax_strength: float) -> voi
 	layer_moved.emit(position)
 
 func set_visibility(layer_visible: bool) -> void:
-	"""Set layer visibility and emit signal"""
+	##Set layer visibility and emit signal
 	if self.visible != layer_visible:
 		self.visible = layer_visible
 		layer_visibility_changed.emit(layer_visible)
 		_log_message("BackgroundLayer3D: Layer '%s' visibility set to %s" % [layer_name, layer_visible])
 
 func get_layer_info() -> Dictionary:
-	"""Get comprehensive layer information"""
+	##Get comprehensive layer information
 	return {
 		"name": layer_name,
 		"type": layer_type,
@@ -138,5 +138,5 @@ func get_layer_info() -> Dictionary:
 	}
 
 func _log_message(message: String) -> void:
-	"""Log debug messages"""
+	##Log debug messages
 	print("[%s] %s" % [Time.get_datetime_string_from_system(), message])
