@@ -88,14 +88,14 @@ func _ready() -> void:
 	_log_message("PlayerShip3D: 3D player ship ready for gameplay")
 
 func _exit_tree() -> void:
-	"""Clean up animation resources when node is freed"""
+	##Clean up animation resources when node is freed
 	if animation_tween and animation_tween.is_valid():
 		animation_tween.kill()
 
 	_log_message("PlayerShip3D: Animation resources cleaned up")
 
 func _setup_3d_components() -> void:
-	"""Set up 3D-specific components"""
+	##Set up 3D-specific components
 	_log_message("PlayerShip3D: Setting up 3D components")
 
 	# Load all ship animation frame textures
@@ -120,7 +120,7 @@ func _setup_3d_components() -> void:
 	floor_block_on_wall = false
 
 func _setup_collision_detection() -> void:
-	"""Set up collision detection for the 3D player ship"""
+	##Set up collision detection for the 3D player ship
 	_log_message("PlayerShip3D: Setting up 3D collision detection")
 
 	# Set collision layers for proper boundary detection
@@ -136,7 +136,7 @@ func _setup_collision_detection() -> void:
 		_log_message("PlayerShip3D: Created wide collision box (4x2x4)")
 
 func _setup_collection_area() -> void:
-	"""Set up 3D collection area for debris detection"""
+	##Set up 3D collection area for debris detection
 	_log_message("PlayerShip3D: Setting up 3D collection area")
 
 	if not collection_area:
@@ -162,7 +162,7 @@ func _setup_collection_area() -> void:
 		_log_message("PlayerShip3D: Collection area signals connected")
 
 func _setup_interaction_area() -> void:
-	"""Set up 3D interaction area for NPC detection"""
+	##Set up 3D interaction area for NPC detection
 	_log_message("PlayerShip3D: Setting up 3D interaction area")
 
 	if not interaction_area:
@@ -188,7 +188,7 @@ func _setup_interaction_area() -> void:
 		_log_message("PlayerShip3D: Interaction area signals connected")
 
 func _initialize_player_state() -> void:
-	"""Initialize player state and inventory"""
+	##Initialize player state and inventory
 	_log_message("PlayerShip3D: Initializing 3D player state")
 	current_inventory.clear()
 	upgrades = {
@@ -200,7 +200,7 @@ func _initialize_player_state() -> void:
 	_log_message("PlayerShip3D: 3D player state initialized - Credits: %d, Capacity: %d/%d" % [credits, current_inventory.size(), inventory_capacity])
 
 func _physics_process(delta: float) -> void:
-	"""Handle 3D physics processing"""
+	##Handle 3D physics processing
 	_handle_input()
 	_apply_3d_movement(delta)
 	_apply_gravity(delta)
@@ -219,7 +219,7 @@ func _physics_process(delta: float) -> void:
 	position_changed.emit(global_position)
 
 func _handle_input() -> void:
-	"""Handle input for 3D movement"""
+	##Handle input for 3D movement
 	input_vector = Vector2.ZERO
 
 	# Reset turning states
@@ -250,7 +250,7 @@ func _handle_input() -> void:
 		velocity.y = JUMP_VELOCITY
 
 func _apply_3d_movement(delta: float) -> void:
-	"""Apply 3D movement on X-Z plane"""
+	##Apply 3D movement on X-Z plane
 	# Calculate desired velocity on X-Z plane (Y input maps to Z axis)
 	var desired_velocity = Vector3(
 		input_vector.x * SPEED,
@@ -275,12 +275,12 @@ func _apply_3d_movement(delta: float) -> void:
 	velocity.z = movement_velocity.z
 
 func _apply_gravity(delta: float) -> void:
-	"""Apply gravity for floating/jumping mechanics"""
+	##Apply gravity for floating/jumping mechanics
 	if not is_on_floor():
 		velocity.y += gravity * delta
 
 func _handle_interactions() -> void:
-	"""Handle interaction inputs (collection, NPC interaction, etc.)"""
+	##Handle interaction inputs (collection, NPC interaction, etc.)
 	if Input.is_action_just_pressed("collect"):
 		_attempt_collection()
 
@@ -288,7 +288,7 @@ func _handle_interactions() -> void:
 		_attempt_interaction()
 
 func _attempt_collection() -> void:
-	"""Attempt to collect nearby debris in 3D"""
+	##Attempt to collect nearby debris in 3D
 	if not can_collect:
 		_log_message("PlayerShip3D: Collection on cooldown")
 		return
@@ -307,7 +307,7 @@ func _attempt_collection() -> void:
 		_collect_debris_object(closest_debris)
 
 func _find_closest_debris() -> RigidBody3D:
-	"""Find the closest debris object in 3D range"""
+	##Find the closest debris object in 3D range
 	var closest_debris: RigidBody3D = null
 	var closest_distance = INF
 
@@ -321,7 +321,7 @@ func _find_closest_debris() -> RigidBody3D:
 	return closest_debris
 
 func _collect_debris_object(debris_object: RigidBody3D) -> void:
-	"""Collect a specific debris object in 3D"""
+	##Collect a specific debris object in 3D
 	if not is_instance_valid(debris_object):
 		return
 
@@ -375,14 +375,14 @@ func _collect_debris_object(debris_object: RigidBody3D) -> void:
 
 # Signal handlers for 3D areas
 func _on_collection_area_body_entered(body: Node3D) -> void:
-	"""Handle debris entering collection range in 3D"""
+	##Handle debris entering collection range in 3D
 	var debris_3d = body as DebrisObject3D
 	if debris_3d:
 		nearby_debris.append(body)
 		_log_message("PlayerShip3D: Debris entered 3D collection range - %s" % debris_3d.get_debris_type())
 
 func _on_collection_area_body_exited(body: Node3D) -> void:
-	"""Handle debris exiting collection range in 3D"""
+	##Handle debris exiting collection range in 3D
 	if body in nearby_debris:
 		nearby_debris.erase(body)
 		var debris_3d = body as DebrisObject3D
@@ -390,7 +390,7 @@ func _on_collection_area_body_exited(body: Node3D) -> void:
 			_log_message("PlayerShip3D: Debris exited 3D collection range - %s" % debris_3d.get_debris_type())
 
 func _on_interaction_area_body_entered(body: Node3D) -> void:
-	"""Handle NPC entering interaction range in 3D"""
+	##Handle NPC entering interaction range in 3D
 	if body.is_in_group("npc_hub") or body.collision_layer == 8:
 		nearby_npcs.append(body)
 		current_npc_hub = body
@@ -408,7 +408,7 @@ func _on_interaction_area_body_entered(body: Node3D) -> void:
 		interaction_available.emit(hub_type)
 
 func _on_interaction_area_body_exited(body: Node3D) -> void:
-	"""Handle NPC exiting interaction range in 3D"""
+	##Handle NPC exiting interaction range in 3D
 	if body in nearby_npcs:
 		nearby_npcs.erase(body)
 		if current_npc_hub == body:
@@ -419,7 +419,7 @@ func _on_interaction_area_body_exited(body: Node3D) -> void:
 			interaction_unavailable.emit()
 
 func _attempt_interaction() -> void:
-	"""Attempt to interact with nearby NPCs or objects in 3D"""
+	##Attempt to interact with nearby NPCs or objects in 3D
 	if not can_interact or not current_npc_hub:
 		_log_message("PlayerShip3D: No interaction targets available in 3D")
 		return
@@ -437,14 +437,14 @@ func _attempt_interaction() -> void:
 		zone_main.open_trading_interface(hub_type)
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
 
 # Player state management methods (same API as 2D version)
 func get_player_info() -> Dictionary:
-	"""Get current player state information"""
+	##Get current player state information
 	return {
 		"player_id": player_id,
 		"position": global_position,
@@ -460,12 +460,12 @@ func get_player_info() -> Dictionary:
 	}
 
 func add_credits(amount: int) -> void:
-	"""Add credits to the player"""
+	##Add credits to the player
 	credits += amount
 	_log_message("PlayerShip3D: Added %d credits - Total: %d" % [amount, credits])
 
 func spend_credits(amount: int) -> bool:
-	"""Remove credits from the player"""
+	##Remove credits from the player
 	if credits >= amount:
 		credits -= amount
 		_log_message("PlayerShip3D: Spent %d credits - Remaining: %d" % [amount, credits])
@@ -475,28 +475,28 @@ func spend_credits(amount: int) -> bool:
 		return false
 
 func clear_inventory() -> Array[Dictionary]:
-	"""Clear inventory (used when selling to NPCs)"""
+	##Clear inventory (used when selling to NPCs)
 	var sold_items = current_inventory.duplicate()
 	current_inventory.clear()
 	_log_message("PlayerShip3D: Inventory cleared - Sold %d items" % sold_items.size())
 	return sold_items
 
 func get_inventory_value() -> int:
-	"""Calculate total value of all items in inventory"""
+	##Calculate total value of all items in inventory
 	var total_value = 0
 	for item in current_inventory:
 		total_value += item.value
 	return total_value
 
 func apply_upgrade(upgrade_type: String, level: int) -> void:
-	"""Apply upgrade to player ship"""
+	##Apply upgrade to player ship
 	if upgrade_type in upgrades:
 		upgrades[upgrade_type] = level
 		_apply_upgrade_effects(upgrade_type, level)
 		_log_message("PlayerShip3D: Applied upgrade %s level %d" % [upgrade_type, level])
 
 func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
-	"""Apply the effects of an upgrade"""
+	##Apply the effects of an upgrade
 	match upgrade_type:
 		"speed_boost":
 			speed = 200.0 + (level * 50.0)
@@ -516,17 +516,17 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 
 # Upgrade support methods for UpgradeSystem
 func set_speed(new_speed: float) -> void:
-	"""Set the player ship speed"""
+	##Set the player ship speed
 	speed = new_speed
 	_log_message("PlayerShip3D: Speed set to %.1f" % speed)
 
 func set_inventory_capacity(new_capacity: int) -> void:
-	"""Set the inventory capacity"""
+	##Set the inventory capacity
 	inventory_capacity = new_capacity
 	_log_message("PlayerShip3D: Inventory capacity set to %d" % inventory_capacity)
 
 func set_collection_range(new_range: float) -> void:
-	"""Set the collection range"""
+	##Set the collection range
 	collection_range = new_range
 	# Update collection area size
 	if collection_collision and collection_collision.shape:
@@ -534,45 +534,45 @@ func set_collection_range(new_range: float) -> void:
 	_log_message("PlayerShip3D: Collection range set to %.1f" % collection_range)
 
 func set_zone_access(access_level: int) -> void:
-	"""Set the zone access level"""
+	##Set the zone access level
 	upgrades["zone_access"] = access_level
 	_log_message("PlayerShip3D: Zone access level set to %d" % access_level)
 
 func enable_debris_scanner(enabled: bool) -> void:
-	"""Enable or disable debris scanner"""
+	##Enable or disable debris scanner
 	# TODO: Implement debris scanner visual effects
 	_log_message("PlayerShip3D: Debris scanner %s" % ("enabled" if enabled else "disabled"))
 
 func enable_cargo_magnet(enabled: bool) -> void:
-	"""Enable or disable cargo magnet"""
+	##Enable or disable cargo magnet
 	# TODO: Implement cargo magnet auto-collection
 	_log_message("PlayerShip3D: Cargo magnet %s" % ("enabled" if enabled else "disabled"))
 
 # Utility methods
 func get_debris_in_range() -> Array[RigidBody3D]:
-	"""Get all debris currently in collection range"""
+	##Get all debris currently in collection range
 	return nearby_debris.duplicate()
 
 func get_closest_debris() -> RigidBody3D:
-	"""Get the closest debris object in range"""
+	##Get the closest debris object in range
 	return _find_closest_debris()
 
 func get_nearby_npcs() -> Array[Node3D]:
-	"""Get all NPCs currently in interaction range"""
+	##Get all NPCs currently in interaction range
 	return nearby_npcs.duplicate()
 
 func can_interact_with_npcs() -> bool:
-	"""Check if player can interact with any nearby NPCs"""
+	##Check if player can interact with any nearby NPCs
 	return can_interact and current_npc_hub != null
 
 func teleport_to(new_position: Vector3) -> void:
-	"""Teleport player to a specific 3D position"""
+	##Teleport player to a specific 3D position
 	global_position = new_position
 	_log_message("PlayerShip3D: Teleported to %s" % new_position)
 	position_changed.emit(global_position)
 
 func _load_ship_animation_textures() -> void:
-	"""Load all ship animation frame textures into memory for fast switching"""
+	##Load all ship animation frame textures into memory for fast switching
 	_log_message("PlayerShip3D: Loading ship animation textures...")
 
 	# Resize array to hold all frames (1-127, but we use 0-based indexing)
@@ -590,7 +590,7 @@ func _load_ship_animation_textures() -> void:
 	_log_message("PlayerShip3D: Loaded ship animation textures (frames 98-127)")
 
 func _set_ship_frame(frame_number: int) -> void:
-	"""Set the ship sprite to a specific frame"""
+	##Set the ship sprite to a specific frame
 	if frame_number < 98 or frame_number > FRAME_COUNT:
 		_log_message("PlayerShip3D: Invalid frame number: %d" % frame_number)
 		return
@@ -602,7 +602,7 @@ func _set_ship_frame(frame_number: int) -> void:
 		_log_message("PlayerShip3D: Could not set frame %d" % frame_number)
 
 func _update_ship_turning_animation() -> void:
-	"""Update ship turning animation based on movement direction"""
+	##Update ship turning animation based on movement direction
 	var target_frame = DEFAULT_FRAME  # Frame 113 (straight)
 
 	if is_turning_left and not is_turning_right:
@@ -617,7 +617,7 @@ func _update_ship_turning_animation() -> void:
 		_animate_to_frame(target_frame)
 
 func _animate_to_frame(target_frame: int) -> void:
-	"""Smoothly animate from current frame to target frame"""
+	##Smoothly animate from current frame to target frame
 	if animation_tween and animation_tween.is_valid():
 		animation_tween.kill()
 
@@ -632,6 +632,6 @@ func _animate_to_frame(target_frame: int) -> void:
 	animation_tween.tween_method(_set_ship_frame_interpolated, current_frame, target_frame, animation_duration)
 
 func _set_ship_frame_interpolated(frame: float) -> void:
-	"""Set ship frame with interpolation support for smooth animation"""
+	##Set ship frame with interpolation support for smooth animation
 	var rounded_frame = int(round(frame))
 	_set_ship_frame(rounded_frame)

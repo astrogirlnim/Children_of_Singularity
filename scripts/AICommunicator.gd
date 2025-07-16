@@ -29,7 +29,7 @@ func _ready() -> void:
 	_log_message("AICommunicator: AI communication system ready")
 
 func _setup_milestones() -> void:
-	"""Set up milestone triggers for AI communications"""
+	##Set up milestone triggers for AI communications
 	_log_message("AICommunicator: Setting up milestone triggers")
 
 	milestone_triggers = {
@@ -63,7 +63,7 @@ func _setup_milestones() -> void:
 	_log_message("AICommunicator: Milestone triggers configured: %d milestones" % milestone_triggers.size())
 
 func _initialize_ai_messages() -> void:
-	"""Initialize AI message templates"""
+	##Initialize AI message templates
 	_log_message("AICommunicator: Initializing AI message templates")
 
 	ai_messages = [
@@ -93,7 +93,7 @@ func _initialize_ai_messages() -> void:
 
 ## Triggers a specific milestone and sends appropriate AI message
 func trigger_milestone(milestone_name: String) -> void:
-	"""Trigger a milestone event"""
+	##Trigger a milestone event
 	_log_message("AICommunicator: Triggering milestone: %s" % milestone_name)
 
 	if milestone_name in milestone_triggers:
@@ -118,7 +118,7 @@ func trigger_milestone(milestone_name: String) -> void:
 
 ## Sends an AI message based on progression path
 func send_contextual_message(message_type: String) -> void:
-	"""Send a contextual AI message based on current progression path"""
+	##Send a contextual AI message based on current progression path
 	_log_message("AICommunicator: Sending contextual message: %s for path: %s" % [message_type, current_progression_path])
 
 	for message in ai_messages:
@@ -131,20 +131,20 @@ func send_contextual_message(message_type: String) -> void:
 
 ## Sets the current progression path for contextual messages
 func set_progression_path(path: String) -> void:
-	"""Set the current progression path"""
+	##Set the current progression path
 	_log_message("AICommunicator: Setting progression path to: %s" % path)
 	current_progression_path = path
 
 ## Checks if a milestone has been triggered
 func is_milestone_triggered(milestone_name: String) -> bool:
-	"""Check if a milestone has been triggered"""
+	##Check if a milestone has been triggered
 	if milestone_name in milestone_triggers:
 		return milestone_triggers[milestone_name].triggered
 	return false
 
 ## Gets all triggered milestones
 func get_triggered_milestones() -> Array[String]:
-	"""Get list of all triggered milestones"""
+	##Get list of all triggered milestones
 	var triggered = []
 	for milestone_name in milestone_triggers:
 		if milestone_triggers[milestone_name].triggered:
@@ -153,13 +153,13 @@ func get_triggered_milestones() -> Array[String]:
 
 ## Resets all milestone triggers (for testing)
 func reset_milestones() -> void:
-	"""Reset all milestone triggers"""
+	##Reset all milestone triggers
 	_log_message("AICommunicator: Resetting all milestone triggers")
 	for milestone_name in milestone_triggers:
 		milestone_triggers[milestone_name].triggered = false
 
 func _send_ai_message(message_type: String, content: String) -> void:
-	"""Send an AI message"""
+	##Send an AI message
 	_log_message("AICommunicator: Sending AI message - Type: %s, Content: %s" % [message_type, content])
 
 	var message_data = {
@@ -173,7 +173,7 @@ func _send_ai_message(message_type: String, content: String) -> void:
 	broadcast_ready.emit(message_data)
 
 func _trigger_voice_clip(clip_name: String) -> void:
-	"""Trigger an AI voice clip"""
+	##Trigger an AI voice clip
 	_log_message("AICommunicator: Triggering voice clip: %s" % clip_name)
 
 	# TODO: Implement actual voice clip playback
@@ -181,14 +181,14 @@ func _trigger_voice_clip(clip_name: String) -> void:
 	ai_voice_triggered.emit(clip_name)
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
 
 ## Simulate AI broadcast for testing
 func simulate_broadcast(message_type: String = "system") -> void:
-	"""Simulate an AI broadcast for testing purposes"""
+	##Simulate an AI broadcast for testing purposes
 	var test_messages = [
 		"System diagnostics complete. All salvage operations are functioning within normal parameters.",
 		"Reminder: Efficient collection and processing of debris contributes to overall system optimization.",
@@ -201,7 +201,7 @@ func simulate_broadcast(message_type: String = "system") -> void:
 
 ## Get message history
 func get_message_history() -> Array[Dictionary]:
-	"""Get the history of AI messages"""
+	##Get the history of AI messages
 	# TODO: Implement message history storage
 	_log_message("AICommunicator: Retrieving message history (stub)")
 	return []

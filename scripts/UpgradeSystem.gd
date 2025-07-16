@@ -78,7 +78,7 @@ func _ready() -> void:
 
 ## Get upgrade information
 func get_upgrade_info(upgrade_type: String) -> Dictionary:
-	"""Get complete information about an upgrade"""
+	##Get complete information about an upgrade
 	if upgrade_type in upgrade_definitions:
 		return upgrade_definitions[upgrade_type].duplicate()
 	else:
@@ -87,7 +87,7 @@ func get_upgrade_info(upgrade_type: String) -> Dictionary:
 
 ## Calculate upgrade cost
 func calculate_upgrade_cost(upgrade_type: String, current_level: int) -> int:
-	"""Calculate the cost to upgrade to the next level"""
+	##Calculate the cost to upgrade to the next level
 	if upgrade_type not in upgrade_definitions:
 		return -1
 
@@ -101,7 +101,7 @@ func calculate_upgrade_cost(upgrade_type: String, current_level: int) -> int:
 
 ## Check if upgrade is available
 func can_upgrade(upgrade_type: String, current_level: int, available_credits: int) -> Dictionary:
-	"""Check if an upgrade can be purchased"""
+	##Check if an upgrade can be purchased
 	var result = {
 		"can_upgrade": false,
 		"reason": "",
@@ -131,7 +131,7 @@ func can_upgrade(upgrade_type: String, current_level: int, available_credits: in
 
 ## Purchase upgrade
 func purchase_upgrade(upgrade_type: String, current_level: int, available_credits: int) -> Dictionary:
-	"""Attempt to purchase an upgrade"""
+	##Attempt to purchase an upgrade
 	_log_message("UpgradeSystem: Attempting to purchase %s upgrade (current level: %d)" % [upgrade_type, current_level])
 
 	var upgrade_check = can_upgrade(upgrade_type, current_level, available_credits)
@@ -156,7 +156,7 @@ func purchase_upgrade(upgrade_type: String, current_level: int, available_credit
 
 ## Apply upgrade effects
 func apply_upgrade_effects(upgrade_type: String, level: int, target_node: Node) -> void:
-	"""Apply upgrade effects to a target node (usually PlayerShip)"""
+	##Apply upgrade effects to a target node (usually PlayerShip)
 	if upgrade_type not in upgrade_definitions:
 		_log_message("UpgradeSystem: Cannot apply unknown upgrade: %s" % upgrade_type)
 		return
@@ -206,12 +206,12 @@ func apply_upgrade_effects(upgrade_type: String, level: int, target_node: Node) 
 
 ## Get all available upgrades
 func get_all_upgrades() -> Dictionary:
-	"""Get all upgrade definitions"""
+	##Get all upgrade definitions
 	return upgrade_definitions.duplicate()
 
 ## Get upgrades by category
 func get_upgrades_by_category(category: String) -> Array[String]:
-	"""Get all upgrades in a specific category"""
+	##Get all upgrades in a specific category
 	var upgrades = []
 	for upgrade_type in upgrade_definitions:
 		if upgrade_definitions[upgrade_type].category == category:
@@ -220,7 +220,7 @@ func get_upgrades_by_category(category: String) -> Array[String]:
 
 ## Get upgrade categories
 func get_upgrade_categories() -> Array[String]:
-	"""Get all unique upgrade categories"""
+	##Get all unique upgrade categories
 	var categories = []
 	for upgrade_type in upgrade_definitions:
 		var category = upgrade_definitions[upgrade_type].category
@@ -230,7 +230,7 @@ func get_upgrade_categories() -> Array[String]:
 
 ## Get upgrade progress summary
 func get_upgrade_summary(current_upgrades: Dictionary) -> Dictionary:
-	"""Get a summary of current upgrade progress"""
+	##Get a summary of current upgrade progress
 	var summary = {
 		"total_upgrades": upgrade_definitions.size(),
 		"purchased_upgrades": 0,
@@ -267,7 +267,7 @@ func get_upgrade_summary(current_upgrades: Dictionary) -> Dictionary:
 	return summary
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)

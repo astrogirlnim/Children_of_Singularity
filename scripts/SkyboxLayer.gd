@@ -37,7 +37,7 @@ func _process(delta: float) -> void:
 		rotation_degrees.y += rotation_speed * delta
 
 func _create_inside_out_sphere() -> SphereMesh:
-	"""Create a SphereMesh with flipped normals for inside-out rendering"""
+	## Create a SphereMesh with flipped normals for inside-out rendering
 	sphere_mesh = SphereMesh.new()
 
 	# Configure sphere geometry
@@ -58,7 +58,7 @@ func _create_inside_out_sphere() -> SphereMesh:
 	return sphere_mesh
 
 func _setup_material() -> void:
-	"""Set up the material for the skybox layer"""
+	## Set up the material for the skybox layer
 	material = StandardMaterial3D.new()
 
 	# Configure material for skybox rendering
@@ -86,7 +86,7 @@ func _setup_material() -> void:
 		print("[SkyboxLayer] Material configured with alpha: %.2f, tint: %s" % [layer_alpha, layer_tint])
 
 func _load_texture() -> void:
-	"""Load and apply texture from texture_path"""
+	## Load and apply texture from texture_path
 	if texture_path.is_empty():
 		if debug_logging:
 			print("[SkyboxLayer] No texture path specified, using solid color")
@@ -121,7 +121,7 @@ func _load_texture() -> void:
 ## Public configuration methods
 
 func set_layer_radius(new_radius: float) -> void:
-	"""Update the sphere radius"""
+	## Update the sphere radius
 	layer_radius = new_radius
 	if sphere_mesh:
 		sphere_mesh.radius = new_radius
@@ -130,13 +130,13 @@ func set_layer_radius(new_radius: float) -> void:
 			print("[SkyboxLayer] Updated radius to: %.1f" % new_radius)
 
 func set_rotation_speed(new_speed: float) -> void:
-	"""Update the rotation speed in degrees per second"""
+	## Update the rotation speed in degrees per second
 	rotation_speed = new_speed
 	if debug_logging:
 		print("[SkyboxLayer] Updated rotation speed to: %.2f deg/s" % new_speed)
 
 func set_layer_alpha(new_alpha: float) -> void:
-	"""Update the layer transparency"""
+	## Update the layer transparency
 	layer_alpha = clamp(new_alpha, 0.0, 1.0)
 	if material:
 		material.albedo_color.a = layer_alpha
@@ -146,7 +146,7 @@ func set_layer_alpha(new_alpha: float) -> void:
 			print("[SkyboxLayer] Updated alpha to: %.2f" % layer_alpha)
 
 func set_layer_tint(new_tint: Color) -> void:
-	"""Update the layer color tint"""
+	## Update the layer color tint
 	layer_tint = new_tint
 	if material:
 		material.albedo_color = new_tint
@@ -155,18 +155,18 @@ func set_layer_tint(new_tint: Color) -> void:
 			print("[SkyboxLayer] Updated tint to: %s" % new_tint)
 
 func set_texture(new_texture_path: String) -> void:
-	"""Update the texture for this layer"""
+	## Update the texture for this layer
 	texture_path = new_texture_path
 	_load_texture()
 
 func pause_rotation() -> void:
-	"""Pause the layer rotation"""
+	## Pause the layer rotation
 	rotation_speed = 0.0
 	if debug_logging:
 		print("[SkyboxLayer] Rotation paused")
 
 func resume_rotation(speed: float) -> void:
-	"""Resume rotation at specified speed"""
+	## Resume rotation at specified speed
 	rotation_speed = speed
 	if debug_logging:
 		print("[SkyboxLayer] Rotation resumed at %.2f deg/s" % speed)
@@ -174,7 +174,7 @@ func resume_rotation(speed: float) -> void:
 ## Debug and utility methods
 
 func get_layer_info() -> Dictionary:
-	"""Get layer configuration info for debugging"""
+	## Get layer configuration info for debugging
 	return {
 		"radius": layer_radius,
 		"rotation_speed": rotation_speed,
@@ -186,5 +186,5 @@ func get_layer_info() -> Dictionary:
 	}
 
 func enable_debug_logging(enabled: bool) -> void:
-	"""Enable or disable debug logging for this layer"""
+	## Enable or disable debug logging for this layer
 	debug_logging = enabled

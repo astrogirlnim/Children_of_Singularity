@@ -68,7 +68,7 @@ func _ready() -> void:
 	_log_message("PlayerShip: Player ship ready for gameplay")
 
 func _setup_player_visuals() -> void:
-	"""Set up visual appearance for the player ship"""
+	##Set up visual appearance for the player ship
 	_log_message("PlayerShip: Setting up player ship visuals")
 
 	# Use preloaded sprite texture instead of programmatic generation
@@ -77,7 +77,7 @@ func _setup_player_visuals() -> void:
 		_log_message("PlayerShip: Right-facing vibrant ship sprite loaded")
 
 func _setup_collision() -> void:
-	"""Set up collision detection for the player ship"""
+	##Set up collision detection for the player ship
 	_log_message("PlayerShip: Setting up collision detection")
 
 	# Create a basic collision shape if one doesn't exist
@@ -88,7 +88,7 @@ func _setup_collision() -> void:
 		_log_message("PlayerShip: Created default collision shape")
 
 func _setup_collection_area() -> void:
-	"""Set up collection area for debris detection"""
+	##Set up collection area for debris detection
 	_log_message("PlayerShip: Setting up collection area")
 
 	# Create collection area if it doesn't exist
@@ -116,7 +116,7 @@ func _setup_collection_area() -> void:
 		_log_message("PlayerShip: Collection area signals connected")
 
 func _setup_interaction_area() -> void:
-	"""Set up interaction area for NPC detection"""
+	##Set up interaction area for NPC detection
 	_log_message("PlayerShip: Setting up interaction area")
 
 	# Create interaction area if it doesn't exist
@@ -144,7 +144,7 @@ func _setup_interaction_area() -> void:
 		_log_message("PlayerShip: Interaction area signals connected")
 
 func _initialize_player_state() -> void:
-	"""Initialize player state and inventory"""
+	##Initialize player state and inventory
 	_log_message("PlayerShip: Initializing player state")
 	current_inventory.clear()
 	upgrades = {
@@ -161,7 +161,7 @@ func _physics_process(delta: float) -> void:
 	_update_position_tracking()
 
 func _handle_movement(delta: float) -> void:
-	"""Handle player movement input and physics"""
+	##Handle player movement input and physics
 	var input_vector = Vector2.ZERO
 	var is_moving_left = false
 
@@ -190,7 +190,7 @@ func _handle_movement(delta: float) -> void:
 	move_and_slide()
 
 func _handle_interactions() -> void:
-	"""Handle interaction inputs (collection, NPC interaction, etc.)"""
+	##Handle interaction inputs (collection, NPC interaction, etc.)
 	if Input.is_action_just_pressed("collect"):
 		_attempt_collection()
 
@@ -198,11 +198,11 @@ func _handle_interactions() -> void:
 		_attempt_interaction()
 
 func _update_position_tracking() -> void:
-	"""Update position tracking for camera and other systems"""
+	##Update position tracking for camera and other systems
 	position_changed.emit(global_position)
 
 func _attempt_collection() -> void:
-	"""Attempt to collect nearby debris"""
+	##Attempt to collect nearby debris
 	if not can_collect:
 		_log_message("PlayerShip: Collection on cooldown")
 		return
@@ -221,7 +221,7 @@ func _attempt_collection() -> void:
 		_collect_debris_object(closest_debris)
 
 func _find_closest_debris() -> RigidBody2D:
-	"""Find the closest debris object in range"""
+	##Find the closest debris object in range
 	var closest_debris: RigidBody2D = null
 	var closest_distance = INF
 
@@ -235,7 +235,7 @@ func _find_closest_debris() -> RigidBody2D:
 	return closest_debris
 
 func _collect_debris_object(debris_object: RigidBody2D) -> void:
-	"""Collect a specific debris object"""
+	##Collect a specific debris object
 	if not is_instance_valid(debris_object):
 		return
 
@@ -279,19 +279,19 @@ func _collect_debris_object(debris_object: RigidBody2D) -> void:
 	can_collect = true
 
 func _on_collection_area_body_entered(body: Node2D) -> void:
-	"""Handle debris entering collection range"""
+	##Handle debris entering collection range
 	if body.is_in_group("debris") or body.has_meta("debris_type"):
 		nearby_debris.append(body)
 		_log_message("PlayerShip: Debris entered collection range - %s" % body.get_meta("debris_type", "unknown"))
 
 func _on_collection_area_body_exited(body: Node2D) -> void:
-	"""Handle debris exiting collection range"""
+	##Handle debris exiting collection range
 	if body in nearby_debris:
 		nearby_debris.erase(body)
 		_log_message("PlayerShip: Debris exited collection range - %s" % body.get_meta("debris_type", "unknown"))
 
 func _on_interaction_area_body_entered(body: Node2D) -> void:
-	"""Handle NPC entering interaction range"""
+	##Handle NPC entering interaction range
 	if body.is_in_group("npc_hub") or body.collision_layer == 8:
 		nearby_npcs.append(body)
 		current_npc_hub = body
@@ -309,7 +309,7 @@ func _on_interaction_area_body_entered(body: Node2D) -> void:
 		interaction_available.emit(hub_type)
 
 func _on_interaction_area_body_exited(body: Node2D) -> void:
-	"""Handle NPC exiting interaction range"""
+	##Handle NPC exiting interaction range
 	if body in nearby_npcs:
 		nearby_npcs.erase(body)
 		if current_npc_hub == body:
@@ -320,7 +320,7 @@ func _on_interaction_area_body_exited(body: Node2D) -> void:
 			interaction_unavailable.emit()
 
 func _attempt_interaction() -> void:
-	"""Attempt to interact with nearby NPCs or objects"""
+	##Attempt to interact with nearby NPCs or objects
 	if not can_interact or not current_npc_hub:
 		_log_message("PlayerShip: No interaction targets available")
 		return
@@ -338,7 +338,7 @@ func _attempt_interaction() -> void:
 		zone_main.open_trading_interface(hub_type)
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
@@ -382,7 +382,7 @@ func clear_inventory() -> Array[Dictionary]:
 
 ## Get total value of current inventory
 func get_inventory_value() -> int:
-	"""Calculate total value of all items in inventory"""
+	##Calculate total value of all items in inventory
 	var total_value = 0
 	for item in current_inventory:
 		total_value += item.value
@@ -396,7 +396,7 @@ func apply_upgrade(upgrade_type: String, level: int) -> void:
 		_log_message("PlayerShip: Applied upgrade %s level %d" % [upgrade_type, level])
 
 func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
-	"""Apply the effects of an upgrade"""
+	##Apply the effects of an upgrade
 	match upgrade_type:
 		"speed_boost":
 			speed = 200.0 + (level * 50.0)
@@ -416,17 +416,17 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 
 ## Upgrade support methods for UpgradeSystem
 func set_speed(new_speed: float) -> void:
-	"""Set the player ship speed"""
+	##Set the player ship speed
 	speed = new_speed
 	_log_message("PlayerShip: Speed set to %.1f" % speed)
 
 func set_inventory_capacity(new_capacity: int) -> void:
-	"""Set the inventory capacity"""
+	##Set the inventory capacity
 	inventory_capacity = new_capacity
 	_log_message("PlayerShip: Inventory capacity set to %d" % inventory_capacity)
 
 func set_collection_range(new_range: float) -> void:
-	"""Set the collection range"""
+	##Set the collection range
 	collection_range = new_range
 	# Update collection area size
 	if collection_collision and collection_collision.shape:
@@ -434,38 +434,38 @@ func set_collection_range(new_range: float) -> void:
 	_log_message("PlayerShip: Collection range set to %.1f" % collection_range)
 
 func set_zone_access(access_level: int) -> void:
-	"""Set the zone access level"""
+	##Set the zone access level
 	upgrades["zone_access"] = access_level
 	_log_message("PlayerShip: Zone access level set to %d" % access_level)
 
 func enable_debris_scanner(enabled: bool) -> void:
-	"""Enable or disable debris scanner"""
+	##Enable or disable debris scanner
 	# TODO: Implement debris scanner visual effects
 	_log_message("PlayerShip: Debris scanner %s" % ("enabled" if enabled else "disabled"))
 
 func enable_cargo_magnet(enabled: bool) -> void:
-	"""Enable or disable cargo magnet"""
+	##Enable or disable cargo magnet
 	# TODO: Implement cargo magnet auto-collection
 	_log_message("PlayerShip: Cargo magnet %s" % ("enabled" if enabled else "disabled"))
 
 ## Get debris in collection range
 func get_debris_in_range() -> Array[RigidBody2D]:
-	"""Get all debris currently in collection range"""
+	##Get all debris currently in collection range
 	return nearby_debris.duplicate()
 
 ## Get the closest debris object
 func get_closest_debris() -> RigidBody2D:
-	"""Get the closest debris object in range"""
+	##Get the closest debris object in range
 	return _find_closest_debris()
 
 ## Get nearby NPCs
 func get_nearby_npcs() -> Array[Node2D]:
-	"""Get all NPCs currently in interaction range"""
+	##Get all NPCs currently in interaction range
 	return nearby_npcs.duplicate()
 
 ## Check if player can interact with NPCs
 func can_interact_with_npcs() -> bool:
-	"""Check if player can interact with any nearby NPCs"""
+	##Check if player can interact with any nearby NPCs
 	return can_interact and current_npc_hub != null
 
 ## Teleport player to a specific position
@@ -475,7 +475,7 @@ func teleport_to(new_position: Vector2) -> void:
 	position_changed.emit(global_position)
 
 func _update_sprite_direction(is_moving_left: bool) -> void:
-	"""Update sprite texture based on movement direction"""
+	##Update sprite texture based on movement direction
 	if not sprite_2d:
 		return
 

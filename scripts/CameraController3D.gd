@@ -54,7 +54,7 @@ func _ready() -> void:
 	_log_message("CameraController3D: Mario Kart 8 style camera controller initialized")
 
 func setup_mario_kart_camera() -> void:
-	"""Configure the 3D camera for Mario Kart 8 style perspective"""
+	##Configure the 3D camera for Mario Kart 8 style perspective
 	_log_message("CameraController3D: Setting up Mario Kart 8 style close-up perspective camera")
 
 	# Create Camera3D if it doesn't exist
@@ -87,7 +87,7 @@ func setup_mario_kart_camera() -> void:
 	_log_message("CameraController3D: Camera rotation reset to prevent tilting issues")
 
 func set_target(new_target: Node3D) -> void:
-	"""Set the target ship for the camera to follow"""
+	##Set the target ship for the camera to follow
 	target = new_target
 	if target:
 		_log_message("CameraController3D: Target set to %s" % target.name)
@@ -99,7 +99,7 @@ func set_target(new_target: Node3D) -> void:
 		_log_message("CameraController3D: Target cleared")
 
 func _physics_process(delta: float) -> void:
-	"""Update camera position and effects (Mario Kart 8 style)"""
+	##Update camera position and effects (Mario Kart 8 style)
 	# Update debug timer
 	debug_log_timer += delta
 
@@ -112,7 +112,7 @@ func _physics_process(delta: float) -> void:
 	_update_camera_shake(delta)
 
 func _update_ship_tracking_data(delta: float) -> void:
-	"""Update ship movement data for camera following"""
+	##Update ship movement data for camera following
 	if not target:
 		return
 
@@ -128,7 +128,7 @@ func _update_ship_tracking_data(delta: float) -> void:
 	ship_velocity = (target.global_position - previous_position) / delta if delta > 0 else Vector3.ZERO
 
 func _update_mario_kart_camera_position(delta: float) -> void:
-	"""Update camera position behind ship Mario Kart 8 style"""
+	##Update camera position behind ship Mario Kart 8 style
 	if not target:
 		return
 
@@ -196,13 +196,13 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	look_at(look_target, up_vector)
 
 func _update_distance_zoom(delta: float) -> void:
-	"""Update distance-based zoom system"""
+	##Update distance-based zoom system
 	if abs(current_distance - target_distance) > 0.01:
 		current_distance = lerp(current_distance, target_distance, 5.0 * delta)
 		_log_message("CameraController3D: Zoom distance updated to %.1f" % current_distance)
 
 func _update_camera_tilt(delta: float) -> void:
-	"""Update camera tilt based on ship movement (if enabled)"""
+	##Update camera tilt based on ship movement (if enabled)
 	# TEMPORARILY DISABLED to debug tilting issue
 	# TODO: Re-enable banking when tilting issues are resolved
 	if true:  # Disabled for now
@@ -227,7 +227,7 @@ func _update_camera_tilt(delta: float) -> void:
 	camera.rotation_degrees.z = current_tilt
 
 func _update_camera_shake(delta: float) -> void:
-	"""Update camera shake effect"""
+	##Update camera shake effect
 	if shake_strength > 0:
 		shake_timer += delta
 		var shake_offset = Vector3(
@@ -243,7 +243,7 @@ func _update_camera_shake(delta: float) -> void:
 		camera.position = Vector3.ZERO
 
 func _handle_zoom_input(_delta: float) -> void:
-	"""Handle zoom input controls (distance-based)"""
+	##Handle zoom input controls (distance-based)
 	var zoom_input = 0.0
 
 	if Input.is_action_pressed("zoom_in"):
@@ -255,32 +255,32 @@ func _handle_zoom_input(_delta: float) -> void:
 		set_zoom_distance(target_distance + zoom_input * zoom_speed)
 
 func set_zoom_distance(new_distance: float) -> void:
-	"""Set camera zoom distance (replaces orthogonal size)"""
+	##Set camera zoom distance (replaces orthogonal size)
 	target_distance = clamp(new_distance, zoom_min_distance, zoom_max_distance)
 	_log_message("CameraController3D: Target zoom distance set to %.1f" % target_distance)
 
 func zoom_in() -> void:
-	"""Zoom camera in (decrease distance)"""
+	##Zoom camera in (decrease distance)
 	set_zoom_distance(target_distance - zoom_speed)
 
 func zoom_out() -> void:
-	"""Zoom camera out (increase distance)"""
+	##Zoom camera out (increase distance)
 	set_zoom_distance(target_distance + zoom_speed)
 
 func set_camera_fov(new_fov: float) -> void:
-	"""Set camera field of view"""
+	##Set camera field of view
 	camera_fov = clamp(new_fov, 45.0, 120.0)
 	if camera:
 		camera.fov = camera_fov
 		_log_message("CameraController3D: FOV set to %.1f degrees" % camera_fov)
 
 func enable_banking(enabled: bool) -> void:
-	"""Enable or disable camera banking on turns (Mario Kart 8 style)"""
+	##Enable or disable camera banking on turns (Mario Kart 8 style)
 	enable_camera_banking = enabled
 	_log_message("CameraController3D: Camera banking %s" % ("enabled" if enabled else "disabled"))
 
 func shake(intensity: float, duration: float) -> void:
-	"""Apply camera shake effect"""
+	##Apply camera shake effect
 	shake_strength = intensity
 	shake_timer = 0.0
 	_log_message("CameraController3D: Camera shake applied - Intensity: %.2f, Duration: %.2f" % [intensity, duration])
@@ -290,13 +290,13 @@ func shake(intensity: float, duration: float) -> void:
 		shake_fade_speed = intensity / duration
 
 func set_follow_speeds(position_speed: float, rotation_speed: float) -> void:
-	"""Set camera follow speeds"""
+	##Set camera follow speeds
 	follow_speed = position_speed
 	rotation_follow_speed = rotation_speed
 	_log_message("CameraController3D: Follow speeds set - Position: %.1f, Rotation: %.1f" % [follow_speed, rotation_follow_speed])
 
 func reset_camera() -> void:
-	"""Reset camera to default Mario Kart 8 settings"""
+	##Reset camera to default Mario Kart 8 settings
 	target_distance = camera_distance
 	current_distance = camera_distance
 	current_tilt = 0.0
@@ -305,13 +305,13 @@ func reset_camera() -> void:
 	_log_message("CameraController3D: Camera reset to Mario Kart 8 defaults")
 
 func _on_target_position_changed(_new_position: Vector3) -> void:
-	"""Handle target position change signal"""
+	##Handle target position change signal
 	# This is called when the target emits position_changed signal
 	# We don't need to do anything here as _physics_process handles following
 	pass
 
 func get_camera_info() -> Dictionary:
-	"""Get current camera information"""
+	##Get current camera information
 	return {
 		"target": target.name if target else "none",
 		"position": global_position,
@@ -328,14 +328,14 @@ func get_camera_info() -> Dictionary:
 	}
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
 
 # Input actions for zoom (mouse wheel)
 func _input(event: InputEvent) -> void:
-	"""Handle additional input events"""
+	##Handle additional input events
 	if event is InputEventMouseButton:
 		var mouse_event = event as InputEventMouseButton
 		if mouse_event.pressed:

@@ -46,7 +46,7 @@ func _ready() -> void:
 	_log_message("TradingHubManager3D: Generated %d trading hubs" % active_hubs.size())
 
 func _setup_hub_container() -> void:
-	"""Set up the container for trading hubs"""
+	##Set up the container for trading hubs
 	if not hub_container:
 		hub_container = Node3D.new()
 		hub_container.name = "TradingHubsContainer"
@@ -54,7 +54,7 @@ func _setup_hub_container() -> void:
 		_log_message("TradingHubManager3D: Created hub container")
 
 func _calculate_hub_positions() -> void:
-	"""Calculate positions for trading hubs randomly within floor boundaries, avoiding overlaps"""
+	##Calculate positions for trading hubs randomly within floor boundaries, avoiding overlaps
 	_log_message("TradingHubManager3D: Calculating random trading hub positions within floor boundaries")
 	hub_positions.clear()
 
@@ -138,7 +138,7 @@ func _calculate_hub_positions() -> void:
 		_log_message("TradingHubManager3D: Trading hub %d positioned randomly at: %s (distance from player: %.1f)" % [i, hub_position, distance_from_player])
 
 func _generate_trading_hubs() -> void:
-	"""Generate all trading hubs using templates"""
+	##Generate all trading hubs using templates
 	_log_message("TradingHubManager3D: Generating trading hubs")
 
 	for i in range(hub_count):
@@ -151,7 +151,7 @@ func _generate_trading_hubs() -> void:
 		_log_message("TradingHubManager3D: Created trading hub '%s' at %s" % [template.name, hub_position])
 
 func _create_trading_hub(template: Dictionary, hub_position: Vector3, hub_id: int) -> Dictionary:
-	"""Create a single trading hub from a template"""
+	##Create a single trading hub from a template
 	# Load the TradingHub3D scene
 	var trading_hub_scene = preload("res://scenes/objects/TradingHub3D.tscn")
 	if not trading_hub_scene:
@@ -195,25 +195,25 @@ func _create_trading_hub(template: Dictionary, hub_position: Vector3, hub_id: in
 	return hub_data
 
 func _on_hub_entered(hub_type: String, _hub: Node3D) -> void:
-	"""Handle player entering any trading hub"""
+	##Handle player entering any trading hub
 	_log_message("TradingHubManager3D: Player entered %s hub" % hub_type)
 	player_entered_hub.emit(hub_type, _hub)
 
 func _on_hub_exited(hub_type: String, _hub: Node3D) -> void:
-	"""Handle player exiting any trading hub"""
+	##Handle player exiting any trading hub
 	_log_message("TradingHubManager3D: Player exited %s hub" % hub_type)
 	player_exited_hub.emit(hub_type, _hub)
 
 func get_all_hubs() -> Array[Node3D]:
-	"""Get all trading hubs"""
+	##Get all trading hubs
 	return all_hubs
 
 func get_hub_count() -> int:
-	"""Get the number of active trading hubs"""
+	##Get the number of active trading hubs
 	return active_hubs.size()
 
 func get_hub_data() -> Array[Dictionary]:
-	"""Get data for all trading hubs"""
+	##Get data for all trading hubs
 	var hub_data: Array[Dictionary] = []
 
 	for hub in active_hubs:
@@ -227,7 +227,7 @@ func get_hub_data() -> Array[Dictionary]:
 	return hub_data
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)

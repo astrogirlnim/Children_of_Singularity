@@ -34,7 +34,7 @@ func _ready() -> void:
 	_connect_signals()
 
 func _setup_hub() -> void:
-	"""Set up the trading hub configuration"""
+	##Set up the trading hub configuration
 	_log_message("TradingHub3D: Setting up hub configuration")
 
 	# Configure sprite billboard mode for 2.5D aesthetic
@@ -68,36 +68,36 @@ func _setup_hub() -> void:
 	_log_message("TradingHub3D: Added to npc_hub group")
 
 func _connect_signals() -> void:
-	"""Connect interaction area signals"""
+	##Connect interaction area signals
 	if interaction_area:
 		interaction_area.body_entered.connect(_on_interaction_area_body_entered)
 		interaction_area.body_exited.connect(_on_interaction_area_body_exited)
 		_log_message("TradingHub3D: Interaction signals connected")
 
 func _on_interaction_area_body_entered(body: Node3D) -> void:
-	"""Handle player entering interaction area"""
+	##Handle player entering interaction area
 	if body.has_method("collect_debris") and can_interact:  # Check if it's the player
 		current_players.append(body)
 		_log_message("TradingHub3D: Player entered %s hub" % hub_type)
 		hub_entered.emit(hub_type, self)
 
 func _on_interaction_area_body_exited(body: Node3D) -> void:
-	"""Handle player exiting interaction area"""
+	##Handle player exiting interaction area
 	if body in current_players:
 		current_players.erase(body)
 		_log_message("TradingHub3D: Player exited %s hub" % hub_type)
 		hub_exited.emit(hub_type, self)
 
 func get_hub_type() -> String:
-	"""Get the hub type for compatibility with existing trading system"""
+	##Get the hub type for compatibility with existing trading system
 	return hub_type
 
 func get_hub_name() -> String:
-	"""Get the hub display name"""
+	##Get the hub display name
 	return hub_name
 
 func set_hub_active(active: bool) -> void:
-	"""Set hub active state"""
+	##Set hub active state
 	is_active = active
 	can_interact = active
 	visible = active
@@ -112,7 +112,7 @@ func set_hub_active(active: bool) -> void:
 	_log_message("TradingHub3D: Hub %s set to %s" % [hub_name, "active" if active else "inactive"])
 
 func set_hub_type(new_type: String) -> void:
-	"""Set the hub type and update label"""
+	##Set the hub type and update label
 	hub_type = new_type
 
 	# Update display based on type
@@ -135,15 +135,15 @@ func set_hub_type(new_type: String) -> void:
 	_log_message("TradingHub3D: Hub type set to %s (%s)" % [hub_type, hub_name])
 
 func get_current_players() -> Array[Node3D]:
-	"""Get list of players currently in interaction range"""
+	##Get list of players currently in interaction range
 	return current_players.duplicate()
 
 func has_players() -> bool:
-	"""Check if any players are currently in interaction range"""
+	##Check if any players are currently in interaction range
 	return current_players.size() > 0
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)

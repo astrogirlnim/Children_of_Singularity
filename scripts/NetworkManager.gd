@@ -47,7 +47,7 @@ func _ready() -> void:
 	_log_message("NetworkManager: ENet networking system ready")
 
 func start_server() -> bool:
-	"""Start the game server"""
+	##Start the game server
 	_log_message("NetworkManager: Starting ENet server on port %d" % server_port)
 
 	var error = multiplayer_peer.create_server(server_port, max_players)
@@ -62,7 +62,7 @@ func start_server() -> bool:
 	return true
 
 func connect_to_server(server_address: String, port: int = 12345) -> bool:
-	"""Connect to a game server"""
+	##Connect to a game server
 	_log_message("NetworkManager: Connecting to ENet server at %s:%d" % [server_address, port])
 
 	var error = multiplayer_peer.create_client(server_address, port)
@@ -76,7 +76,7 @@ func connect_to_server(server_address: String, port: int = 12345) -> bool:
 	return true
 
 func disconnect_from_server() -> void:
-	"""Disconnect from the current server"""
+	##Disconnect from the current server
 	_log_message("NetworkManager: Disconnecting from server")
 
 	if multiplayer_peer:
@@ -93,7 +93,7 @@ func disconnect_from_server() -> void:
 	disconnected_from_server.emit()
 
 func send_player_update(player_data: Dictionary) -> void:
-	"""Send player state update to server"""
+	##Send player state update to server
 	if not is_network_connected:
 		_log_message("NetworkManager: Cannot send update - not connected")
 		return
@@ -112,7 +112,7 @@ func send_player_update(player_data: Dictionary) -> void:
 		rpc_id(1, "_receive_player_update", player_id, player_data)
 
 func sync_zone_state(zone_data: Dictionary) -> void:
-	"""Sync zone state with server (server-only)"""
+	##Sync zone state with server (server-only)
 	if not is_server:
 		_log_message("NetworkManager: Cannot sync zone - not server")
 		return
@@ -129,7 +129,7 @@ func sync_zone_state(zone_data: Dictionary) -> void:
 	rpc("_receive_zone_state", zone_data)
 
 func request_zone_join(zone_id: String) -> bool:
-	"""Request to join a specific zone"""
+	##Request to join a specific zone
 	_log_message("NetworkManager: Requesting to join zone: %s" % zone_id)
 
 	if is_server:
@@ -142,7 +142,7 @@ func request_zone_join(zone_id: String) -> bool:
 		return true
 
 func collect_debris(debris_id: String, debris_type: String) -> void:
-	"""Handle debris collection (server-authoritative)"""
+	##Handle debris collection (server-authoritative)
 	var player_id = multiplayer.get_unique_id()
 	_log_message("NetworkManager: Player %d attempting to collect debris %s (%s)" % [player_id, debris_id, debris_type])
 
@@ -154,7 +154,7 @@ func collect_debris(debris_id: String, debris_type: String) -> void:
 		rpc_id(1, "_request_debris_collection", player_id, debris_id, debris_type)
 
 func get_network_info() -> Dictionary:
-	"""Get current network status information"""
+	##Get current network status information
 	return {
 		"is_server": is_server,
 		"is_client": is_client,
@@ -224,7 +224,7 @@ func _on_server_disconnected() -> void:
 # RPC functions
 @rpc("any_peer", "call_local", "reliable")
 func _receive_player_update(player_id: int, player_data: Dictionary) -> void:
-	"""Receive player update from client (server-only)"""
+	##Receive player update from client (server-only)
 	if not is_server:
 		return
 
@@ -232,7 +232,7 @@ func _receive_player_update(player_id: int, player_data: Dictionary) -> void:
 
 @rpc("authority", "call_local", "reliable")
 func _receive_zone_state(zone_data: Dictionary) -> void:
-	"""Receive zone state from server (clients-only)"""
+	##Receive zone state from server (clients-only)
 	if is_server:
 		return
 
@@ -242,7 +242,7 @@ func _receive_zone_state(zone_data: Dictionary) -> void:
 
 @rpc("any_peer", "call_local", "reliable")
 func _request_zone_join(player_id: int, zone_id: String) -> void:
-	"""Handle zone join request (server-only)"""
+	##Handle zone join request (server-only)
 	if not is_server:
 		return
 
@@ -252,12 +252,12 @@ func _request_zone_join(player_id: int, zone_id: String) -> void:
 
 @rpc("authority", "call_local", "reliable")
 func _zone_join_approved(zone_id: String) -> void:
-	"""Receive zone join approval from server"""
+	##Receive zone join approval from server
 	_log_message("NetworkManager: Zone join approved for zone %s" % zone_id)
 
 @rpc("any_peer", "call_local", "reliable")
 func _request_debris_collection(player_id: int, debris_id: String, debris_type: String) -> void:
-	"""Handle debris collection request (server-only)"""
+	##Handle debris collection request (server-only)
 	if not is_server:
 		return
 
@@ -265,7 +265,7 @@ func _request_debris_collection(player_id: int, debris_id: String, debris_type: 
 
 @rpc("authority", "call_local", "reliable")
 func _on_player_joined(player_id: int, player_data: Dictionary) -> void:
-	"""Notification of new player joining"""
+	##Notification of new player joining
 	if player_id not in current_players:
 		current_players[player_id] = player_data
 		player_positions[player_id] = player_data.get("position", Vector3.ZERO)
@@ -273,14 +273,14 @@ func _on_player_joined(player_id: int, player_data: Dictionary) -> void:
 
 @rpc("authority", "call_local", "reliable")
 func _on_player_left(player_id: int) -> void:
-	"""Notification of player leaving"""
+	##Notification of player leaving
 	current_players.erase(player_id)
 	player_positions.erase(player_id)
 	_log_message("NetworkManager: Player %d left the game" % player_id)
 
 @rpc("authority", "call_local", "reliable")
 func _receive_initial_state(players: Dictionary, debris: Dictionary) -> void:
-	"""Receive initial game state from server (new clients only)"""
+	##Receive initial game state from server (new clients only)
 	current_players = players
 	zone_debris = debris
 
@@ -291,13 +291,13 @@ func _receive_initial_state(players: Dictionary, debris: Dictionary) -> void:
 
 @rpc("authority", "call_local", "reliable")
 func _debris_collected_notification(player_id: int, debris_id: String, debris_type: String) -> void:
-	"""Notification of debris collection"""
+	##Notification of debris collection
 	_log_message("NetworkManager: Player %d collected debris %s (%s)" % [player_id, debris_id, debris_type])
 	debris_collected_by_player.emit(player_id, debris_id, debris_type)
 
 # Helper functions
 func _update_player_state(player_id: int, player_data: Dictionary) -> void:
-	"""Update player state on server"""
+	##Update player state on server
 	if player_id in current_players:
 		current_players[player_id].merge(player_data)
 
@@ -309,13 +309,13 @@ func _update_player_state(player_id: int, player_data: Dictionary) -> void:
 
 @rpc("authority", "call_local", "unreliable")
 func _player_position_update(player_id: int, position: Vector3) -> void:
-	"""Receive player position update"""
+	##Receive player position update
 	if player_id in player_positions:
 		player_positions[player_id] = position
 		player_position_updated.emit(player_id, position)
 
 func _process_debris_collection(player_id: int, debris_id: String, debris_type: String) -> void:
-	"""Process debris collection on server"""
+	##Process debris collection on server
 	if debris_id in zone_debris:
 		# Remove debris from zone
 		zone_debris.erase(debris_id)
@@ -334,7 +334,7 @@ func _process_debris_collection(player_id: int, debris_id: String, debris_type: 
 		_log_message("NetworkManager: Debris %s not found or already collected" % debris_id)
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)

@@ -142,7 +142,7 @@ func _ready() -> void:
 	background_ready.emit()
 
 func _setup_containers() -> void:
-	"""Set up container nodes for organizing background elements"""
+	##Set up container nodes for organizing background elements
 	_log_message("BackgroundManager3D: Setting up background containers")
 
 	# Create main containers
@@ -159,7 +159,7 @@ func _setup_containers() -> void:
 	add_child(object_container)
 
 func _initialize_layers() -> void:
-	"""Initialize all background layers in order of priority"""
+	##Initialize all background layers in order of priority
 	_log_message("BackgroundManager3D: Initializing background layers")
 
 	# Sort layer configurations by priority
@@ -171,11 +171,11 @@ func _initialize_layers() -> void:
 	_log_message("BackgroundManager3D: Created %d background layers" % active_layers.size())
 
 func _compare_layer_priority(a: Dictionary, b: Dictionary) -> bool:
-	"""Sort layers by priority (lower number = further back)"""
+	##Sort layers by priority (lower number = further back)
 	return a.get("priority", 999) < b.get("priority", 999)
 
 func _create_layer_from_config(config: Dictionary) -> void:
-	"""Create a background layer from configuration dictionary"""
+	##Create a background layer from configuration dictionary
 	var layer_name = config.get("name", "unnamed_layer")
 	var layer_type = config.get("type", "plane")
 
@@ -192,7 +192,7 @@ func _create_layer_from_config(config: Dictionary) -> void:
 			push_error("BackgroundManager3D: Unknown layer type: %s" % layer_type)
 
 func _create_background_plane(config: Dictionary) -> BackgroundLayer3D:
-	"""Create a textured plane background layer"""
+	##Create a textured plane background layer
 	var layer = BackgroundLayer3D.new()
 	layer.name = config.get("name", "BackgroundPlane")
 	layer.layer_depth = config.get("depth", -100.0)
@@ -238,7 +238,7 @@ func _create_background_plane(config: Dictionary) -> BackgroundLayer3D:
 	return layer
 
 func _create_background_objects(config: Dictionary) -> void:
-	"""Create procedural background objects"""
+	##Create procedural background objects
 	var layer_name = config.get("name", "BackgroundObjects")
 	var object_textures = config.get("objects", [])
 	var object_count = config.get("count", 5)
@@ -266,7 +266,7 @@ func _create_background_objects(config: Dictionary) -> void:
 	_log_message("BackgroundManager3D: Created background object layer '%s' with %d objects" % [layer_name, object_count])
 
 func _create_single_background_object(textures: Array, scale_range: Vector2, depth: float) -> MeshInstance3D:
-	"""Create a single background object"""
+	##Create a single background object
 	var obj = MeshInstance3D.new()
 
 	# Create simple geometry (box or sphere)
@@ -326,7 +326,7 @@ func _create_single_background_object(textures: Array, scale_range: Vector2, dep
 	return obj
 
 func _process_background_rotations(delta: float) -> void:
-	"""Process slow rotation for background objects"""
+	##Process slow rotation for background objects
 	for layer in active_layers:
 		if layer and is_instance_valid(layer):
 			for child in layer.get_children():
@@ -335,7 +335,7 @@ func _process_background_rotations(delta: float) -> void:
 					child.rotation_degrees.y += rotation_speed * delta * 10.0
 
 func _create_particle_layer(config: Dictionary) -> void:
-	"""Create a particle system background layer"""
+	##Create a particle system background layer
 	var layer_name = config.get("name", "ParticleLayer")
 	var particle_count = config.get("count", 100)
 	var area = config.get("area", Vector3(200, 50, 200))
@@ -403,18 +403,18 @@ func _create_particle_layer(config: Dictionary) -> void:
 	_log_message("BackgroundManager3D: Created particle layer '%s' at depth %.1f" % [layer_name, depth])
 
 func _setup_particle_systems() -> void:
-	"""Additional particle system setup if needed"""
+	##Additional particle system setup if needed
 	_log_message("BackgroundManager3D: Particle systems setup complete")
 
 func set_camera_reference(camera: Camera3D) -> void:
-	"""Set the camera reference for parallax calculations"""
+	##Set the camera reference for parallax calculations
 	camera_reference = camera
 	if camera_reference:
 		last_camera_position = camera_reference.global_position
 		_log_message("BackgroundManager3D: Camera reference set for parallax tracking")
 
 func _process(delta: float) -> void:
-	"""Update parallax scrolling and performance monitoring"""
+	##Update parallax scrolling and performance monitoring
 	if enable_parallax and camera_reference:
 		_update_parallax_scrolling()
 
@@ -428,7 +428,7 @@ func _process(delta: float) -> void:
 	_process_background_rotations(delta)
 
 func _update_parallax_scrolling() -> void:
-	"""Update parallax scrolling for all layers"""
+	##Update parallax scrolling for all layers
 	if not camera_reference:
 		return
 
@@ -448,7 +448,7 @@ func _update_parallax_scrolling() -> void:
 		last_camera_position = camera_reference.global_position
 
 func _update_layer_visibility() -> void:
-	"""Update layer visibility based on distance for performance"""
+	##Update layer visibility based on distance for performance
 	if not camera_reference:
 		return
 
@@ -464,14 +464,14 @@ func _update_layer_visibility() -> void:
 				layer_visibility_changed.emit(layer.name, should_be_visible)
 
 func get_layer_count() -> int:
-	"""Get the number of active background layers"""
+	##Get the number of active background layers
 	return active_layers.size()
 
 func set_parallax_strength(strength: float) -> void:
-	"""Set the overall parallax strength"""
+	##Set the overall parallax strength
 	parallax_strength = clamp(strength, 0.0, 1.0)
 	_log_message("BackgroundManager3D: Parallax strength set to %.2f" % parallax_strength)
 
 func _log_message(message: String) -> void:
-	"""Log debug messages"""
+	##Log debug messages
 	print("[%s] %s" % [Time.get_datetime_string_from_system(), message])

@@ -27,7 +27,7 @@ func _ready() -> void:
 	_log_message("InventoryManager: Inventory system ready")
 
 func _initialize_inventory() -> void:
-	"""Initialize the inventory system"""
+	##Initialize the inventory system
 	_log_message("InventoryManager: Setting up inventory structure")
 	player_inventory.clear()
 	_log_message("InventoryManager: Inventory initialized with capacity: %d" % inventory_capacity)
@@ -36,7 +36,7 @@ func _initialize_inventory() -> void:
 # @param item_id: String - ID of the item.
 # @param quantity: int - Quantity to add.
 func add_item(item_id: String, quantity: int) -> bool:
-	"""Add an item to the inventory"""
+	##Add an item to the inventory
 	_log_message("InventoryManager: Adding item %s (quantity: %d)" % [item_id, quantity])
 
 	# Check if inventory has space
@@ -65,7 +65,7 @@ func add_item(item_id: String, quantity: int) -> bool:
 # @param item_id: String - ID of the item to remove.
 # @param quantity: int - Quantity to remove.
 func remove_item(item_id: String, quantity: int) -> bool:
-	"""Remove an item from the inventory"""
+	##Remove an item from the inventory
 	_log_message("InventoryManager: Removing item %s (quantity: %d)" % [item_id, quantity])
 
 	# TODO: Implement actual item removal logic
@@ -89,13 +89,13 @@ func remove_item(item_id: String, quantity: int) -> bool:
 
 ## Gets the current inventory data.
 func get_inventory() -> Array[Dictionary]:
-	"""Get the current inventory contents"""
+	##Get the current inventory contents
 	_log_message("InventoryManager: Retrieving inventory - %d items" % player_inventory.size())
 	return player_inventory.duplicate()
 
 ## Clears all items from inventory.
 func clear_inventory() -> Array[Dictionary]:
-	"""Clear all items from inventory (used when selling)"""
+	##Clear all items from inventory (used when selling)
 	_log_message("InventoryManager: Clearing inventory - %d items removed" % player_inventory.size())
 	var cleared_items = player_inventory.duplicate()
 	player_inventory.clear()
@@ -104,7 +104,7 @@ func clear_inventory() -> Array[Dictionary]:
 
 ## Calculates the total value of all items in inventory.
 func get_total_value() -> int:
-	"""Calculate the total value of all items in inventory"""
+	##Calculate the total value of all items in inventory
 	var total_value = 0
 	for item in player_inventory:
 		total_value += item.get("value", 0)
@@ -113,23 +113,23 @@ func get_total_value() -> int:
 
 ## Checks if inventory has space for more items.
 func has_space() -> bool:
-	"""Check if inventory has space for more items"""
+	##Check if inventory has space for more items
 	return player_inventory.size() < inventory_capacity
 
 ## Gets the number of free slots in inventory.
 func get_free_slots() -> int:
-	"""Get the number of free inventory slots"""
+	##Get the number of free inventory slots
 	return inventory_capacity - player_inventory.size()
 
 ## Sets the inventory capacity.
 func set_capacity(new_capacity: int) -> void:
-	"""Set the inventory capacity"""
+	##Set the inventory capacity
 	_log_message("InventoryManager: Setting inventory capacity to %d" % new_capacity)
 	inventory_capacity = new_capacity
 	inventory_updated.emit(player_inventory)
 
 func _get_item_type(item_id: String) -> String:
-	"""Get the type of an item based on its ID"""
+	##Get the type of an item based on its ID
 	# TODO: Implement proper item type lookup
 	if item_id.begins_with("scrap"):
 		return "scrap_metal"
@@ -143,7 +143,7 @@ func _get_item_type(item_id: String) -> String:
 		return "generic"
 
 func _calculate_item_value(item_id: String, quantity: int) -> int:
-	"""Calculate the value of an item"""
+	##Calculate the value of an item
 	# TODO: Implement proper item value calculation
 	var base_value = 10
 	var item_type = _get_item_type(item_id)
@@ -163,7 +163,7 @@ func _calculate_item_value(item_id: String, quantity: int) -> int:
 	return base_value * quantity
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)

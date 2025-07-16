@@ -67,23 +67,23 @@ func _ready() -> void:
 	_log_message("SpaceStationModule3D: Module %s ready with spinning animation - ID: %s" % [ModuleType.keys()[module_type], module_id])
 
 func _exit_tree() -> void:
-	"""Clean up animation resources when node is freed"""
+	##Clean up animation resources when node is freed
 	if animation_timer and animation_timer.is_valid():
 		animation_timer.queue_free()
 	_log_message("SpaceStationModule3D: Animation resources cleaned up")
 
 func _generate_module_id() -> void:
-	"""Generate unique module ID"""
+	##Generate unique module ID
 	module_id = "module_%s_%d" % [ModuleType.keys()[module_type].to_lower(), Time.get_unix_time_from_system()]
 
 func _setup_collision_layers() -> void:
-	"""Set up collision layers for station modules"""
+	##Set up collision layers for station modules
 	# Layer 8 for NPC/station interactions (compatible with existing player interaction system)
 	collision_layer = 8
 	collision_mask = 1  # Can collide with player layer
 
 func _load_station_animation_textures() -> void:
-	"""Load all station animation frame textures into memory for fast switching"""
+	##Load all station animation frame textures into memory for fast switching
 	_log_message("SpaceStationModule3D: Loading station animation textures...")
 
 	# Resize array to hold all frames (1-70)
@@ -103,7 +103,7 @@ func _load_station_animation_textures() -> void:
 	_log_message("SpaceStationModule3D: Loaded %d/%d station animation textures" % [loaded_count, total_frames])
 
 func _set_station_frame(frame_number: int) -> void:
-	"""Set the station sprite to a specific frame"""
+	##Set the station sprite to a specific frame
 	if frame_number < 1 or frame_number > total_frames:
 		_log_message("SpaceStationModule3D: Invalid frame number: %d" % frame_number)
 		return
@@ -115,7 +115,7 @@ func _set_station_frame(frame_number: int) -> void:
 		_log_message("SpaceStationModule3D: Could not set frame %d" % frame_number)
 
 func _on_animation_timer_timeout() -> void:
-	"""Handle animation timer timeout - advance to next frame"""
+	##Handle animation timer timeout - advance to next frame
 	if not is_spinning:
 		return
 
@@ -130,7 +130,7 @@ func _on_animation_timer_timeout() -> void:
 	_set_station_frame(current_frame)
 
 func _setup_sprite_billboard() -> void:
-	"""Set up the 3D sprite billboard for the spinning space station"""
+	##Set up the 3D sprite billboard for the spinning space station
 	_log_message("SpaceStationModule3D: Setting up sprite billboard with animation support")
 
 	# Remove any existing mesh instance
@@ -162,7 +162,7 @@ func _setup_sprite_billboard() -> void:
 	_log_message("SpaceStationModule3D: Sprite billboard configured for animation")
 
 func _setup_collision_shape() -> void:
-	"""Set up collision shape for the station module"""
+	##Set up collision shape for the station module
 	if not collision_shape:
 		collision_shape = CollisionShape3D.new()
 		collision_shape.name = "CollisionShape3D"
@@ -176,7 +176,7 @@ func _setup_collision_shape() -> void:
 	_log_message("SpaceStationModule3D: Collision shape configured - Size: %s" % box_shape.size)
 
 func _setup_interaction_area() -> void:
-	"""Set up interaction area for player detection"""
+	##Set up interaction area for player detection
 	if not interaction_area:
 		interaction_area = Area3D.new()
 		interaction_area.name = "InteractionArea"
@@ -205,7 +205,7 @@ func _setup_interaction_area() -> void:
 	_log_message("SpaceStationModule3D: Interaction area configured with radius %.1f" % interaction_radius)
 
 func _configure_module_appearance() -> void:
-	"""Configure the visual appearance based on module type using sprite tinting"""
+	##Configure the visual appearance based on module type using sprite tinting
 	_log_message("SpaceStationModule3D: Configuring module appearance for type %s" % ModuleType.keys()[module_type])
 
 	if not sprite_3d:
@@ -286,7 +286,7 @@ func _configure_module_appearance() -> void:
 	_log_message("SpaceStationModule3D: Configured %s module with scale %s and color %s" % [ModuleType.keys()[module_type], sprite_scale, sprite_color])
 
 func _setup_module_data() -> void:
-	"""Set up module-specific data and functionality"""
+	##Set up module-specific data and functionality
 	# Get the collision size from our collision shape for consistent sizing data
 	var module_size = Vector3.ZERO
 	if collision_shape and collision_shape.shape is BoxShape3D:
@@ -304,32 +304,32 @@ func _setup_module_data() -> void:
 	}
 
 func _on_interaction_area_entered(body: Node3D) -> void:
-	"""Handle player entering module interaction area"""
+	##Handle player entering module interaction area
 	if body.has_method("collect_debris"):  # Check if it's the player
 		# Reduced logging to prevent spam
 		module_entered.emit(hub_type, self)
 
 func _on_interaction_area_exited(body: Node3D) -> void:
-	"""Handle player exiting module interaction area"""
+	##Handle player exiting module interaction area
 	if body.has_method("collect_debris"):  # Check if it's the player
 		# Reduced logging to prevent spam
 		module_exited.emit(hub_type, self)
 
 func get_hub_type() -> String:
-	"""Get the hub type for compatibility with existing trading system"""
+	##Get the hub type for compatibility with existing trading system
 	return hub_type
 
 func get_module_type() -> ModuleType:
-	"""Get the module type enum"""
+	##Get the module type enum
 	return module_type
 
 func get_module_data() -> Dictionary:
-	"""Get complete module data"""
+	##Get complete module data
 	module_data["position"] = global_position  # Update position
 	return module_data
 
 func set_module_active(active: bool) -> void:
-	"""Set module active state"""
+	##Set module active state
 	is_active = active
 	visible = active
 
@@ -343,23 +343,23 @@ func set_module_active(active: bool) -> void:
 	_log_message("SpaceStationModule3D: Module %s set to %s" % [module_id, "active" if active else "inactive"])
 
 func get_sprite_3d() -> Sprite3D:
-	"""Get the Sprite3D node for external access"""
+	##Get the Sprite3D node for external access
 	return sprite_3d
 
 func set_sprite_color(color: Color) -> void:
-	"""Set the sprite color/tint"""
+	##Set the sprite color/tint
 	if sprite_3d:
 		sprite_3d.modulate = color
 		_log_message("SpaceStationModule3D: Sprite color set to %s" % color)
 
 func set_sprite_scale(scale: Vector3) -> void:
-	"""Set the sprite scale"""
+	##Set the sprite scale
 	if sprite_3d:
 		sprite_3d.scale = scale
 		_log_message("SpaceStationModule3D: Sprite scale set to %s" % scale)
 
 func _setup_rotation_animation() -> void:
-	"""Set up the continuous rotation animation timer"""
+	##Set up the continuous rotation animation timer
 	_log_message("SpaceStationModule3D: Setting up continuous spinning animation")
 
 	# Create animation timer
@@ -380,38 +380,38 @@ func _setup_rotation_animation() -> void:
 	_log_message("SpaceStationModule3D: Continuous spinning animation active - Frame rate: %.1f FPS, Starting frame: %d" % [1.0/animation_speed, current_frame])
 
 func set_animation_speed(speed: float) -> void:
-	"""Set the rotation animation speed (time between frames)"""
+	##Set the rotation animation speed (time between frames)
 	animation_speed = speed
 	if animation_timer:
 		animation_timer.wait_time = animation_speed
 		_log_message("SpaceStationModule3D: Animation speed updated to %.2f seconds per frame (%.1f FPS)" % [animation_speed, 1.0/animation_speed])
 
 func pause_spinning() -> void:
-	"""Pause the spinning animation"""
+	##Pause the spinning animation
 	is_spinning = false
 	if animation_timer:
 		animation_timer.paused = true
 		_log_message("SpaceStationModule3D: Spinning animation paused")
 
 func resume_spinning() -> void:
-	"""Resume the spinning animation"""
+	##Resume the spinning animation
 	is_spinning = true
 	if animation_timer:
 		animation_timer.paused = false
 		_log_message("SpaceStationModule3D: Spinning animation resumed")
 
 func reverse_spin_direction() -> void:
-	"""Reverse the spinning direction"""
+	##Reverse the spinning direction
 	spin_direction *= -1
 	_log_message("SpaceStationModule3D: Spin direction reversed - now spinning %s" % ("forward" if spin_direction > 0 else "backward"))
 
 func _rotate_sprite() -> void:
-	"""Legacy function kept for compatibility - now handled by animation timer"""
+	##Legacy function kept for compatibility - now handled by animation timer
 	_log_message("SpaceStationModule3D: Legacy _rotate_sprite called - using new animation system instead")
 	return
 
 func _log_message(message: String) -> void:
-	"""Log a message with timestamp"""
+	##Log a message with timestamp
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
