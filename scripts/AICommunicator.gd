@@ -22,10 +22,20 @@ var milestone_triggers: Dictionary = {}
 var voice_clips_available: bool = false
 var current_progression_path: String = "rogue"
 
+## Message history storage
+var message_history: Array[Dictionary] = []
+var max_history_size: int = 100  # Maximum number of messages to store
+
+## Audio system for voice clips
+var audio_player: AudioStreamPlayer
+var voice_clips: Dictionary = {}
+
 func _ready() -> void:
 	_log_message("AICommunicator: Initializing AI communication system")
 	_setup_milestones()
 	_initialize_ai_messages()
+	_setup_audio_system()
+	_load_voice_clips()
 	_log_message("AICommunicator: AI communication system ready")
 
 func _setup_milestones() -> void:
@@ -200,8 +210,57 @@ func simulate_broadcast(message_type: String = "system") -> void:
 	_send_ai_message(message_type, random_message)
 
 ## Get message history
-func get_message_history() -> Array[Dictionary]:
-	##Get the history of AI messages
-	# TODO: Implement message history storage
-	_log_message("AICommunicator: Retrieving message history (stub)")
-	return []
+func get_message_history(count: int = 10) -> Array[Dictionary]:
+	##Get recent message history
+	var recent_messages = message_history.slice(-count) if message_history.size() > count else message_history
+	_log_message("AICommunicator: Retrieved %d recent messages from history" % recent_messages.size())
+	return recent_messages
+
+func clear_message_history() -> void:
+	##Clear all message history
+	var previous_count = message_history.size()
+	message_history.clear()
+	_log_message("AICommunicator: Cleared message history (%d messages removed)" % previous_count)
+
+func get_message_stats() -> Dictionary:
+	##Get statistics about message history
+	var stats = {
+		"total_messages": message_history.size(),
+		"high_priority": 0,
+		"medium_priority": 0,
+		"low_priority": 0,
+		"types": {}
+	}
+
+	for entry in message_history:
+		# Count by priority
+		match entry.priority:
+			3:
+				stats.high_priority += 1
+			2:
+				stats.medium_priority += 1
+			1:
+				stats.low_priority += 1
+
+		# Count by type
+		var msg_type = entry.get("type", "standard")
+		if stats.types.has(msg_type):
+			stats.types[msg_type] += 1
+		else:
+			stats.types[msg_type] = 1
+
+	return stats
+
+func broadcast_ai_message_with_voice(message: String, priority: int = 2, voice_clip: String = "") -> void:
+	##Enhanced message broadcast with voice clip support
+	_log_message("AICommunicator: Broadcasting AI message with voice: %s" % message)
+
+	# Add to message history
+	add_message_to_history(message, priority, "broadcast")
+
+	# Play voice clip if specified
+	if voice_clip != "":
+		play_voice_clip(voice_clip)
+
+	# Broadcast the message
+	broadcast_ai_message(message, priority)

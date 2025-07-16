@@ -66,18 +66,21 @@ func _setup_pivot_node() -> void:
 		print("[SkyboxManager3D] Pivot node created for camera following")
 
 func _update_pivot_position() -> void:
-	##Update pivot position to match camera position each frame
+	# Update pivot position to match camera position each frame
 	if camera_reference and pivot_node:
 		var camera_pos = camera_reference.global_position
 		pivot_node.global_position = camera_pos
 
-		# Debug print every 0.5 seconds for verification
-		if debug_logging and fmod(Time.get_time_dict_from_system().second, 0.5) < 0.05:
-			if camera_pos != last_camera_position:
-				print("[SkyboxManager3D] Pivot following camera at: %s" % camera_pos)
+		# Debug print every 0.5 seconds for verification using more reliable timing
+		if debug_logging:
+			var current_time = Time.get_time_dict_from_system()
+			var time_seconds = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
+			if time_seconds % 1 == 0:  # Print every second instead of using fmod with fractional seconds
+				if camera_pos != last_camera_position:
+					print("[SkyboxManager3D] Pivot following camera at: %s" % camera_pos)
 
 func _create_skybox_layers() -> void:
-	##Create all skybox layers based on configuration
+	# Create all skybox layers based on configuration
 	if debug_logging:
 		print("[SkyboxManager3D] Creating %d skybox shells" % layers_config.size())
 
@@ -89,7 +92,7 @@ func _create_skybox_layers() -> void:
 		print("[SkyboxManager3D] All skybox layers created successfully")
 
 func _create_layer_from_config(config: Dictionary, index: int) -> void:
-	##Create a single skybox layer from configuration
+	# Create a single skybox layer from configuration
 	var layer_name = config.get("name", "Shell_%d" % index)
 
 	if debug_logging:
@@ -123,11 +126,11 @@ func _create_layer_from_config(config: Dictionary, index: int) -> void:
 		print("[SkyboxManager3D] Layer '%s' created with radius %.1f" % [layer_name, skybox_layer.layer_radius])
 
 func _handle_idle_detection(delta: float) -> void:
-	##Handle idle detection and rotation pausing
+	# Handle idle detection and rotation pausing
 	if not camera_reference or not enable_rotation:
 		return
 
-	var current_camera_pos = camera_reference.global_position
+	var current_camera_pos: Vector3 = camera_reference.global_position
 
 	# Check if camera has moved
 	if current_camera_pos.distance_to(last_camera_position) > 0.1:
@@ -153,29 +156,29 @@ func _handle_idle_detection(delta: float) -> void:
 				print("[SkyboxManager3D] Camera idle for %.1fs, rotation paused" % idle_timer)
 
 func _pause_all_rotations() -> void:
-	##Pause rotation for all skybox layers
+	# Pause rotation for all skybox layers
 	for layer in active_layers:
 		if layer and layer.has_method("pause_rotation"):
 			layer.pause_rotation()
 
 func _resume_all_rotations() -> void:
-	##Resume rotation for all skybox layers
+	# Resume rotation for all skybox layers
 	for i in range(active_layers.size()):
 		var layer = active_layers[i]
 		if layer and layer.has_method("resume_rotation") and i < layers_config.size():
-			var original_speed = layers_config[i].get("rotation_speed", 1.0)
+			var original_speed: float = layers_config[i].get("rotation_speed", 1.0)
 			layer.resume_rotation(original_speed)
 
 ## Public configuration methods
 
 func set_camera_reference(new_camera: Camera3D) -> void:
-	##Set the camera reference for position following
+	# Set the camera reference for position following
 	camera_reference = new_camera
 	if debug_logging:
 		print("[SkyboxManager3D] Camera reference set: %s" % (new_camera.name if new_camera else "null"))
 
 func set_rotation_enabled(enabled: bool) -> void:
-	##Enable or disable all layer rotations
+	# Enable or disable all layer rotations
 	enable_rotation = enabled
 	if not enabled:
 		_pause_all_rotations()
@@ -188,23 +191,23 @@ func set_rotation_enabled(enabled: bool) -> void:
 		print("[SkyboxManager3D] Rotation enabled: %s" % enabled)
 
 func set_global_alpha(alpha: float) -> void:
-	##Set alpha for all layers (multiplied with individual layer alphas)
+	# Set alpha for all layers (multiplied with individual layer alphas)
 	alpha = clamp(alpha, 0.0, 1.0)
 	for i in range(active_layers.size()):
 		var layer = active_layers[i]
 		if layer and i < layers_config.size():
-			var base_alpha = layers_config[i].get("alpha", 1.0)
+			var base_alpha: float = layers_config[i].get("alpha", 1.0)
 			layer.set_layer_alpha(base_alpha * alpha)
 
 	if debug_logging:
 		print("[SkyboxManager3D] Global alpha set to: %.2f" % alpha)
 
 func get_layer_count() -> int:
-	##Get the number of active skybox layers
+	# Get the number of active skybox layers
 	return active_layers.size()
 
 func get_layer_by_name(layer_name: String):
-	##Get a skybox layer by name
+	# Get a skybox layer by name
 	for layer in active_layers:
 		if layer and layer.name == layer_name:
 			return layer

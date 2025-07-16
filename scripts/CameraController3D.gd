@@ -45,9 +45,9 @@ var ship_forward_direction: Vector3 = Vector3.FORWARD
 var ship_velocity: Vector3 = Vector3.ZERO
 var current_tilt: float = 0.0
 
-# Debug logging control
+# Debug logging control (reduced frequency to prevent spam)
 var debug_log_timer: float = 0.0
-var debug_log_interval: float = 1.0  # Log every 1 second instead of every frame
+var debug_log_interval: float = 5.0  # Log every 5 seconds instead of every frame
 
 func _ready() -> void:
 	setup_mario_kart_camera()
@@ -162,33 +162,34 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	# TEMPORARILY DISABLE BANKING to debug tilting issue
 	# Apply Mario Kart 8 style camera banking when turning (more aggressive)
 	var banking_roll = 0.0
-	if false:  # Disabled banking temporarily
-		# Get the ship's angular velocity (how fast it's turning)
-		# NOTE: PlayerShip3D is CharacterBody3D, not RigidBody3D!
-		var ship_body = target as CharacterBody3D  # Fixed casting
-		if ship_body:
-			# CharacterBody3D doesn't have angular_velocity - we need a different approach
-			# For now, calculate turn rate from velocity change
-			var current_velocity = ship_body.velocity
-			var velocity_change = current_velocity - ship_velocity
-			var turn_rate = velocity_change.length() * 0.1  # Rough approximation
-
-			# Convert turn rate to banking angle
-			banking_roll = turn_rate * banking_amount
+	if enable_camera_banking:  # Fixed: use the export variable instead of hardcoded false
+		# Get the ship's turning input rather than velocity changes
+		var ship_body = target as CharacterBody3D
+		if ship_body and ship_body.has_method("get_turn_input"):
+			# Use actual steering input for banking (only when turning)
+			var turn_input = ship_body.get_turn_input()
+			banking_roll = turn_input * banking_amount
+		else:
+			# Fallback: only apply banking if there's significant horizontal rotation
+			var horizontal_velocity = Vector3(ship_velocity.x, 0, ship_velocity.z)
+			var speed = horizontal_velocity.length()
+			if speed > 1.0:  # Only calculate banking if moving
+				var velocity_direction = horizontal_velocity.normalized()
+				var forward_direction = Vector3(ship_forward_direction.x, 0, ship_forward_direction.z).normalized()
+				var cross_product = forward_direction.cross(velocity_direction)
+				# Only apply banking if there's significant sideways movement (turning)
+				var sideways_component = abs(cross_product.y)
+				if sideways_component > 0.1:  # Threshold to prevent micro-adjustments
+					banking_roll = cross_product.y * banking_amount * (speed / 10.0)
 			banking_roll = clamp(banking_roll, -banking_amount, banking_amount)
 
-			# Debug output for banking
-			if abs(banking_roll) > 1.0:
-				print("[%s] CameraController3D: Banking active - Roll: %.1f° (Turn rate: %.2f)" %
-					[Time.get_time_string_from_system(), banking_roll, turn_rate])
-
-	# Look at target with NO BANKING (for now) - use pure UP vector
+	# Look at target with proper banking support
 	var up_vector = Vector3.UP
-	# DISABLED: if banking_roll != 0.0:
+	if banking_roll != 0.0:
 		# Rotate the up vector to create banking effect
-		# up_vector = up_vector.rotated(ship_forward_direction.normalized(), deg_to_rad(banking_roll))
+		up_vector = up_vector.rotated(ship_forward_direction.normalized(), deg_to_rad(banking_roll))
 
-	# Debug ship forward direction
+	# Debug ship forward direction (reduced frequency)
 	if should_log:
 		_log_message("CameraController3D: Ship forward direction: %.2f,%.2f,%.2f" %
 			[ship_forward_direction.x, ship_forward_direction.y, ship_forward_direction.z])
@@ -199,15 +200,9 @@ func _update_distance_zoom(delta: float) -> void:
 	##Update distance-based zoom system
 	if abs(current_distance - target_distance) > 0.01:
 		current_distance = lerp(current_distance, target_distance, 5.0 * delta)
-		_log_message("CameraController3D: Zoom distance updated to %.1f" % current_distance)
 
 func _update_camera_tilt(delta: float) -> void:
-	##Update camera tilt based on ship movement (if enabled)
-	# TEMPORARILY DISABLED to debug tilting issue
-	# TODO: Re-enable banking when tilting issues are resolved
-	if true:  # Disabled for now
-		return
-
+	##Update camera tilt based on ship movement (re-enabled)
 	if not enable_camera_banking:
 		# Reset tilt if disabled
 		if abs(current_tilt) > 0.01:
@@ -215,16 +210,18 @@ func _update_camera_tilt(delta: float) -> void:
 			camera.rotation_degrees.z = current_tilt
 		return
 
+	# DISABLED: Y-velocity based tilt was causing unwanted rotation during forward movement
 	# Calculate desired tilt based on ship's Y velocity
 	var desired_tilt = 0.0
-	if ship_velocity.length() > 0.1:
-		# Tilt based on Y movement (upward movement = positive tilt)
-		desired_tilt = ship_velocity.y * banking_amount
-		desired_tilt = clamp(desired_tilt, -banking_amount, banking_amount)
+	# Removed Y-velocity tilt to prevent unwanted rotation when moving straight
+	# Only apply tilt if there's actual turning motion (handled by banking system above)
 
-	# Smooth tilt transition
+	# Apply smooth tilt transition
 	current_tilt = lerp(current_tilt, desired_tilt, banking_speed * delta)
-	camera.rotation_degrees.z = current_tilt
+
+	# Apply tilt to camera
+	if camera:
+		camera.rotation_degrees.z = current_tilt
 
 func _update_camera_shake(delta: float) -> void:
 	##Update camera shake effect

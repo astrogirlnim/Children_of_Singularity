@@ -35,57 +35,68 @@ func _initialize_inventory() -> void:
 ## Adds item to inventory.
 # @param item_id: String - ID of the item.
 # @param quantity: int - Quantity to add.
-func add_item(item_id: String, quantity: int) -> bool:
-	##Add an item to the inventory
-	_log_message("InventoryManager: Adding item %s (quantity: %d)" % [item_id, quantity])
+func add_item(item_type: String, amount: int = 1) -> bool:
+	##Add items to inventory with proper item management
+	_log_message("InventoryManager: Adding %d %s to inventory" % [amount, item_type])
 
-	# Check if inventory has space
-	if player_inventory.size() >= inventory_capacity:
-		_log_message("InventoryManager: Inventory full - cannot add item")
-		inventory_full.emit()
+	# Implement actual item addition logic
+	if not _is_valid_item_type(item_type):
+		_log_message("InventoryManager: ERROR - Invalid item type: %s" % item_type)
 		return false
 
-	# TODO: Implement actual item addition logic
-	var new_item = {
-		"item_id": item_id,
-		"item_type": _get_item_type(item_id),
-		"quantity": quantity,
-		"value": _calculate_item_value(item_id, quantity),
-		"timestamp": Time.get_unix_time_from_system()
-	}
+	if get_total_item_count() + amount > max_inventory_size:
+		_log_message("InventoryManager: ERROR - Inventory full, cannot add %d %s" % [amount, item_type])
+		return false
 
-	player_inventory.append(new_item)
-	_log_message("InventoryManager: Item added successfully - Total items: %d" % player_inventory.size())
+	# Add item to inventory
+	if inventory_items.has(item_type):
+		inventory_items[item_type] += amount
+	else:
+		inventory_items[item_type] = amount
 
-	item_added.emit(new_item.item_type, quantity)
-	inventory_updated.emit(player_inventory)
+	_log_message("InventoryManager: Successfully added %d %s. Total %s: %d" % [amount, item_type, item_type, inventory_items[item_type]])
+
+	# Update inventory display
+	_update_inventory_display()
+
+	# Emit inventory changed signal
+	inventory_changed.emit(inventory_items)
+
 	return true
 
 ## Removes item from inventory.
 # @param item_id: String - ID of the item to remove.
 # @param quantity: int - Quantity to remove.
-func remove_item(item_id: String, quantity: int) -> bool:
-	##Remove an item from the inventory
-	_log_message("InventoryManager: Removing item %s (quantity: %d)" % [item_id, quantity])
+func remove_item(item_type: String, amount: int = 1) -> bool:
+	##Remove items from inventory with validation
+	_log_message("InventoryManager: Attempting to remove %d %s from inventory" % [amount, item_type])
 
-	# TODO: Implement actual item removal logic
-	for i in range(player_inventory.size()):
-		if player_inventory[i].item_id == item_id:
-			var item = player_inventory[i]
-			if item.quantity >= quantity:
-				item.quantity -= quantity
-				if item.quantity <= 0:
-					player_inventory.remove_at(i)
-				_log_message("InventoryManager: Item removed successfully")
-				item_removed.emit(item.item_type, quantity)
-				inventory_updated.emit(player_inventory)
-				return true
-			else:
-				_log_message("InventoryManager: Insufficient quantity to remove")
-				return false
+	# Implement actual item removal logic
+	if not inventory_items.has(item_type):
+		_log_message("InventoryManager: ERROR - Item type %s not found in inventory" % item_type)
+		return false
 
-	_log_message("InventoryManager: Item not found in inventory")
-	return false
+	if inventory_items[item_type] < amount:
+		_log_message("InventoryManager: ERROR - Insufficient %s. Have: %d, Need: %d" % [item_type, inventory_items[item_type], amount])
+		return false
+
+	# Remove item from inventory
+	inventory_items[item_type] -= amount
+
+	# Remove entry if count reaches zero
+	if inventory_items[item_type] <= 0:
+		inventory_items.erase(item_type)
+		_log_message("InventoryManager: Removed all %s from inventory" % item_type)
+	else:
+		_log_message("InventoryManager: Removed %d %s. Remaining: %d" % [amount, item_type, inventory_items[item_type]])
+
+	# Update inventory display
+	_update_inventory_display()
+
+	# Emit inventory changed signal
+	inventory_changed.emit(inventory_items)
+
+	return true
 
 ## Gets the current inventory data.
 func get_inventory() -> Array[Dictionary]:
@@ -128,39 +139,129 @@ func set_capacity(new_capacity: int) -> void:
 	inventory_capacity = new_capacity
 	inventory_updated.emit(player_inventory)
 
-func _get_item_type(item_id: String) -> String:
-	##Get the type of an item based on its ID
-	# TODO: Implement proper item type lookup
-	if item_id.begins_with("scrap"):
-		return "scrap_metal"
-	elif item_id.begins_with("satellite"):
-		return "broken_satellite"
-	elif item_id.begins_with("bio"):
-		return "bio_waste"
-	elif item_id.begins_with("ai"):
-		return "ai_component"
-	else:
-		return "generic"
+func _is_valid_item_type(item_type: String) -> bool:
+	##Check if item type is valid
+	var valid_types = [
+		"scrap_metal",
+		"bio_waste",
+		"broken_satellite",
+		"ai_component",
+		"unknown_artifact",
+		"energy_cell",
+		"quantum_core",
+		"nano_material"
+	]
 
-func _calculate_item_value(item_id: String, quantity: int) -> int:
-	##Calculate the value of an item
-	# TODO: Implement proper item value calculation
-	var base_value = 10
-	var item_type = _get_item_type(item_id)
+	return item_type in valid_types
+
+func get_item_type_info(item_type: String) -> Dictionary:
+	##Get comprehensive information about an item type
+	# Implement proper item type lookup
+	var item_info = {
+		"name": item_type.replace("_", " ").capitalize(),
+		"category": "unknown",
+		"rarity": "common",
+		"base_value": 1,
+		"description": "No description available"
+	}
 
 	match item_type:
 		"scrap_metal":
-			base_value = 5
-		"broken_satellite":
-			base_value = 150
-		"bio_waste":
-			base_value = 25
-		"ai_component":
-			base_value = 500
-		_:
-			base_value = 10
+			item_info.category = "materials"
+			item_info.rarity = "common"
+			item_info.base_value = 5
+			item_info.description = "Common metallic debris from destroyed spacecraft"
 
-	return base_value * quantity
+		"bio_waste":
+			item_info.category = "organics"
+			item_info.rarity = "common"
+			item_info.base_value = 25
+			item_info.description = "Biological waste materials with potential research value"
+
+		"broken_satellite":
+			item_info.category = "technology"
+			item_info.rarity = "uncommon"
+			item_info.base_value = 150
+			item_info.description = "Damaged satellite containing salvageable components"
+
+		"ai_component":
+			item_info.category = "technology"
+			item_info.rarity = "rare"
+			item_info.base_value = 500
+			item_info.description = "Advanced AI processing units with high market value"
+
+		"unknown_artifact":
+			item_info.category = "artifacts"
+			item_info.rarity = "legendary"
+			item_info.base_value = 1000
+			item_info.description = "Mysterious artifact of unknown origin"
+
+		"energy_cell":
+			item_info.category = "power"
+			item_info.rarity = "uncommon"
+			item_info.base_value = 75
+			item_info.description = "High-capacity energy storage device"
+
+		"quantum_core":
+			item_info.category = "technology"
+			item_info.rarity = "epic"
+			item_info.base_value = 2500
+			item_info.description = "Quantum processing core with reality-bending properties"
+
+		"nano_material":
+			item_info.category = "materials"
+			item_info.rarity = "rare"
+			item_info.base_value = 800
+			item_info.description = "Self-assembling nanomaterial with multiple applications"
+
+	return item_info
+
+func get_item_value(item_type: String, amount: int = 1) -> int:
+	##Calculate the total value of items with market factors
+	# Implement proper item value calculation
+	var item_info = get_item_type_info(item_type)
+	var base_value = item_info.base_value
+
+	# Apply rarity multiplier
+	var rarity_multiplier = 1.0
+	match item_info.rarity:
+		"common":
+			rarity_multiplier = 1.0
+		"uncommon":
+			rarity_multiplier = 1.2
+		"rare":
+			rarity_multiplier = 1.5
+		"epic":
+			rarity_multiplier = 2.0
+		"legendary":
+			rarity_multiplier = 3.0
+
+	# Apply market fluctuation (±10% random variation)
+	var market_factor = randf_range(0.9, 1.1)
+
+	# Apply bulk discount for large quantities (5% discount per 10 items)
+	var bulk_factor = 1.0
+	if amount >= 10:
+		bulk_factor = 1.0 - (min(amount / 10, 5) * 0.05)  # Max 25% bulk discount
+
+	var final_value = int(base_value * rarity_multiplier * market_factor * bulk_factor * amount)
+
+	_log_message("InventoryManager: Calculated value for %d %s: %d credits (base: %d, rarity: %.1fx, market: %.2fx, bulk: %.2fx)" %
+		[amount, item_type, final_value, base_value, rarity_multiplier, market_factor, bulk_factor])
+
+	return final_value
+
+func _update_inventory_display() -> void:
+	##Update the inventory UI display
+	_log_message("InventoryManager: Updating inventory display")
+
+	# Calculate total value
+	var total_value = 0
+	for item_type in inventory_items:
+		total_value += get_item_value(item_type, inventory_items[item_type])
+
+	_log_message("InventoryManager: Current inventory - Items: %d/%d, Total Value: %d credits" %
+		[get_total_item_count(), max_inventory_size, total_value])
 
 func _log_message(message: String) -> void:
 	##Log a message with timestamp

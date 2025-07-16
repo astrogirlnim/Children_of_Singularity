@@ -58,6 +58,11 @@ var nearby_npcs: Array[Node2D] = []
 var current_npc_hub: Node2D = null
 var can_interact: bool = false
 
+## Scanner and Magnet states
+var is_scanner_active: bool = false
+var is_magnet_active: bool = false
+var magnet_range: float = 15.0
+
 func _ready() -> void:
 	_log_message("PlayerShip: Initializing player ship")
 	_setup_player_visuals()
@@ -438,15 +443,121 @@ func set_zone_access(access_level: int) -> void:
 	upgrades["zone_access"] = access_level
 	_log_message("PlayerShip: Zone access level set to %d" % access_level)
 
-func enable_debris_scanner(enabled: bool) -> void:
-	##Enable or disable debris scanner
-	# TODO: Implement debris scanner visual effects
-	_log_message("PlayerShip: Debris scanner %s" % ("enabled" if enabled else "disabled"))
+func enable_debris_scanner() -> void:
+	##Enable debris scanner with visual effects
+	is_scanner_active = true
+	_log_message("PlayerShip: Debris scanner activated")
 
-func enable_cargo_magnet(enabled: bool) -> void:
-	##Enable or disable cargo magnet
-	# TODO: Implement cargo magnet auto-collection
-	_log_message("PlayerShip: Cargo magnet %s" % ("enabled" if enabled else "disabled"))
+	# Implement debris scanner visual effects for 2D
+	_create_scanner_visual_effects_2d()
+
+	# Start scanning for debris periodically
+	if not get_tree().get_nodes_in_group("scanner_timer_2d"):
+		var scanner_timer = Timer.new()
+		scanner_timer.name = "ScannerTimer2D"
+		scanner_timer.wait_time = 2.0  # Scan every 2 seconds
+		scanner_timer.timeout.connect(_perform_debris_scan_2d)
+		scanner_timer.add_to_group("scanner_timer_2d")
+		add_child(scanner_timer)
+		scanner_timer.start()
+
+func _create_scanner_visual_effects_2d() -> void:
+	##Create 2D visual effects for debris scanner
+	_log_message("PlayerShip: Creating 2D scanner visual effects")
+
+	# Create scanner pulse effect using Node2D and Polygon2D
+	var scanner_effect = Node2D.new()
+	scanner_effect.name = "ScannerEffect2D"
+
+	var circle_polygon = Polygon2D.new()
+	circle_polygon.name = "ScannerCircle"
+
+	# Create circle points for scanner range
+	var circle_points = PackedVector2Array()
+	var radius = 25.0  # Scanner range in 2D
+	for i in range(32):  # 32 points for smooth circle
+		var angle = (i / 32.0) * 2 * PI
+		circle_points.append(Vector2(cos(angle) * radius, sin(angle) * radius))
+
+	circle_polygon.polygon = circle_points
+	circle_polygon.color = Color(0.0, 1.0, 1.0, 0.2)  # Cyan with transparency
+
+	scanner_effect.add_child(circle_polygon)
+	add_child(scanner_effect)
+
+	# Animate scanner pulse
+	var tween = create_tween()
+	tween.set_loops()
+	tween.tween_property(scanner_effect, "scale", Vector2(1.2, 1.2), 1.0)
+	tween.tween_property(scanner_effect, "scale", Vector2(0.8, 0.8), 1.0)
+
+func _perform_debris_scan_2d() -> void:
+	##Perform 2D debris scan and highlight detected objects
+	if not is_scanner_active:
+		return
+
+	_log_message("PlayerShip: Performing 2D debris scan")
+
+	# Get all debris objects in scanner range
+	var debris_in_range = []
+	for body in collection_area.get_overlapping_bodies():
+		if body.is_in_group("debris"):
+			debris_in_range.append(body)
+
+	# Highlight detected debris
+	for debris in debris_in_range:
+		_highlight_debris_object_2d(debris)
+
+func _highlight_debris_object_2d(debris: Node2D) -> void:
+	##Add visual highlight to detected debris in 2D
+	if not debris or not debris.has_method("get_sprite"):
+		return
+
+	var sprite = debris.get_sprite()
+	if sprite:
+		# Add temporary highlight effect
+		var original_modulate = sprite.modulate
+		sprite.modulate = Color(1.5, 1.5, 1.0, 1.0)  # Bright yellow highlight
+
+		# Remove highlight after 2 seconds
+		var tween = create_tween()
+		tween.tween_property(sprite, "modulate", original_modulate, 2.0)
+
+func enable_cargo_magnet() -> void:
+	##Enable cargo magnet for auto-collection
+	is_magnet_active = true
+	magnet_range = 15.0  # Increased collection range
+	_log_message("PlayerShip: Cargo magnet activated with range %.1f" % magnet_range)
+
+	# Implement cargo magnet auto-collection for 2D
+	_start_magnet_auto_collection_2d()
+
+func _start_magnet_auto_collection_2d() -> void:
+	##Start automatic debris collection when magnet is active in 2D
+	if not get_tree().get_nodes_in_group("magnet_timer_2d"):
+		var magnet_timer = Timer.new()
+		magnet_timer.name = "MagnetTimer2D"
+		magnet_timer.wait_time = 0.5  # Check for auto-collection every 0.5 seconds
+		magnet_timer.timeout.connect(_auto_collect_debris_2d)
+		magnet_timer.add_to_group("magnet_timer_2d")
+		add_child(magnet_timer)
+		magnet_timer.start()
+
+func _auto_collect_debris_2d() -> void:
+	##Automatically collect debris within magnet range in 2D
+	if not is_magnet_active:
+		return
+
+	var debris_collected = 0
+	for body in collection_area.get_overlapping_bodies():
+		if body.is_in_group("debris") and debris_collected < 3:  # Limit to 3 per cycle
+			var distance = global_position.distance_to(body.global_position)
+			if distance <= magnet_range:
+				_collect_debris_object(body)
+				debris_collected += 1
+
+	if debris_collected > 0:
+		_log_message("PlayerShip: Magnet auto-collected %d debris objects" % debris_collected)
 
 ## Get debris in collection range
 func get_debris_in_range() -> Array[RigidBody2D]:

@@ -78,6 +78,11 @@ var acceleration: float = 800.0
 var friction: float = 600.0
 var max_speed: float = 300.0
 
+## Scanner and Magnet states
+var is_scanner_active: bool = false
+var is_magnet_active: bool = false
+var magnet_range: float = 15.0
+
 func _ready() -> void:
 	_log_message("PlayerShip3D: Initializing 3D player ship")
 	_setup_3d_components()
@@ -538,15 +543,120 @@ func set_zone_access(access_level: int) -> void:
 	upgrades["zone_access"] = access_level
 	_log_message("PlayerShip3D: Zone access level set to %d" % access_level)
 
-func enable_debris_scanner(enabled: bool) -> void:
-	##Enable or disable debris scanner
-	# TODO: Implement debris scanner visual effects
-	_log_message("PlayerShip3D: Debris scanner %s" % ("enabled" if enabled else "disabled"))
+func enable_debris_scanner() -> void:
+	##Enable debris scanner with visual effects
+	is_scanner_active = true
+	_log_message("PlayerShip3D: Debris scanner activated")
 
-func enable_cargo_magnet(enabled: bool) -> void:
-	##Enable or disable cargo magnet
-	# TODO: Implement cargo magnet auto-collection
-	_log_message("PlayerShip3D: Cargo magnet %s" % ("enabled" if enabled else "disabled"))
+	# Implement debris scanner visual effects
+	_create_scanner_visual_effects()
+
+	# Start scanning for debris periodically
+	if not get_tree().get_nodes_in_group("scanner_timer"):
+		var scanner_timer = Timer.new()
+		scanner_timer.name = "ScannerTimer"
+		scanner_timer.wait_time = 2.0  # Scan every 2 seconds
+		scanner_timer.timeout.connect(_perform_debris_scan)
+		scanner_timer.add_to_group("scanner_timer")
+		add_child(scanner_timer)
+		scanner_timer.start()
+
+func _create_scanner_visual_effects() -> void:
+	##Create visual effects for debris scanner
+	_log_message("PlayerShip3D: Creating scanner visual effects")
+
+	# Create scanner pulse effect
+	var scanner_effect = MeshInstance3D.new()
+	scanner_effect.name = "ScannerEffect"
+	var sphere_mesh = SphereMesh.new()
+	sphere_mesh.radius = 25.0  # Scanner range
+	sphere_mesh.height = 50.0
+	scanner_effect.mesh = sphere_mesh
+
+	# Create scanner material with transparency and animation
+	var scanner_material = StandardMaterial3D.new()
+	scanner_material.albedo_color = Color(0.0, 1.0, 1.0, 0.2)  # Cyan with transparency
+	scanner_material.flags_transparent = true
+	scanner_material.grow = true
+	scanner_material.emission_enabled = true
+	scanner_material.emission = Color(0.0, 0.8, 0.8)
+	scanner_effect.material_override = scanner_material
+
+	add_child(scanner_effect)
+
+	# Animate scanner pulse
+	var tween = create_tween()
+	tween.set_loops()
+	tween.tween_property(scanner_effect, "scale", Vector3(1.2, 1.2, 1.2), 1.0)
+	tween.tween_property(scanner_effect, "scale", Vector3(0.8, 0.8, 0.8), 1.0)
+
+func _perform_debris_scan() -> void:
+	##Perform debris scan and highlight detected objects
+	if not is_scanner_active:
+		return
+
+	_log_message("PlayerShip3D: Performing debris scan")
+
+	# Get all debris objects in scanner range
+	var debris_in_range = []
+	for body in collection_area.get_overlapping_bodies():
+		if body.is_in_group("debris_3d"):
+			debris_in_range.append(body)
+
+	# Highlight detected debris
+	for debris in debris_in_range:
+		_highlight_debris_object(debris)
+
+func _highlight_debris_object(debris: Node3D) -> void:
+	##Add visual highlight to detected debris
+	if not debris or not debris.has_method("get_sprite_3d"):
+		return
+
+	var sprite = debris.get_sprite_3d()
+	if sprite:
+		# Add temporary highlight effect
+		var original_modulate = sprite.modulate
+		sprite.modulate = Color(1.5, 1.5, 1.0, 1.0)  # Bright yellow highlight
+
+		# Remove highlight after 2 seconds
+		var tween = create_tween()
+		tween.tween_property(sprite, "modulate", original_modulate, 2.0)
+
+func enable_cargo_magnet() -> void:
+	##Enable cargo magnet for auto-collection
+	is_magnet_active = true
+	magnet_range = 15.0  # Increased collection range
+	_log_message("PlayerShip3D: Cargo magnet activated with range %.1f" % magnet_range)
+
+	# Implement cargo magnet auto-collection
+	_start_magnet_auto_collection()
+
+func _start_magnet_auto_collection() -> void:
+	##Start automatic debris collection when magnet is active
+	if not get_tree().get_nodes_in_group("magnet_timer"):
+		var magnet_timer = Timer.new()
+		magnet_timer.name = "MagnetTimer"
+		magnet_timer.wait_time = 0.5  # Check for auto-collection every 0.5 seconds
+		magnet_timer.timeout.connect(_auto_collect_debris)
+		magnet_timer.add_to_group("magnet_timer")
+		add_child(magnet_timer)
+		magnet_timer.start()
+
+func _auto_collect_debris() -> void:
+	##Automatically collect debris within magnet range
+	if not is_magnet_active:
+		return
+
+	var debris_collected = 0
+	for body in collection_area.get_overlapping_bodies():
+		if body.is_in_group("debris_3d") and debris_collected < 3:  # Limit to 3 per cycle
+			var distance = global_position.distance_to(body.global_position)
+			if distance <= magnet_range:
+				_collect_debris_object(body)
+				debris_collected += 1
+
+	if debris_collected > 0:
+		_log_message("PlayerShip3D: Magnet auto-collected %d debris objects" % debris_collected)
 
 # Utility methods
 func get_debris_in_range() -> Array[RigidBody3D]:
