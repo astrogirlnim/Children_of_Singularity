@@ -144,7 +144,8 @@ func _physics_process(delta: float) -> void:
 		_update_ship_tracking_data(delta)
 		_update_mario_kart_camera_position(delta)
 
-	_update_mouse_rotation(delta)
+	# Mario Kart mode: No mouse rotation, camera follows ship naturally
+	# _update_mouse_rotation(delta)  # Disabled for Mario Kart steering
 	_update_distance_zoom(delta)
 	_update_camera_tilt(delta)
 	_update_camera_shake(delta)
@@ -200,12 +201,13 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	# Apply Mario Kart 8 style camera banking when turning (more aggressive)
 	var banking_roll = 0.0
 	if enable_camera_banking:  # Fixed: use the export variable instead of hardcoded false
-		# Get the ship's turning input rather than velocity changes
+		# Get the ship's steering input for Mario Kart style banking
 		var ship_body = target as CharacterBody3D
-		if ship_body and ship_body.has_method("get_turn_input"):
-			# Use actual steering input for banking (only when turning)
-			var turn_input = ship_body.get_turn_input()
-			banking_roll = turn_input * banking_amount
+		if ship_body and ship_body.has_method("get_current_steering_input"):
+			# Use actual steering input for banking (Mario Kart style)
+			var steering_input = ship_body.get_current_steering_input()
+			banking_roll = steering_input * banking_amount
+			_log_message("CameraController3D: Mario Kart banking - Steering: %.2f, Banking: %.2f" % [steering_input, banking_roll])
 		else:
 			# Improved: smooth banking calculation with gradual detection
 			var horizontal_velocity = Vector3(ship_velocity.x, 0, ship_velocity.z)
@@ -256,9 +258,8 @@ func _update_mouse_rotation(delta: float) -> void:
 	if inner_gimbal:
 		inner_gimbal.rotation.x = clamp(current_pitch, max_pitch_down, max_pitch_up)
 
-	# Update ship rotation if we have a target
-	if target and target.has_method("set_target_rotation"):
-		target.set_target_rotation(current_yaw)
+	# Mario Kart style: Ship controls its own rotation, camera follows
+	# No longer control ship rotation from camera
 
 func _update_distance_zoom(delta: float) -> void:
 	##Update distance-based zoom system
@@ -396,47 +397,18 @@ func _log_message(message: String) -> void:
 
 # Input actions for zoom and mouse rotation
 func _input(event: InputEvent) -> void:
-	##Handle additional input events including mouse rotation
+	##Handle Mario Kart camera input (zoom only, no rotation)
 	if event is InputEventMouseButton:
 		var mouse_event = event as InputEventMouseButton
 		if mouse_event.pressed:
 			match mouse_event.button_index:
 				MOUSE_BUTTON_WHEEL_UP:
 					zoom_in()
+					_log_message("CameraController3D: Mario Kart zoom in")
 				MOUSE_BUTTON_WHEEL_DOWN:
 					zoom_out()
-				MOUSE_BUTTON_RIGHT:
-					if enable_mouse_rotation:
-						is_mouse_rotating = true
-						# Capture mouse for rotation
-						Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-						_log_message("CameraController3D: Mouse rotation started")
-		else:
-			# Mouse button released
-			if mouse_event.button_index == MOUSE_BUTTON_RIGHT and is_mouse_rotating:
-				is_mouse_rotating = false
-				# Release mouse capture
-				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-				_log_message("CameraController3D: Mouse rotation ended")
-
-	elif event is InputEventMouseMotion and is_mouse_rotating and enable_mouse_rotation:
-		var mouse_motion = event as InputEventMouseMotion
-
-		# Apply mouse sensitivity and inversion
-		var yaw_input = mouse_motion.relative.x * mouse_sensitivity
-		var pitch_input = mouse_motion.relative.y * mouse_sensitivity
-
-		if invert_mouse_x:
-			yaw_input = -yaw_input
-		if invert_mouse_y:
-			pitch_input = -pitch_input
-
-		# Update target rotations with speed limits
-		target_yaw += clamp(-yaw_input, -max_yaw_speed * get_process_delta_time(), max_yaw_speed * get_process_delta_time())
-		target_pitch += clamp(-pitch_input, -max_yaw_speed * get_process_delta_time(), max_yaw_speed * get_process_delta_time())
-
-		# Clamp pitch to prevent over-rotation
-		target_pitch = clamp(target_pitch, max_pitch_down, max_pitch_up)
+					_log_message("CameraController3D: Mario Kart zoom out")
+				# Removed mouse rotation - Mario Kart uses steering keys only
 
 	# Handle keyboard zoom input
 	_handle_zoom_input(get_process_delta_time())
