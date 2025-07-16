@@ -1,7 +1,7 @@
 # TradingHub3D.gd
 # 3D Trading Hub for Children of the Singularity
 # Provides trading functionality with billboard sprite display for 2.5D aesthetic
-# Now includes 176-frame animation loop for enhanced visual appeal
+# Now includes 162-frame animation loop for enhanced visual appeal
 
 class_name TradingHub3D
 extends StaticBody3D
@@ -30,7 +30,7 @@ var hub_animation_textures: Array[Texture2D] = []
 var current_frame: int = 1  # Start at frame 1
 var animation_timer: Timer
 var animation_speed: float = 0.05  # Time in seconds between frames (20 FPS for smooth animation)
-var total_frames: int = 176  # Frames 1-176 (frame_0001.png to frame_0176.png)
+var total_frames: int = 162  # Frames 1-162 (frame_0001.png to frame_0162.png)
 
 ## Animation state management (continuous playing)
 var is_animating: bool = true
@@ -41,7 +41,7 @@ var is_active: bool = true
 var current_players: Array[Node3D] = []
 
 func _ready() -> void:
-	_log_message("TradingHub3D: Initializing %s with 176-frame animation" % hub_name)
+	_log_message("TradingHub3D: Initializing %s with 162-frame animation" % hub_name)
 	_load_hub_animation_textures()  # Load all animation frames first
 	_setup_hub()
 	_setup_animation_system()
@@ -57,10 +57,10 @@ func _load_hub_animation_textures() -> void:
 	##Load all trading hub animation frame textures into memory for fast switching
 	_log_message("TradingHub3D: Loading trading hub animation textures...")
 
-	# Resize array to hold all frames (1-176)
+	# Resize array to hold all frames (1-162)
 	hub_animation_textures.resize(total_frames + 1)
 
-	# Load frames from 1 to 176
+	# Load frames from 1 to 162
 	var loaded_count = 0
 	for i in range(1, total_frames + 1):
 		var texture_path = "res://assets/sprites/trading_hub/animation_frames/frame_%04d.png" % i
