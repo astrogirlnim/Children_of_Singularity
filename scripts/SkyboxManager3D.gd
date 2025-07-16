@@ -29,6 +29,15 @@ var layers_config: Array[Dictionary] = [
 		"texture_path": "res://assets/backgrounds/seamless/starfield_seamless.png",
 		"rotation_speed": 0.3,  # Slow, majestic rotation
 		"alpha": 0.8,  # Slightly transparent for natural blending
+		"uv_scale": 12.0,  # Dense starfield tiling
+	},
+	{
+		"name": "Shell_1_Stars_Distant",
+		"radius": 1200.0,  # Distant stars - middle layer
+		"texture_path": "res://assets/backgrounds/layers/space_stars_distant.png",
+		"rotation_speed": -0.2,  # Counter-rotation for depth effect
+		"alpha": 0.25,  # Lower alpha for subtle transparent overlay
+		"uv_scale": 16.0,  # Higher tiling to break up pattern repetition
 	}
 ]
 
@@ -107,6 +116,10 @@ func _create_layer_from_config(config: Dictionary, index: int) -> void:
 	skybox_layer.layer_alpha = config.get("alpha", 1.0)
 	skybox_layer.texture_path = config.get("texture_path", "")
 	skybox_layer.layer_tint = config.get("tint", Color.WHITE)
+	skybox_layer.uv_scale = config.get("uv_scale", 8.0)
+	skybox_layer.use_random_tint = config.get("use_random_tint", false)
+	skybox_layer.tint_hue_range = config.get("tint_hue_range", 30.0)
+	skybox_layer.tint_saturation = config.get("tint_saturation", 0.2)
 
 	# Enable debug logging for layers
 	skybox_layer.enable_debug_logging(debug_logging)

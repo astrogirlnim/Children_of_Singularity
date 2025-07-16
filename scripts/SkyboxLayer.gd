@@ -11,6 +11,10 @@ extends MeshInstance3D
 @export var layer_alpha: float = 1.0
 @export var texture_path: String = ""
 @export var layer_tint: Color = Color.WHITE
+@export var uv_scale: float = 8.0  # Configurable UV tiling scale
+@export var use_random_tint: bool = false  # Enable random color variations
+@export var tint_hue_range: float = 30.0  # Hue variation range in degrees (0-360)
+@export var tint_saturation: float = 0.2  # Color saturation strength
 
 ## Internal references
 var sphere_mesh: SphereMesh
@@ -67,17 +71,29 @@ func _setup_material() -> void:
 	material.flags_do_not_receive_shadows = true
 	material.flags_disable_ambient_light = true
 
-	# Optimize rendering for skybox (render behind everything else)
-	material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_ALWAYS
+	# Critical: Configure for skybox rendering (render behind everything else)
+	material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED  # Don't write to depth buffer
 	material.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
 
-	# Always enable transparency for proper skybox blending
+	# Configure transparency for PNG alpha channel support
 	material.flags_transparent = true
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.blend_mode = BaseMaterial3D.BLEND_MIX
+	material.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
 
-	# Preserve natural texture colors (no tinting) with proper alpha
-	material.albedo_color = Color(1.0, 1.0, 1.0, layer_alpha)
+	# Critical: Set render priority to ensure skybox renders before game objects
+	# Note: In Godot 4.4, render priority is handled differently for transparent materials
+
+	# Ensure proper render order for layered skyboxes
+	material.vertex_color_use_as_albedo = false
+	material.vertex_color_is_srgb = false
+
+	# Apply color tinting (with optional random variations)
+	var final_tint = layer_tint
+	if use_random_tint:
+		final_tint = _generate_random_tint()
+
+	# Use alpha for the albedo color but keep material opaque
+	material.albedo_color = Color(final_tint.r, final_tint.g, final_tint.b, layer_alpha)
 
 	# Apply material to mesh
 	set_surface_override_material(0, material)
@@ -97,22 +113,13 @@ func _load_texture() -> void:
 	if texture:
 		material.albedo_texture = texture
 
-		# Calculate UV scaling optimized for seamless textures
-		# Seamless textures are designed to tile perfectly, so minimal scaling needed
-		var final_scale = 1.0  # Start with 1:1 for seamless textures
-
-		# Only adjust scale slightly based on radius to avoid visible seams
-		if layer_radius > 1200.0:
-			final_scale = 0.8  # Slightly smaller for very large spheres
-		elif layer_radius < 800.0:
-			final_scale = 1.2  # Slightly larger for smaller spheres
-
-		# Apply UV scaling for texture tiling
-		material.uv1_scale = Vector3(final_scale, final_scale, 1.0)
+		# Configure UV scaling for texture tiling
+		# Use the configurable uv_scale property for precise control
+		material.uv1_scale = Vector3(uv_scale, uv_scale, 1.0)
 		material.uv1_offset = Vector3.ZERO
 
 		if debug_logging:
-			print("[SkyboxLayer] Loaded texture: %s with UV scale: %.2f" % [texture_path, final_scale])
+			print("[SkyboxLayer] Loaded texture: %s with UV scale: %.2f" % [texture_path, uv_scale])
 	else:
 		push_warning("[SkyboxLayer] Failed to load texture: %s" % texture_path)
 		if debug_logging:
@@ -188,3 +195,27 @@ func get_layer_info() -> Dictionary:
 func enable_debug_logging(enabled: bool) -> void:
 	## Enable or disable debug logging for this layer
 	debug_logging = enabled
+
+func _generate_random_tint() -> Color:
+	## Generate a random color tint based on hue range and saturation settings
+	# Start with the base tint
+	var base_hue = layer_tint.h
+	var base_sat = layer_tint.s
+	var base_val = layer_tint.v
+
+	# Generate random hue variation within specified range
+	var hue_variation = (randf() - 0.5) * 2.0 * (tint_hue_range / 360.0)
+	var new_hue = fmod(base_hue + hue_variation, 1.0)
+	if new_hue < 0.0:
+		new_hue += 1.0
+
+	# Apply saturation boost for more vivid colors
+	var new_saturation = clamp(base_sat + tint_saturation, 0.0, 1.0)
+
+	# Create the final tinted color
+	var random_tint = Color.from_hsv(new_hue, new_saturation, base_val)
+
+	if debug_logging:
+		print("[SkyboxLayer] Generated random tint - Hue: %.2f, Sat: %.2f, Val: %.2f" % [new_hue, new_saturation, base_val])
+
+	return random_tint
