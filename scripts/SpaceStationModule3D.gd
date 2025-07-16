@@ -68,7 +68,7 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	##Clean up animation resources when node is freed
-	if animation_timer and animation_timer.is_valid():
+	if animation_timer and is_instance_valid(animation_timer):
 		animation_timer.queue_free()
 	_log_message("SpaceStationModule3D: Animation resources cleaned up")
 
