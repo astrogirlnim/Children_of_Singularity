@@ -126,10 +126,10 @@ vertical_alignment = 2
 
 [node name="InventoryPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-offset_left = 20.0
-offset_top = 80.0
-offset_right = 350.0
-offset_bottom = 325.0
+anchor_left = 0.02
+anchor_top = 0.1
+anchor_right = 0.35
+anchor_bottom = 0.55
 theme_type_variation = "InventoryPanel"
 
 [node name="InventoryTitle" type="Label" parent="UILayer/HUD/InventoryPanel"]
@@ -159,10 +159,10 @@ horizontal_alignment = 1
 
 [node name="StatsPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-offset_left = 20.0
-offset_top = 345.0
-offset_right = 270.0
-offset_bottom = 560.0
+anchor_left = 0.02
+anchor_top = 0.6
+anchor_right = 0.35
+anchor_bottom = 0.98
 theme_type_variation = "SmallPanel"
 
 [node name="StatsTitle" type="Label" parent="UILayer/HUD/StatsPanel"]
@@ -199,10 +199,10 @@ text = "Collection Range: 80"
 
 [node name="UpgradeStatusPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-offset_left = 20.0
-offset_top = 580.0
-offset_right = 270.0
-offset_bottom = 795.0
+anchor_left = 0.65
+anchor_top = 0.6
+anchor_right = 0.98
+anchor_bottom = 0.98
 theme_type_variation = "SmallPanel"
 
 [node name="UpgradeStatusTitle" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
@@ -224,10 +224,10 @@ vertical_alignment = 1
 
 [node name="ControlsPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-offset_left = 1200.0
-offset_top = 80.0
-offset_right = 1560.0
-offset_bottom = 405.0
+anchor_left = 0.65
+anchor_top = 0.1
+anchor_right = 0.98
+anchor_bottom = 0.55
 theme_type_variation = "HorizontalPanel"
 
 [node name="ControlsTitle" type="Label" parent="UILayer/HUD/ControlsPanel"]

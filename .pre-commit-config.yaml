@@ -8,10 +8,11 @@ repos:
     hooks:
       - id: gitleaks
         name: gitleaks
-        description: Detect hardcoded secrets using Gitleaks
-        entry: gitleaks detect --config .gitleaks.toml --no-git --verbose
+        description: Detect hardcoded secrets using Gitleaks on staged files only
+        entry: gitleaks protect --config .gitleaks.toml --staged --verbose
         language: golang
         types: [text]
+        stages: [commit]
 
   # Built-in pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -96,6 +97,8 @@ repos:
         description: Check for broken symlinks
 
 # Global configuration
+default_install_hook_types: [pre-commit]
+default_stages: [commit]
 ci:
   autofix_commit_msg: |
     [pre-commit.ci] auto fixes from pre-commit hooks
