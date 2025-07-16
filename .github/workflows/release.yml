@@ -2,16 +2,29 @@ name: 🚀 Release Pipeline
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
-      - 'v*'  # Trigger on version tags (v1.0.0, v1.1.0, etc.)
+      - 'v*'  # Still support manual version tags
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+      - master
   workflow_dispatch:
     inputs:
       version:
         description: 'Release version (e.g., v1.0.0)'
-        required: true
-        default: 'v1.0.0'
+        required: false
+        default: ''
       prerelease:
         description: 'Mark as pre-release'
+        required: false
+        default: false
+        type: boolean
+      force_release:
+        description: 'Force release even if no changes'
         required: false
         default: false
         type: boolean
@@ -21,49 +34,139 @@ env:
   EXPORT_NAME: Children_of_Singularity
 
 jobs:
-  # Clean up old releases first
-  cleanup-releases:
-    name: 🧹 Cleanup Old Releases
+  # Generate version and check if release is needed
+  version-check:
+    name: 🏷️ Version Check
     runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.check.outputs.is_prerelease }}
     steps:
-      - name: 🗑️ Delete Previous Releases
-        uses: actions/github-script@v7
+      - name: 📥 Checkout Source
+        uses: actions/checkout@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            console.log('🔍 Fetching existing releases...');
+          fetch-depth: 0
+          lfs: true
 
-            const releases = await github.rest.repos.listReleases({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
+      - name: 🔍 Check Release Conditions
+        id: check
+        run: |
+          echo "🔍 Checking if release should be triggered..."
 
-            console.log(`📋 Found ${releases.data.length} existing releases`);
+          SHOULD_RELEASE="false"
+          IS_PRERELEASE="false"
 
-            // Keep only the latest release, delete all others
-            for (let i = 0; i < releases.data.length; i++) {
-              const release = releases.data[i];
-              console.log(`🗑️ Deleting release: ${release.tag_name} (${release.name})`);
+          # Manual workflow dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.force_release }}" = "true" ] || [ -n "${{ github.event.inputs.version }}" ]; then
+              SHOULD_RELEASE="true"
+              echo "✅ Manual release triggered"
+            fi
+          fi
 
-              try {
-                await github.rest.repos.deleteRelease({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  release_id: release.id,
-                });
-                console.log(`✅ Deleted release: ${release.tag_name}`);
-              } catch (error) {
-                console.log(`❌ Failed to delete release ${release.tag_name}:`, error.message);
-              }
-            }
+          # Tag push
+          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            SHOULD_RELEASE="true"
+            echo "✅ Tag-based release triggered"
+          fi
 
-            console.log('🧹 Cleanup completed');
+          # PR merge to main/master
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.action }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+            # Check if PR has release-related changes
+            echo "🔍 Checking PR for release-worthy changes..."
+
+            # Get list of changed files
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+            echo "Changed files: $CHANGED_FILES"
+
+            # Check for significant changes (not just docs or minor fixes)
+            if echo "$CHANGED_FILES" | grep -E '\.(gd|tscn|tres|cs|cpp|h)$|scripts/|scenes/|assets/|project\.godot|export_presets\.cfg'; then
+              SHOULD_RELEASE="true"
+              IS_PRERELEASE="true"
+              echo "✅ PR contains significant changes, triggering release"
+            else
+              echo "ℹ️ PR contains only minor changes, skipping release"
+            fi
+          fi
+
+          # Push to main/master (direct commits)
+          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/heads/* ]]; then
+            # Check if push contains significant changes
+            echo "🔍 Checking push for release-worthy changes..."
+
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+            echo "Changed files: $CHANGED_FILES"
+
+            if echo "$CHANGED_FILES" | grep -E '\.(gd|tscn|tres|cs|cpp|h)$|scripts/|scenes/|assets/|project\.godot|export_presets\.cfg'; then
+              SHOULD_RELEASE="true"
+              IS_PRERELEASE="true"
+              echo "✅ Push contains significant changes, triggering release"
+            else
+              echo "ℹ️ Push contains only minor changes, skipping release"
+            fi
+          fi
+
+          echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+
+      - name: 🏷️ Generate Version
+        id: version
+        run: |
+          echo "🏷️ Generating version number..."
+
+          # Use manual version if provided
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            echo "📋 Using manual version: $VERSION"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${{ github.ref_name }}"
+            echo "📋 Using tag version: $VERSION"
+          else
+            # Generate automatic version
+            BRANCH_NAME="${{ github.ref_name }}"
+            BUILD_NUMBER="${{ github.run_number }}"
+            COMMIT_SHORT="${{ github.sha }}"
+            COMMIT_SHORT="${COMMIT_SHORT:0:8}"
+            TIMESTAMP=$(date +%Y%m%d)
+
+            # Get latest tag for base version
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            echo "📋 Latest tag: $LATEST_TAG"
+
+            # Extract version numbers
+            if [[ $LATEST_TAG =~ v([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+              MAJOR=${BASH_REMATCH[1]}
+              MINOR=${BASH_REMATCH[2]}
+              PATCH=${BASH_REMATCH[3]}
+            else
+              MAJOR=0
+              MINOR=1
+              PATCH=0
+            fi
+
+            # Auto-increment based on branch
+            if [ "$BRANCH_NAME" = "main" ] || [ "$BRANCH_NAME" = "master" ]; then
+              # Increment patch for main branch
+              PATCH=$((PATCH + 1))
+              VERSION="v${MAJOR}.${MINOR}.${PATCH}-build.${BUILD_NUMBER}"
+            else
+              # Use current version with build suffix for other branches
+              VERSION="v${MAJOR}.${MINOR}.${PATCH}-${BRANCH_NAME}.${BUILD_NUMBER}"
+            fi
+
+            echo "📋 Generated version: $VERSION"
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📋 Final version: $VERSION"
 
   # Build the game for all platforms
   build-game:
     name: 🎮 Build Game
     runs-on: ubuntu-latest
-    needs: cleanup-releases
+    needs: version-check
+    if: needs.version-check.outputs.should_release == 'true'
     container:
       image: barichello/godot-ci:4.4.1
     steps:
@@ -75,6 +178,9 @@ jobs:
       - name: 📋 Setup Build Environment
         run: |
           echo "🔧 Setting up build environment..."
+          echo "Version: ${{ needs.version-check.outputs.version }}"
+          echo "Build Number: ${{ github.run_number }}"
+          echo "Commit: ${{ github.sha }}"
           mkdir -v -p ~/.local/share/godot/export_templates/
           mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
@@ -112,7 +218,7 @@ jobs:
           cd build
 
           # Get version from tag or input
-          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          VERSION="${{ needs.version-check.outputs.version }}"
           echo "📋 Version: $VERSION"
 
           # Windows - ZIP archive
@@ -145,7 +251,7 @@ jobs:
       - name: 📝 Generate Release Notes
         run: |
           echo "📝 Generating release notes..."
-          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          VERSION="${{ needs.version-check.outputs.version }}"
           BUILD_NUMBER="${{ github.run_number }}"
           COMMIT_HASH="${{ github.sha }}"
 
@@ -249,7 +355,7 @@ jobs:
           ./scripts/s3-manager.sh setup
 
           # Get version from tag or input
-          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          VERSION="${{ needs.version-check.outputs.version }}"
 
           # Upload release to S3
           echo "📤 Uploading release $VERSION to S3..."
@@ -278,7 +384,8 @@ jobs:
   create-release:
     name: 🏷️ Create Release
     runs-on: ubuntu-latest
-    needs: build-game
+    needs: [version-check, build-game]
+    if: needs.version-check.outputs.should_release == 'true'
     steps:
       - name: 📥 Download Build Artifacts
         uses: actions/download-artifact@v4
@@ -294,11 +401,11 @@ jobs:
       - name: 🏷️ Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.event.inputs.version || github.ref_name }}
-          name: "Children of the Singularity ${{ github.event.inputs.version || github.ref_name }}"
+          tag_name: ${{ needs.version-check.outputs.version }}
+          name: "Children of the Singularity ${{ needs.version-check.outputs.version }}"
           body_path: build/RELEASE_NOTES.md
           draft: false
-          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          prerelease: ${{ needs.version-check.outputs.is_prerelease == 'true' }}
           files: |
             build/*.zip
             build/*.tar.gz
@@ -318,7 +425,7 @@ jobs:
           unzip awscliv2.zip
           sudo ./aws/install
 
-          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          VERSION="${{ needs.version-check.outputs.version }}"
 
           echo "☁️ S3 Release Summary:"
           echo "📋 Version: $VERSION"
@@ -342,7 +449,7 @@ jobs:
       - name: 🎉 Release Summary
         run: |
           echo "🎉 Release pipeline completed successfully!"
-          echo "📋 Release: ${{ github.event.inputs.version || github.ref_name }}"
+          echo "📋 Release: ${{ needs.version-check.outputs.version }}"
           echo "🔗 Check the releases page for download links"
 
           if [ "${{ vars.USE_S3_STORAGE }}" = "true" ]; then
