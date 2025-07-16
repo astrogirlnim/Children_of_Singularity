@@ -67,7 +67,7 @@ func setup_mario_kart_camera() -> void:
 	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
 	camera.fov = camera_fov
 	camera.near = 0.3   # Very close for detailed view
-	camera.far = 300.0  # Far enough for zone boundaries
+	camera.far = 2000.0  # Extended far plane for skybox visibility (was 300.0)
 
 	# Clear any manual transform from scene file - let script control everything
 	camera.transform = Transform3D.IDENTITY

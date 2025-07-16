@@ -113,7 +113,8 @@ func _initialize_3d_zone() -> void:
 	_initialize_zone_boundaries()
 
 	# Initialize background system (layered background elements with parallax)
-	_initialize_background_system()
+	# BackgroundManager3D disabled for skybox revamp Phase 0
+	# _initialize_background_system()
 
 	# Initialize HUD
 	if debug_label:
