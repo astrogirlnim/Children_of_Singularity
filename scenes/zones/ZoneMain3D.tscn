@@ -55,15 +55,15 @@ shadow_bias = 0.05
 
 [node name="CameraController3D" type="Node3D" parent="."]
 script = ExtResource("7_camera_controller")
-camera_distance = 40.0
-camera_height = 25.0
+camera_distance = 12.0
+camera_height = 3.0
+camera_fov = 85.0
+follow_speed = 8.0
+rotation_follow_speed = 4.0
+banking_amount = 20.0
+banking_speed = 6.0
 
 [node name="Camera3D" type="Camera3D" parent="CameraController3D"]
-transform = Transform3D(1, 0, 0, 0, 0.999446, -0.0332948, 0, 0.0332948, 0.999446, -0.0915636, -0.142092, 1.99998)
-projection = 1
-size = 80.0
-near = 0.1
-far = 200.0
 
 [node name="PlayerShip3D" parent="." instance=ExtResource("2_player_ship")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)

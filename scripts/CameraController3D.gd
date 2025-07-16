@@ -7,23 +7,27 @@
 
 extends Node3D
 
-## Camera configuration for Mario Kart 8 style (balanced racing camera)
-@export var camera_distance: float = 20         # Balanced distance for proper ship visibility and bottom-third positioning
-@export var camera_height: float = 5           # Slightly higher for better racing perspective
-@export var camera_fov: float = 70.0             # Field of view (degrees) - Mario Kart 8 optimal
-@export var follow_speed: float = 5.0            # Camera follow responsiveness
-@export var rotation_follow_speed: float = 3.0   # Rotation following speed
+## Camera configuration for Mario Kart 8 style (close-up racing camera)
+@export var camera_distance: float = 12.0        # Much closer for Mario Kart 8 intimacy
+@export var camera_height: float = 3.0           # Lower height for dramatic ground-level perspective
+@export var camera_fov: float = 85.0             # Wider FOV for more dramatic perspective (Mario Kart 8 style)
+@export var follow_speed: float = 8.0            # Faster follow for responsive feel
+@export var rotation_follow_speed: float = 4.0   # Faster rotation following
 @export var enable_smoothing: bool = true
 
+## Camera angle settings for Mario Kart 8 bottom-third positioning
+@export var camera_pitch_angle: float = 8.0      # Slight upward tilt toward horizon (degrees)
+@export var look_ahead_distance: float = 25.0    # How far ahead to look for horizon view
+
 ## Zoom settings (now distance-based for perspective)
-@export var zoom_min_distance: float = 3.5       # Closest zoom (not too close)
-@export var zoom_max_distance: float = 6.0       # Furthest zoom (not too far)
+@export var zoom_min_distance: float = 8.0       # Closest zoom (closer than before)
+@export var zoom_max_distance: float = 16.0      # Furthest zoom (still closer than before)
 @export var zoom_speed: float = 2.0              # Zoom speed multiplier
 
 ## Camera banking settings (Mario Kart 8 style)
 @export var enable_camera_banking: bool = true   # Banking on turns like Mario Kart 8!
-@export var banking_amount: float = 15.0         # Max banking angle (degrees)
-@export var banking_speed: float = 4.0           # Banking response speed
+@export var banking_amount: float = 20.0         # More aggressive banking angle (degrees)
+@export var banking_speed: float = 6.0           # Faster banking response
 
 ## Camera shake settings
 @export var shake_fade_speed: float = 5.0
@@ -31,8 +35,8 @@ extends Node3D
 @onready var camera: Camera3D = $Camera3D
 
 var target: Node3D = null
-var current_distance: float = 20              # Updated to match new balanced default distance
-var target_distance: float = 20                # Updated to match new balanced default distance
+var current_distance: float = 12.0              # Updated to match new close distance
+var target_distance: float = 12.0               # Updated to match new close distance
 var shake_strength: float = 0.0
 var shake_timer: float = 0.0
 
@@ -47,7 +51,7 @@ func _ready() -> void:
 
 func setup_mario_kart_camera() -> void:
 	"""Configure the 3D camera for Mario Kart 8 style perspective"""
-	_log_message("CameraController3D: Setting up Mario Kart 8 style perspective camera")
+	_log_message("CameraController3D: Setting up Mario Kart 8 style close-up perspective camera")
 
 	# Create Camera3D if it doesn't exist
 	if not camera:
@@ -55,17 +59,20 @@ func setup_mario_kart_camera() -> void:
 		camera.name = "Camera3D"
 		add_child(camera)
 
-	# Configure PERSPECTIVE projection (key change from orthogonal)
+	# FORCE PERSPECTIVE projection (override scene file)
 	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
 	camera.fov = camera_fov
-	camera.near = 0.5   # Close enough for detailed view
-	camera.far = 200.0  # Far enough for zone boundaries
+	camera.near = 0.3   # Very close for detailed view
+	camera.far = 300.0  # Far enough for zone boundaries
+
+	# Clear any manual transform from scene file - let script control everything
+	camera.transform = Transform3D.IDENTITY
 
 	# Initialize distance-based zoom
 	current_distance = camera_distance
 	target_distance = camera_distance
 
-	_log_message("CameraController3D: Perspective camera configured - FOV: %.1f, Distance: %.1f" % [camera.fov, current_distance])
+	_log_message("CameraController3D: PERSPECTIVE camera configured - FOV: %.1f, Distance: %.1f, Height: %.1f" % [camera.fov, current_distance, camera_height])
 
 func set_target(new_target: Node3D) -> void:
 	"""Set the target ship for the camera to follow"""
@@ -110,28 +117,30 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	if not target:
 		return
 
-	# Calculate desired position behind ship with Mario Kart 8 positioning
+	# Calculate desired position behind ship with Mario Kart 8 close positioning
 	var behind_offset = ship_forward_direction * current_distance
 	var height_offset = Vector3.UP * camera_height
 	var desired_position = target.global_position - behind_offset + height_offset
 
-	# Smooth camera movement
+	# Smooth camera movement with faster response
 	if enable_smoothing:
 		global_position = global_position.lerp(desired_position, follow_speed * delta)
 	else:
 		global_position = desired_position
 
-	# Mario Kart 8 style: Look horizontally ahead toward horizon (NO downward tilt!)
-	# This naturally positions ship in bottom third without perspective distortion
-	# PROPER FIX: Look ahead horizontally, not down at ship
-	var look_ahead_distance = 30.0  # Look far ahead toward horizon
-	var horizontal_forward = ship_forward_direction
-	horizontal_forward.y = 0.0  # Remove any vertical component to ensure horizontal look
-	horizontal_forward = horizontal_forward.normalized()
-	var look_target = target.global_position + horizontal_forward * look_ahead_distance
-	# CRITICAL: Keep look target at ship's Y level for horizontal horizon view!
+	# MARIO KART 8 CRITICAL FIX: Look ahead with slight upward angle for bottom-third ship positioning
+	# This creates the classic low-chase camera that puts the ship in the bottom third
+	var look_target = target.global_position + ship_forward_direction * look_ahead_distance
 
-	# Apply Mario Kart 8 style camera banking when turning
+	# RAISE the look target slightly above ship level for bottom-third positioning
+	# This subtle height difference creates the Mario Kart 8 perspective
+	look_target.y = target.global_position.y + (camera_height * 0.5)  # Look slightly upward
+
+	_log_message("CameraController3D: Camera at %.1f,%.1f,%.1f looking at %.1f,%.1f,%.1f" %
+		[global_position.x, global_position.y, global_position.z,
+		 look_target.x, look_target.y, look_target.z])
+
+	# Apply Mario Kart 8 style camera banking when turning (more aggressive)
 	var banking_roll = 0.0
 	if enable_camera_banking and target:
 		# Get the ship's angular velocity (how fast it's turning)
@@ -257,7 +266,7 @@ func reset_camera() -> void:
 	current_distance = camera_distance
 	current_tilt = 0.0
 	shake_strength = 0.0
-	set_camera_fov(80.0)
+	set_camera_fov(85.0)  # Mario Kart 8 optimal FOV
 	_log_message("CameraController3D: Camera reset to Mario Kart 8 defaults")
 
 func _on_target_position_changed(new_position: Vector3) -> void:
