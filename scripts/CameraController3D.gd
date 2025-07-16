@@ -45,6 +45,10 @@ var ship_forward_direction: Vector3 = Vector3.FORWARD
 var ship_velocity: Vector3 = Vector3.ZERO
 var current_tilt: float = 0.0
 
+# Debug logging control
+var debug_log_timer: float = 0.0
+var debug_log_interval: float = 1.0  # Log every 1 second instead of every frame
+
 func _ready() -> void:
 	setup_mario_kart_camera()
 	_log_message("CameraController3D: Mario Kart 8 style camera controller initialized")
@@ -68,11 +72,19 @@ func setup_mario_kart_camera() -> void:
 	# Clear any manual transform from scene file - let script control everything
 	camera.transform = Transform3D.IDENTITY
 
+	# EXPLICITLY reset any rotation to prevent tilting
+	camera.rotation = Vector3.ZERO
+	camera.rotation_degrees = Vector3.ZERO
+
+	# Reset current tilt state
+	current_tilt = 0.0
+
 	# Initialize distance-based zoom
 	current_distance = camera_distance
 	target_distance = camera_distance
 
 	_log_message("CameraController3D: PERSPECTIVE camera configured - FOV: %.1f, Distance: %.1f, Height: %.1f" % [camera.fov, current_distance, camera_height])
+	_log_message("CameraController3D: Camera rotation reset to prevent tilting issues")
 
 func set_target(new_target: Node3D) -> void:
 	"""Set the target ship for the camera to follow"""
@@ -88,6 +100,9 @@ func set_target(new_target: Node3D) -> void:
 
 func _physics_process(delta: float) -> void:
 	"""Update camera position and effects (Mario Kart 8 style)"""
+	# Update debug timer
+	debug_log_timer += delta
+
 	if target:
 		_update_ship_tracking_data(delta)
 		_update_mario_kart_camera_position(delta)
@@ -136,32 +151,47 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	# This subtle height difference creates the Mario Kart 8 perspective
 	look_target.y = target.global_position.y + (camera_height * 0.5)  # Look slightly upward
 
-	_log_message("CameraController3D: Camera at %.1f,%.1f,%.1f looking at %.1f,%.1f,%.1f" %
-		[global_position.x, global_position.y, global_position.z,
-		 look_target.x, look_target.y, look_target.z])
+	# DEBUG: Reduce logging frequency - only log periodically instead of every frame
+	var should_log = debug_log_timer >= debug_log_interval
+	if should_log:
+		debug_log_timer = 0.0  # Reset timer
+		_log_message("CameraController3D: Camera at %.1f,%.1f,%.1f looking at %.1f,%.1f,%.1f" %
+			[global_position.x, global_position.y, global_position.z,
+			 look_target.x, look_target.y, look_target.z])
 
+	# TEMPORARILY DISABLE BANKING to debug tilting issue
 	# Apply Mario Kart 8 style camera banking when turning (more aggressive)
 	var banking_roll = 0.0
-	if enable_camera_banking and target:
+	if false:  # Disabled banking temporarily
 		# Get the ship's angular velocity (how fast it's turning)
-		var ship_body = target as RigidBody3D
+		# NOTE: PlayerShip3D is CharacterBody3D, not RigidBody3D!
+		var ship_body = target as CharacterBody3D  # Fixed casting
 		if ship_body:
-			var angular_velocity = ship_body.angular_velocity.y  # Y-axis rotation (turning left/right)
-			# Convert angular velocity to banking angle (banking in opposite direction of turn)
-			banking_roll = -angular_velocity * banking_amount
-			# Clamp to max banking amount
+			# CharacterBody3D doesn't have angular_velocity - we need a different approach
+			# For now, calculate turn rate from velocity change
+			var current_velocity = ship_body.velocity
+			var velocity_change = current_velocity - ship_velocity
+			var turn_rate = velocity_change.length() * 0.1  # Rough approximation
+
+			# Convert turn rate to banking angle
+			banking_roll = turn_rate * banking_amount
 			banking_roll = clamp(banking_roll, -banking_amount, banking_amount)
 
 			# Debug output for banking
-			if abs(banking_roll) > 1.0:  # Only log significant banking
-				print("[%s] CameraController3D: Mario Kart 8 banking active - Roll: %.1f° (Angular velocity: %.2f)" %
-					[Time.get_time_string_from_system(), banking_roll, angular_velocity])
+			if abs(banking_roll) > 1.0:
+				print("[%s] CameraController3D: Banking active - Roll: %.1f° (Turn rate: %.2f)" %
+					[Time.get_time_string_from_system(), banking_roll, turn_rate])
 
-	# Look at target with banking applied
+	# Look at target with NO BANKING (for now) - use pure UP vector
 	var up_vector = Vector3.UP
-	if banking_roll != 0.0:
+	# DISABLED: if banking_roll != 0.0:
 		# Rotate the up vector to create banking effect
-		up_vector = up_vector.rotated(ship_forward_direction.normalized(), deg_to_rad(banking_roll))
+		# up_vector = up_vector.rotated(ship_forward_direction.normalized(), deg_to_rad(banking_roll))
+
+	# Debug ship forward direction
+	if should_log:
+		_log_message("CameraController3D: Ship forward direction: %.2f,%.2f,%.2f" %
+			[ship_forward_direction.x, ship_forward_direction.y, ship_forward_direction.z])
 
 	look_at(look_target, up_vector)
 
@@ -173,6 +203,9 @@ func _update_distance_zoom(delta: float) -> void:
 
 func _update_camera_tilt(delta: float) -> void:
 	"""Update camera tilt based on ship movement (if enabled)"""
+	# TEMPORARILY DISABLED to debug tilting issue
+	return
+
 	if not enable_camera_banking:
 		# Reset tilt if disabled
 		if abs(current_tilt) > 0.01:
