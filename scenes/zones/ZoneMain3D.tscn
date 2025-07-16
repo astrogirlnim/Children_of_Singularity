@@ -1,14 +1,14 @@
-[gd_scene load_steps=11 format=3 uid="uid://c8xvwgqjkm8nh"]
+[gd_scene load_steps=14 format=3 uid="uid://c8xvwgqjkm8nh"]
 
-[ext_resource type="Script" path="res://scripts/ZoneMain3D.gd" id="1_0k8x5"]
+[ext_resource type="Script" uid="uid://cspf5upbn2cae" path="res://scripts/ZoneMain3D.gd" id="1_0k8x5"]
 [ext_resource type="PackedScene" uid="uid://bq2j5gk8m7xdh" path="res://scenes/player/PlayerShip3D.tscn" id="2_player_ship"]
-[ext_resource type="Script" path="res://scripts/APIClient.gd" id="3_api_client"]
-[ext_resource type="Script" path="res://scripts/UpgradeSystem.gd" id="4_upgrade_system"]
-[ext_resource type="Script" path="res://scripts/AICommunicator.gd" id="5_ai_communicator"]
-[ext_resource type="Script" path="res://scripts/NetworkManager.gd" id="6_network_manager"]
-[ext_resource type="Script" path="res://scripts/CameraController3D.gd" id="7_camera_controller"]
-[ext_resource type="PackedScene" uid="uid://b2kxvwgqjkm9nh" path="res://scenes/objects/TradingHub3D.tscn" id="8_trading_hub"]
-[ext_resource type="PackedScene" uid="uid://c3lxvwgqjkm0nh" path="res://scenes/objects/UpgradeHub3D.tscn" id="9_upgrade_hub"]
+[ext_resource type="Script" uid="uid://bm2jfaeogbrtp" path="res://scripts/APIClient.gd" id="3_api_client"]
+[ext_resource type="Script" uid="uid://68id1jwnh1ao" path="res://scripts/UpgradeSystem.gd" id="4_upgrade_system"]
+[ext_resource type="Script" uid="uid://bq1gxmesdiqw3" path="res://scripts/AICommunicator.gd" id="5_ai_communicator"]
+[ext_resource type="Script" uid="uid://cox1r776hv26p" path="res://scripts/NetworkManager.gd" id="6_network_manager"]
+[ext_resource type="Script" uid="uid://dxyovdofojcgl" path="res://scripts/CameraController3D.gd" id="7_camera_controller"]
+[ext_resource type="PackedScene" uid="uid://dltt2lxq3l5a0" path="res://scenes/objects/TradingHub3D.tscn" id="8_trading_hub"]
+[ext_resource type="PackedScene" uid="uid://dt50q3oh0r0g4" path="res://scenes/objects/UpgradeHub3D.tscn" id="9_upgrade_hub"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -27,28 +27,6 @@ roughness = 0.6
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(200, 1, 200)
-
-[sub_resource type="BoxMesh" id="BoxMesh_2"]
-size = Vector3(4, 2, 4)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2"]
-albedo_color = Color(0.8, 0.6, 0.2, 1)
-metallic = 0.1
-roughness = 0.7
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_2"]
-size = Vector3(4, 2, 4)
-
-[sub_resource type="BoxMesh" id="BoxMesh_3"]
-size = Vector3(5, 3, 5)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3"]
-albedo_color = Color(0.2, 0.6, 0.8, 1)
-metallic = 0.1
-roughness = 0.7
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_3"]
-size = Vector3(5, 3, 5)
 
 [node name="ZoneMain3D" type="Node3D"]
 script = ExtResource("1_0k8x5")
@@ -70,17 +48,18 @@ environment = SubResource("Environment_1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 10, 0)
-light_energy = 0.8
 light_color = Color(0.9, 0.9, 1, 1)
+light_energy = 0.8
 shadow_enabled = true
 shadow_bias = 0.05
-directional_shadow_mode = 2
 
 [node name="CameraController3D" type="Node3D" parent="."]
 script = ExtResource("7_camera_controller")
+camera_distance = 40.0
+camera_height = 25.0
 
 [node name="Camera3D" type="Camera3D" parent="CameraController3D"]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 0.999446, -0.0332948, 0, 0.0332948, 0.999446, -0.0915636, -0.142092, 1.99998)
 projection = 1
 size = 80.0
 near = 0.1
@@ -120,6 +99,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="DebugLabel" type="Label" parent="UILayer/HUD"]
 layout_mode = 0
@@ -142,7 +123,6 @@ anchor_left = 0.02
 anchor_top = 0.1
 anchor_right = 0.25
 anchor_bottom = 0.4
-color = Color(0.1, 0.1, 0.1, 0.8)
 
 [node name="InventoryTitle" type="Label" parent="UILayer/HUD/InventoryPanel"]
 layout_mode = 0
@@ -174,7 +154,6 @@ anchor_left = 0.02
 anchor_top = 0.45
 anchor_right = 0.25
 anchor_bottom = 0.65
-color = Color(0.1, 0.1, 0.1, 0.8)
 
 [node name="StatsTitle" type="Label" parent="UILayer/HUD/StatsPanel"]
 layout_mode = 0
@@ -213,7 +192,6 @@ anchor_left = 0.02
 anchor_top = 0.7
 anchor_right = 0.25
 anchor_bottom = 0.85
-color = Color(0.1, 0.1, 0.1, 0.8)
 
 [node name="UpgradeStatusTitle" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
 layout_mode = 0
@@ -237,7 +215,6 @@ anchor_left = 0.75
 anchor_top = 0.1
 anchor_right = 0.98
 anchor_bottom = 0.4
-color = Color(0.1, 0.1, 0.1, 0.8)
 
 [node name="ControlsTitle" type="Label" parent="UILayer/HUD/ControlsPanel"]
 layout_mode = 0
@@ -261,13 +238,12 @@ ESC: Menu"
 vertical_alignment = 1
 
 [node name="AIMessageOverlay" type="Panel" parent="UILayer/HUD"]
+visible = false
 layout_mode = 0
 anchor_left = 0.25
 anchor_top = 0.75
 anchor_right = 0.75
 anchor_bottom = 0.9
-color = Color(0.05, 0.05, 0.2, 0.9)
-visible = false
 
 [node name="AIMessageLabel" type="Label" parent="UILayer/HUD/AIMessageOverlay"]
 layout_mode = 0
@@ -281,13 +257,12 @@ vertical_alignment = 1
 autowrap_mode = 2
 
 [node name="TradingInterface" type="Panel" parent="UILayer/HUD"]
+visible = false
 layout_mode = 0
 anchor_left = 0.3
 anchor_top = 0.2
 anchor_right = 0.7
 anchor_bottom = 0.8
-color = Color(0.1, 0.1, 0.1, 0.9)
-visible = false
 
 [node name="TradingTitle" type="Label" parent="UILayer/HUD/TradingInterface"]
 layout_mode = 0

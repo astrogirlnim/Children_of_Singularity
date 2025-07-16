@@ -131,12 +131,6 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 	var look_target = target.global_position + horizontal_forward * look_ahead_distance
 	# CRITICAL: Keep look target at ship's Y level for horizontal horizon view!
 
-	# Live debug output for camera tuning (only every 60 frames to avoid spam)
-	if Engine.get_process_frames() % 60 == 0:
-		print("[LIVE DEBUG] Camera - Distance: %.1f | Height: %.1f | FOV: %.0f° | Pos: %s" %
-			[current_distance, camera_height, camera_fov, global_position])
-		print("[LIVE DEBUG] Ship Pos: %s | Look Target: %s" % [target.global_position, look_target])
-
 	# Apply Mario Kart 8 style camera banking when turning
 	var banking_roll = 0.0
 	if enable_camera_banking and target:
