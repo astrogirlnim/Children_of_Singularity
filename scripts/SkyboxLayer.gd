@@ -74,10 +74,11 @@ func _setup_material() -> void:
 
 	# Critical: Configure for skybox rendering (render behind everything else)
 	material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED  # Don't write to depth buffer
+	material.no_depth_test = true  # Don't test depth either - skybox should always be behind
 	material.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
 
-	# Force skybox to render first (behind everything)
-	material.sorting_offset = -1000.0  # Render before other objects
+	# Force skybox to render first using render priority
+	material.render_priority = -100  # Very low priority = renders first (behind everything)
 
 	# Configure transparency based on layer type
 	if is_overlay_layer:
