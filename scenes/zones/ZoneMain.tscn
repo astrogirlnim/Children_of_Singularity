@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/UpgradeSystem.gd" id="4_upgrade_system"]
 [ext_resource type="Script" path="res://scripts/AICommunicator.gd" id="5_ai_communicator"]
 [ext_resource type="Script" path="res://scripts/NetworkManager.gd" id="6_network_manager"]
+[ext_resource type="Theme" uid="uid://b5vx2qkc8xqne" path="res://resources/themes/SpaceUITheme.tres" id="7_space_ui_theme"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
 size = Vector2(64, 32)
@@ -123,6 +124,7 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+theme = ExtResource("7_space_ui_theme")
 
 [node name="DebugLabel" type="Label" parent="UILayer/HUD"]
 layout_mode = 0
@@ -145,14 +147,14 @@ anchor_left = 0.02
 anchor_top = 0.1
 anchor_right = 0.25
 anchor_bottom = 0.4
-color = Color(0.1, 0.1, 0.1, 0.8)
 
 [node name="InventoryTitle" type="Label" parent="UILayer/HUD/InventoryPanel"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.1
-text = "INVENTORY"
+text = "🗂️ INVENTORY"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="InventoryGrid" type="GridContainer" parent="UILayer/HUD/InventoryPanel"]
 layout_mode = 0
@@ -177,14 +179,14 @@ anchor_left = 0.02
 anchor_top = 0.45
 anchor_right = 0.25
 anchor_bottom = 0.65
-color = Color(0.1, 0.1, 0.1, 0.8)
 
 [node name="StatsTitle" type="Label" parent="UILayer/HUD/StatsPanel"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.2
-text = "PLAYER STATS"
+text = "📊 PLAYER STATS"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="CreditsLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
 layout_mode = 0
@@ -216,14 +218,14 @@ anchor_left = 0.02
 anchor_top = 0.7
 anchor_right = 0.25
 anchor_bottom = 0.85
-color = Color(0.1, 0.1, 0.1, 0.8)
 
 [node name="UpgradeStatusTitle" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.2
-text = "UPGRADES"
+text = "⚡ UPGRADES"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="UpgradeStatusText" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
 layout_mode = 0
@@ -240,14 +242,14 @@ anchor_left = 0.75
 anchor_top = 0.1
 anchor_right = 0.98
 anchor_bottom = 0.4
-color = Color(0.1, 0.1, 0.1, 0.8)
 
 [node name="ControlsTitle" type="Label" parent="UILayer/HUD/ControlsPanel"]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.15
-text = "CONTROLS"
+text = "🎮 CONTROLS"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="ControlsText" type="Label" parent="UILayer/HUD/ControlsPanel"]
 layout_mode = 0

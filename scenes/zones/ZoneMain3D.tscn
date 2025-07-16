@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/SkyboxManager3D.gd" id="7_skybox_manager"]
 [ext_resource type="PackedScene" uid="uid://dltt2lxq3l5a0" path="res://scenes/objects/TradingHub3D.tscn" id="8_trading_hub"]
 [ext_resource type="PackedScene" uid="uid://dt50q3oh0r0g4" path="res://scenes/objects/UpgradeHub3D.tscn" id="9_upgrade_hub"]
+[ext_resource type="Theme" uid="uid://b5vx2qkc8xqne" path="res://resources/themes/SpaceUITheme.tres" id="10_space_ui_theme"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -106,6 +107,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("10_space_ui_theme")
 
 [node name="DebugLabel" type="Label" parent="UILayer/HUD"]
 layout_mode = 0
@@ -133,8 +135,9 @@ anchor_bottom = 0.4
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.1
-text = "INVENTORY"
+text = "🗂️ INVENTORY"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="InventoryGrid" type="GridContainer" parent="UILayer/HUD/InventoryPanel"]
 layout_mode = 0
@@ -164,8 +167,9 @@ anchor_bottom = 0.65
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.2
-text = "PLAYER STATS"
+text = "📊 PLAYER STATS"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="CreditsLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
 layout_mode = 0
@@ -202,8 +206,9 @@ anchor_bottom = 0.85
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.2
-text = "UPGRADES"
+text = "⚡ UPGRADES"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="UpgradeStatusText" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
 layout_mode = 0
@@ -225,8 +230,9 @@ anchor_bottom = 0.4
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.15
-text = "CONTROLS"
+text = "🎮 CONTROLS"
 horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
 
 [node name="ControlsText" type="Label" parent="UILayer/HUD/ControlsPanel"]
 layout_mode = 0
