@@ -63,7 +63,7 @@ var upgrades: Dictionary = {}
 
 ## Interaction state
 var can_collect: bool = true
-var collection_range: float = 80.0
+var collection_range: float = 3.0  # Touching distance - just overlaps with debris (2.0 radius)
 var nearby_debris: Array[RigidBody3D] = []
 var collection_cooldown: float = 0.5
 
@@ -82,6 +82,11 @@ var max_speed: float = 300.0
 var is_scanner_active: bool = false
 var is_magnet_active: bool = false
 var magnet_range: float = 15.0
+
+## Visual feedback for collection range
+var collection_indicator: MeshInstance3D = null
+var collection_material: StandardMaterial3D = null
+var show_collection_indicator: bool = false  # Set to true to see collection range when near debris
 
 func _ready() -> void:
 	_log_message("PlayerShip3D: Initializing 3D player ship")
@@ -165,6 +170,41 @@ func _setup_collection_area() -> void:
 		collection_area.body_entered.connect(_on_collection_area_body_entered)
 		collection_area.body_exited.connect(_on_collection_area_body_exited)
 		_log_message("PlayerShip3D: Collection area signals connected")
+
+	# Create visual collection range indicator
+	if show_collection_indicator:
+		_create_collection_range_indicator()
+
+func _create_collection_range_indicator() -> void:
+	##Create a visual indicator for collection range
+	_log_message("PlayerShip3D: Creating collection range indicator")
+
+	# Create the mesh instance for the indicator
+	collection_indicator = MeshInstance3D.new()
+	collection_indicator.name = "CollectionRangeIndicator"
+
+	# Create a sphere mesh for the range indicator
+	var sphere_mesh = SphereMesh.new()
+	sphere_mesh.radius = collection_range
+	sphere_mesh.radial_segments = 16
+	sphere_mesh.rings = 8
+	collection_indicator.mesh = sphere_mesh
+
+	# Create a transparent material for the indicator
+	collection_material = StandardMaterial3D.new()
+	collection_material.albedo_color = Color(0.0, 0.8, 1.0, 0.1)  # Very transparent cyan
+	collection_material.flags_transparent = true
+	collection_material.flags_unshaded = true
+	collection_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	collection_material.no_depth_test = true
+	collection_indicator.material_override = collection_material
+
+	# Start invisible - only show when debris is nearby
+	collection_indicator.visible = false
+
+	# Add to ship
+	add_child(collection_indicator)
+	_log_message("PlayerShip3D: Collection range indicator created (invisible by default)")
 
 func _setup_interaction_area() -> void:
 	##Set up 3D interaction area for NPC detection
@@ -366,6 +406,15 @@ func _collect_debris_object(debris_object: RigidBody3D) -> void:
 	# Emit signal
 	debris_collected.emit(debris_type, debris_value)
 
+	# Sync inventory item with backend API
+	if zone_main and zone_main.has_method("get_api_client"):
+		var api_client = zone_main.get_api_client()
+		if api_client and api_client.has_method("add_inventory_item"):
+			api_client.add_inventory_item(debris_item)
+			_log_message("PlayerShip3D: Synced inventory item with backend API - %s" % debris_type)
+	else:
+		_log_message("PlayerShip3D: Warning - Backend API sync not available for inventory item")
+
 	# Trigger debris collection through the debris manager
 	if zone_main and zone_main.has_method("get_debris_manager"):
 		var debris_manager = zone_main.get_debris_manager()
@@ -386,6 +435,9 @@ func _on_collection_area_body_entered(body: Node3D) -> void:
 		nearby_debris.append(body)
 		_log_message("PlayerShip3D: Debris entered 3D collection range - %s" % debris_3d.get_debris_type())
 
+		# Show collection range indicator when debris is nearby
+		_update_collection_indicator_visibility()
+
 func _on_collection_area_body_exited(body: Node3D) -> void:
 	##Handle debris exiting collection range in 3D
 	if body in nearby_debris:
@@ -393,6 +445,25 @@ func _on_collection_area_body_exited(body: Node3D) -> void:
 		var debris_3d = body as DebrisObject3D
 		if debris_3d:
 			_log_message("PlayerShip3D: Debris exited 3D collection range - %s" % debris_3d.get_debris_type())
+
+		# Update collection range indicator visibility
+		_update_collection_indicator_visibility()
+
+func _update_collection_indicator_visibility() -> void:
+	##Update visibility of collection range indicator based on nearby debris
+	if collection_indicator:
+		var should_show = nearby_debris.size() > 0 and show_collection_indicator
+		if collection_indicator.visible != should_show:
+			collection_indicator.visible = should_show
+			if should_show:
+				_log_message("PlayerShip3D: Collection range indicator shown (debris nearby)")
+			else:
+				_log_message("PlayerShip3D: Collection range indicator hidden (no debris nearby)")
+
+		# Update material color based on debris count
+		if collection_material and should_show:
+			var alpha = min(0.2 + (nearby_debris.size() * 0.05), 0.5)  # More opaque with more debris
+			collection_material.albedo_color.a = alpha
 
 func _on_interaction_area_body_entered(body: Node3D) -> void:
 	##Handle NPC entering interaction range in 3D
@@ -508,11 +579,15 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 		"inventory_expansion":
 			inventory_capacity = 10 + (level * 5)
 		"collection_efficiency":
-			collection_range = 80.0 + (level * 20.0)
+			collection_range = 3.0 + (level * 2.0)  # Base 3.0, small upgrades to maintain close collection
 			collection_cooldown = max(0.1, 0.5 - (level * 0.05))
 			# Update collection area size
 			if collection_collision and collection_collision.shape:
 				collection_collision.shape.radius = collection_range
+			# Update visual indicator size
+			if collection_indicator and collection_indicator.mesh:
+				collection_indicator.mesh.radius = collection_range
+				_log_message("PlayerShip3D: Updated collection range indicator to %.1f units" % collection_range)
 		"zone_access":
 			# This will be handled by the zone system
 			pass
