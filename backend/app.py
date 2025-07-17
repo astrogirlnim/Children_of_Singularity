@@ -9,8 +9,8 @@ from typing import List, Dict, Any
 import logging
 from datetime import datetime
 import os
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import psycopg
+from psycopg.rows import dict_row
 from contextlib import contextmanager
 
 # Set up logging
@@ -48,9 +48,17 @@ def get_db_connection():
     """Get database connection with proper error handling"""
     conn = None
     try:
-        conn = psycopg2.connect(**DATABASE_CONFIG)
+        # Construct connection string for psycopg3
+        conn_string = (
+            f"host={DATABASE_CONFIG['host']} "
+            f"dbname={DATABASE_CONFIG['database']} "
+            f"user={DATABASE_CONFIG['user']} "
+            f"password={DATABASE_CONFIG['password']} "
+            f"port={DATABASE_CONFIG['port']}"
+        )
+        conn = psycopg.connect(conn_string, row_factory=dict_row)
         yield conn
-    except psycopg2.Error as e:
+    except psycopg.Error as e:
         logger.error(f"Database connection error: {e}")
         if conn:
             conn.rollback()
@@ -168,7 +176,7 @@ def _create_test_data():
 
     try:
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            with conn.cursor() as cursor:
                 # Check if test player exists
                 cursor.execute(
                     "SELECT id FROM players WHERE name = %s", ("Test Salvager",)
@@ -240,7 +248,7 @@ async def get_player(player_id: str):
 
     try:
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            with conn.cursor() as cursor:
                 # Get player data
                 cursor.execute(
                     """
@@ -305,7 +313,7 @@ async def create_or_update_player(player_id: str, player_data: PlayerData):
 
     try:
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            with conn.cursor() as cursor:
                 # Check if player exists
                 cursor.execute("SELECT id FROM players WHERE id = %s", (player_id,))
                 exists = cursor.fetchone()
@@ -388,7 +396,7 @@ async def get_player_inventory(player_id: str):
 
     try:
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            with conn.cursor() as cursor:
                 # Check if player exists
                 cursor.execute("SELECT id FROM players WHERE id = %s", (player_id,))
                 if not cursor.fetchone():
@@ -447,7 +455,7 @@ async def add_inventory_item(player_id: str, item: InventoryItem):
 
     try:
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            with conn.cursor() as cursor:
                 # Check if player exists
                 cursor.execute("SELECT id FROM players WHERE id = %s", (player_id,))
                 if not cursor.fetchone():
@@ -499,7 +507,7 @@ async def clear_player_inventory(player_id: str):
 
     try:
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            with conn.cursor() as cursor:
                 # Check if player exists
                 cursor.execute("SELECT id FROM players WHERE id = %s", (player_id,))
                 if not cursor.fetchone():
@@ -568,7 +576,7 @@ async def update_player_credits(player_id: str, credits_change: int):
 
     try:
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            with conn.cursor() as cursor:
                 # Get current credits
                 cursor.execute(
                     "SELECT credits FROM players WHERE id = %s", (player_id,)
@@ -629,7 +637,7 @@ async def get_player_zones(player_id: str):
 
     try:
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            with conn.cursor() as cursor:
                 # Check if player exists
                 cursor.execute("SELECT id FROM players WHERE id = %s", (player_id,))
                 if not cursor.fetchone():
@@ -711,7 +719,7 @@ async def get_stats():
     """Get API statistics"""
     try:
         with get_db_connection() as conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            with conn.cursor() as cursor:
                 # Get player count
                 cursor.execute("SELECT COUNT(*) as count FROM players")
                 total_players = cursor.fetchone()["count"]

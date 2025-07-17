@@ -54,8 +54,8 @@ func _create_border_element(element_name: String) -> TextureRect:
 	border_rect.modulate = border_tint
 	border_rect.modulate.a = border_opacity
 	border_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Don't block input
-	border_rect.stretch_mode = TextureRect.STRETCH_TILE  # Scale texture to fill exact control size
-	border_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL  # Force control to expand to fit content
+	border_rect.stretch_mode = TextureRect.STRETCH_KEEP  # Keep original texture size for scale transform
+	border_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH  # Normal expand behavior
 	border_rect.z_index = 1000  # Ensure it's the topmost UI element
 
 	# Initialize with zero size - will be set properly in _update_border_positions
@@ -89,40 +89,34 @@ func _update_border_positions() -> void:
 		_log_message("ScreenSpaceBorderManager: Border texture original size: %s" % texture_size)
 		_log_message("ScreenSpaceBorderManager: Target window size: %s" % viewport_size)
 
-		# Set border frame to exact window dimensions
+		# SOLUTION: Force Scale Transform - Let TextureRect keep natural size, then scale it
+		# Reset position and remove any size constraints to let texture display naturally
 		border_frame.position = Vector2.ZERO
-		border_frame.size = viewport_size
+		border_frame.size = Vector2.ZERO  # Let TextureRect size itself naturally
+		border_frame.custom_minimum_size = Vector2.ZERO  # Remove size constraints
 
-		# Force the TextureRect to respect our manual sizing - use multiple approaches
-		border_frame.set_position(Vector2.ZERO)
-		border_frame.set_size(viewport_size)
-		border_frame.custom_minimum_size = viewport_size  # Force minimum size to viewport
-
-		# Deferred call to ensure size sticks after node is fully initialized
-		border_frame.call_deferred("set_size", viewport_size)
-		border_frame.call_deferred("set_position", Vector2.ZERO)
-		border_frame.call_deferred("set_custom_minimum_size", viewport_size)
-
-		border_frame.queue_redraw()
-
-		# Debug: Check if TextureRect is actually the size we set it to
-		var actual_rect = border_frame.get_rect()
-		var is_larger_than_viewport = actual_rect.size.x > viewport_size.x or actual_rect.size.y > viewport_size.y
-		var extends_beyond = actual_rect.position != Vector2.ZERO or actual_rect.size != viewport_size
-
-		_log_message("ScreenSpaceBorderManager: === BORDER SIZE COMPARISON ===")
-		_log_message("ScreenSpaceBorderManager: Viewport size: %s" % viewport_size)
-		_log_message("ScreenSpaceBorderManager: TextureRect actual size: %s" % actual_rect.size)
-		_log_message("ScreenSpaceBorderManager: TextureRect actual position: %s" % actual_rect.position)
-		_log_message("ScreenSpaceBorderManager: Is TextureRect larger than viewport? %s" % is_larger_than_viewport)
-		_log_message("ScreenSpaceBorderManager: Does TextureRect extend beyond viewport? %s" % extends_beyond)
-		_log_message("ScreenSpaceBorderManager: Border anchors: L:%s T:%s R:%s B:%s" % [border_frame.anchor_left, border_frame.anchor_top, border_frame.anchor_right, border_frame.anchor_bottom])
-
-		# Calculate scale factors for manual scaling information
+		# Calculate scale factors to fit texture exactly to viewport
 		var scale_x = viewport_size.x / texture_size.x if texture_size.x > 0 else 1.0
 		var scale_y = viewport_size.y / texture_size.y if texture_size.y > 0 else 1.0
 
-		_log_message("ScreenSpaceBorderManager: Texture scaling - X: %.3f, Y: %.3f" % [scale_x, scale_y])
+		# Apply direct scale transformation - this overrides texture sizing behavior
+		border_frame.scale = Vector2(scale_x, scale_y)
+
+		_log_message("ScreenSpaceBorderManager: Applied scale transformation - X: %.3f, Y: %.3f" % [scale_x, scale_y])
+
+		border_frame.queue_redraw()
+
+		# Debug: Verify the scaling worked
+		var actual_rect = border_frame.get_rect()
+		var scaled_size = actual_rect.size * border_frame.scale
+		var size_matches = abs(scaled_size.x - viewport_size.x) < 1.0 and abs(scaled_size.y - viewport_size.y) < 1.0
+
+		_log_message("ScreenSpaceBorderManager: === BORDER SCALE VERIFICATION ===")
+		_log_message("ScreenSpaceBorderManager: Viewport size: %s" % viewport_size)
+		_log_message("ScreenSpaceBorderManager: TextureRect natural size: %s" % actual_rect.size)
+		_log_message("ScreenSpaceBorderManager: Applied scale: %s" % border_frame.scale)
+		_log_message("ScreenSpaceBorderManager: Final scaled size: %s" % scaled_size)
+		_log_message("ScreenSpaceBorderManager: Size matches viewport? %s" % size_matches)
 
 	last_viewport_size = viewport_size
 	border_repositioned.emit(viewport_size)
