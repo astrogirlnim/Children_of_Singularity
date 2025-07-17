@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://c8xvwgqjkm8nh"]
+[gd_scene load_steps=16 format=3 uid="uid://c8xvwgqjkm8nh"]
 
 [ext_resource type="Script" uid="uid://cspf5upbn2cae" path="res://scripts/ZoneMain3D.gd" id="1_0k8x5"]
 [ext_resource type="PackedScene" uid="uid://bq2j5gk8m7xdh" path="res://scenes/player/PlayerShip3D.tscn" id="2_player_ship"]
@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" uid="uid://dltt2lxq3l5a0" path="res://scenes/objects/TradingHub3D.tscn" id="8_trading_hub"]
 [ext_resource type="PackedScene" uid="uid://dt50q3oh0r0g4" path="res://scenes/objects/UpgradeHub3D.tscn" id="9_upgrade_hub"]
 [ext_resource type="Theme" path="res://resources/themes/SpaceCustomTheme.tres" id="10_custom_theme"]
+[ext_resource type="Texture2D" path="res://assets/ui/lorge_border.png" id="11_border_image"]
+[ext_resource type="Script" path="res://scripts/ScreenSpaceBorderManager.gd" id="12_screen_border_script"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -99,6 +101,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 20)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -20)
 
 [node name="UILayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="ScreenSpaceBorder" type="Control" parent="UILayer"]
+script = ExtResource("12_screen_border_script")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+border_texture = ExtResource("11_border_image")
+border_width = 20
+border_opacity = 1.0
 
 [node name="HUD" type="Control" parent="UILayer"]
 layout_mode = 3
@@ -128,7 +142,7 @@ vertical_alignment = 2
 layout_mode = 0
 anchor_left = 0.02
 anchor_top = 0.1
-anchor_right = 0.35
+anchor_right = 0.27
 anchor_bottom = 0.55
 theme_type_variation = "InventoryPanel"
 
@@ -161,7 +175,7 @@ horizontal_alignment = 1
 layout_mode = 0
 anchor_left = 0.02
 anchor_top = 0.6
-anchor_right = 0.35
+anchor_right = 0.27
 anchor_bottom = 0.98
 theme_type_variation = "SmallPanel"
 
@@ -199,7 +213,7 @@ text = "Collection Range: 80"
 
 [node name="UpgradeStatusPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.65
+anchor_left = 0.73
 anchor_top = 0.6
 anchor_right = 0.98
 anchor_bottom = 0.98
@@ -224,7 +238,7 @@ vertical_alignment = 1
 
 [node name="ControlsPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.65
+anchor_left = 0.73
 anchor_top = 0.1
 anchor_right = 0.98
 anchor_bottom = 0.55

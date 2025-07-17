@@ -58,3 +58,4 @@ releases/
 *.exe
 *.app
 # Large design files (legacy - now covered by documentation/design/ above)
+.env
