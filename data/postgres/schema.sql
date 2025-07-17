@@ -97,6 +97,12 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers to automatically update updated_at timestamps
+-- Drop existing triggers first to prevent "already exists" errors
+DROP TRIGGER IF EXISTS update_players_updated_at ON players;
+DROP TRIGGER IF EXISTS update_inventory_updated_at ON inventory;
+DROP TRIGGER IF EXISTS update_upgrades_updated_at ON upgrades;
+DROP TRIGGER IF EXISTS update_zones_updated_at ON zones;
+
 CREATE TRIGGER update_players_updated_at BEFORE UPDATE ON players
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -140,6 +146,9 @@ END;
 $$ language 'plpgsql';
 
 -- Create trigger to initialize upgrades when a new player is created
+-- Drop existing trigger first to prevent "already exists" errors
+DROP TRIGGER IF EXISTS initialize_new_player_upgrades ON players;
+
 CREATE TRIGGER initialize_new_player_upgrades AFTER INSERT ON players
     FOR EACH ROW EXECUTE FUNCTION initialize_player_upgrades();
 
