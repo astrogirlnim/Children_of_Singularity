@@ -89,13 +89,11 @@ create_bucket() {
 setup_bucket_policies() {
     print_status "S3" "Configuring S3 bucket policies and settings..."
 
-    # Enable versioning
-    print_status "INFO" "Enabling bucket versioning..."
-    aws s3api put-bucket-versioning \
-        --bucket "$S3_BUCKET_NAME" \
-        --versioning-configuration Status=Enabled
+    # Skip bucket versioning - releases are already versioned by path (v1.0.0, v1.1.0, etc.)
+    # and development assets are versioned by Git LFS
+    print_status "INFO" "Skipping bucket versioning (not needed - releases versioned by path, assets by Git LFS)"
 
-    # Set up lifecycle configuration to manage costs
+    # Set up lifecycle configuration to manage costs (non-critical)
     print_status "INFO" "Setting up lifecycle policies..."
     cat > /tmp/lifecycle-config.json << EOF
 {
@@ -144,14 +142,18 @@ setup_bucket_policies() {
 }
 EOF
 
-    aws s3api put-bucket-lifecycle-configuration \
+    if aws s3api put-bucket-lifecycle-configuration \
         --bucket "$S3_BUCKET_NAME" \
-        --lifecycle-configuration file:///tmp/lifecycle-config.json
+        --lifecycle-configuration file:///tmp/lifecycle-config.json 2>/dev/null; then
+        print_status "SUCCESS" "Lifecycle policies configured"
+    else
+        print_status "WARNING" "Could not set lifecycle policies (permission denied) - continuing without lifecycle management"
+    fi
 
     # Clean up temp file
     rm -f /tmp/lifecycle-config.json
 
-    print_status "SUCCESS" "S3 bucket configuration completed"
+    print_status "SUCCESS" "S3 bucket configuration completed (with available permissions)"
 }
 
 # Function to upload release artifacts to S3

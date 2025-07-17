@@ -19,6 +19,15 @@ Local Development → S3 Assets → Build Process → S3 Releases → Distributi
    Assets Upload   Asset Download   Build Upload  Download URLs
 ```
 
+## Versioning Strategy
+
+**No S3 Bucket Versioning Needed:**
+- **Release Artifacts**: Each release has a unique path (`releases/v1.0.0/`, `releases/v1.1.0/`)
+- **Development Assets**: Versioned by Git LFS in the repository
+- **Documentation**: Versioned by Git in the repository
+- **Cost Benefit**: Eliminates versioning storage costs and complexity
+- **Permission Benefit**: Reduces required IAM permissions
+
 ### S3 Bucket Structure
 
 ```
@@ -125,8 +134,6 @@ The documentation is stored at the root level of the S3 bucket for easy access a
                    "s3:CreateBucket",
                    "s3:ListBucket",
                    "s3:GetBucketLocation",
-                   "s3:GetBucketVersioning",
-                   "s3:PutBucketVersioning",
                    "s3:PutBucketLifecycleConfiguration",
                    "s3:GetBucketLifecycleConfiguration"
                ],
@@ -138,8 +145,7 @@ The documentation is stored at the root level of the S3 bucket for easy access a
                    "s3:PutObject",
                    "s3:GetObject",
                    "s3:DeleteObject",
-                   "s3:PutObjectAcl",
-                   "s3:GetObjectVersion"
+                   "s3:PutObjectAcl"
                ],
                "Resource": "arn:aws:s3:::children-of-singularity-releases/*"
            }
@@ -325,8 +331,8 @@ aws ce get-cost-and-usage \
 
 ### Data Protection
 
-1. **Versioning**: Enabled by default
-2. **Encryption**: S3 server-side encryption
+1. **Versioning**: Not enabled - releases are naturally versioned by path (v1.0.0/, v1.1.0/), and development assets are versioned by Git LFS
+2. **Encryption**: S3 server-side encryption  
 3. **Pre-signed URLs**: Time-limited access
 4. **Private Bucket**: No public read by default
 

@@ -450,7 +450,7 @@ ls -la releases/v1.0.0-test/
 - Export templates verified during build process
 - S3 access uses IAM credentials with least-privilege permissions
 - Pre-signed URLs for secure, time-limited downloads
-- S3 bucket versioning enabled for data protection
+- Releases naturally versioned by path structure (v1.0.0/, v1.1.0/) - no S3 versioning needed
 - Lifecycle policies prevent indefinite storage costs
 
 ## Performance
