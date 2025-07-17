@@ -207,7 +207,9 @@ func _update_mario_kart_camera_position(delta: float) -> void:
 			# Use actual steering input for banking (Mario Kart style)
 			var steering_input = ship_body.get_current_steering_input()
 			banking_roll = steering_input * banking_amount
-			_log_message("CameraController3D: Mario Kart banking - Steering: %.2f, Banking: %.2f" % [steering_input, banking_roll])
+			# Only log banking when timer allows and values are significant
+			if should_log and abs(steering_input) > 0.1:
+				_log_message("CameraController3D: Mario Kart banking - Steering: %.2f, Banking: %.2f" % [steering_input, banking_roll])
 		else:
 			# Improved: smooth banking calculation with gradual detection
 			var horizontal_velocity = Vector3(ship_velocity.x, 0, ship_velocity.z)

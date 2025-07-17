@@ -97,7 +97,14 @@ var can_interact: bool = false
 var speed: float = 200.0
 var acceleration: float = 800.0
 var friction: float = 600.0
-var max_speed: float = 300.0
+
+## Debug logging control (to prevent spam)
+var debug_log_timer: float = 0.0
+var debug_log_interval: float = 2.0  # Log every 2 seconds instead of every frame
+var enable_debug_logs: bool = false  # Disable verbose logs by default
+var last_logged_steering: float = 0.0
+var last_logged_velocity: float = 0.0
+var last_logged_acceleration: float = 0.0
 
 ## Scanner and Magnet states
 var is_scanner_active: bool = false
@@ -273,6 +280,8 @@ func _initialize_player_state() -> void:
 
 func _physics_process(delta: float) -> void:
 	##Handle 3D physics processing
+	debug_log_timer += delta  # Update debug timer
+
 	_handle_input()
 	_apply_ship_rotation(delta)
 	_apply_3d_movement(delta)
@@ -293,7 +302,9 @@ func _physics_process(delta: float) -> void:
 
 func _handle_input() -> void:
 	##Handle Mario Kart style steering input
-	_log_message("PlayerShip3D: Processing Mario Kart steering input")
+	# Only log periodically or when significant changes occur, not every frame
+	var should_log_debug = enable_debug_logs and (debug_log_timer >= debug_log_interval or
+		abs(steering_input - last_logged_steering) > 0.5)
 
 	# Reset input values
 	steering_input = 0.0
@@ -302,18 +313,20 @@ func _handle_input() -> void:
 	# Steering input (A/D keys for ship rotation)
 	if Input.is_action_pressed("move_right"):
 		steering_input += 1.0  # Steer right
-		_log_message("PlayerShip3D: Steering right")
 	if Input.is_action_pressed("move_left"):
 		steering_input -= 1.0  # Steer left
-		_log_message("PlayerShip3D: Steering left")
 
 	# Acceleration input (W/S keys for forward/backward movement)
 	if Input.is_action_pressed("move_up"):
 		acceleration_input += 1.0  # Accelerate forward
-		_log_message("PlayerShip3D: Accelerating forward")
 	if Input.is_action_pressed("move_down"):
 		acceleration_input -= 1.0  # Reverse/brake
-		_log_message("PlayerShip3D: Braking/reversing")
+
+	# Log only when values change significantly or at intervals
+	if should_log_debug and (steering_input != 0 or acceleration_input != 0):
+		_log_message("PlayerShip3D: Input - Steer: %.2f, Accel: %.2f" % [steering_input, acceleration_input])
+		last_logged_steering = steering_input
+		last_logged_acceleration = acceleration_input
 
 	# Legacy input vector for backward compatibility (will be removed later)
 	input_vector = Vector2(steering_input, -acceleration_input)
@@ -325,11 +338,13 @@ func _handle_input() -> void:
 	# Optional: Handle jump/float for Y-axis movement
 	if Input.is_action_just_pressed("collect") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
-		_log_message("PlayerShip3D: Jump/float activated")
+		_log_message("PlayerShip3D: Jump/float activated")  # Keep this log as it's event-based
 
 func _apply_3d_movement(delta: float) -> void:
 	##Apply Mario Kart style forward/backward movement only
-	_log_message("PlayerShip3D: Applying Mario Kart movement - Accel: %.2f, Current Vel: %.2f" % [acceleration_input, current_velocity])
+	# Only log when debug is enabled and significant changes occur or at intervals
+	var should_log_movement = enable_debug_logs and (debug_log_timer >= debug_log_interval or
+		abs(current_velocity - last_logged_velocity) > 5.0)
 
 	# Apply acceleration based on input
 	_apply_acceleration(delta, acceleration_input)
@@ -342,29 +357,42 @@ func _apply_3d_movement(delta: float) -> void:
 	velocity.x = movement_vector.x
 	velocity.z = movement_vector.z
 
-	_log_message("PlayerShip3D: Applied velocity - X: %.2f, Z: %.2f, Direction: %s" % [velocity.x, velocity.z, current_direction])
+	# Log only when significant changes occur or at intervals
+	if should_log_movement and abs(current_velocity) > 0.1:
+		_log_message("PlayerShip3D: Movement - Vel: %.1f, Dir: (%.1f,%.1f,%.1f)" %
+			[current_velocity, current_direction.x, current_direction.y, current_direction.z])
+		last_logged_velocity = current_velocity
 
 func _apply_acceleration(delta: float, accel_input: float) -> void:
 	##Apply Mario Kart style acceleration/deceleration
+	# Store previous velocity for change detection
+	var prev_velocity = current_velocity
+
 	if accel_input > 0:
 		# Forward acceleration
 		current_velocity = move_toward(current_velocity, max_forward_speed, acceleration_force * delta)
-		_log_message("PlayerShip3D: Forward acceleration - Velocity: %.2f / %.2f" % [current_velocity, max_forward_speed])
 	elif accel_input < 0:
 		# Reverse/braking
 		if current_velocity > 0:
 			# Braking while moving forward
 			current_velocity = move_toward(current_velocity, 0, brake_force * delta)
-			_log_message("PlayerShip3D: Braking - Velocity: %.2f" % current_velocity)
 		else:
 			# Reverse acceleration
 			current_velocity = move_toward(current_velocity, -max_reverse_speed, acceleration_force * delta)
-			_log_message("PlayerShip3D: Reverse acceleration - Velocity: %.2f / %.2f" % [current_velocity, -max_reverse_speed])
 	else:
 		# No input - apply friction
 		current_velocity = move_toward(current_velocity, 0, friction_force * delta)
-		if abs(current_velocity) > 0.1:
-			_log_message("PlayerShip3D: Applying friction - Velocity: %.2f" % current_velocity)
+
+	# Only log significant velocity changes when debug is enabled
+	if enable_debug_logs and abs(current_velocity - prev_velocity) > 2.0:
+		var action = ""
+		if accel_input > 0:
+			action = "Accelerating"
+		elif accel_input < 0:
+			action = "Braking" if prev_velocity > 0 else "Reversing"
+		else:
+			action = "Friction"
+		_log_message("PlayerShip3D: %s - Velocity: %.1f" % [action, current_velocity])
 
 func _apply_ship_rotation(delta: float) -> void:
 	##Apply Mario Kart style steering rotation
@@ -376,8 +404,6 @@ func _apply_ship_rotation(delta: float) -> void:
 func _apply_steering(delta: float) -> void:
 	##Apply Mario Kart style steering based on A/D keys
 	if abs(steering_input) > 0.1:
-		_log_message("PlayerShip3D: Applying steering - Input: %.2f, Current Velocity: %.2f" % [steering_input, current_velocity])
-
 		# Calculate turn speed based on current velocity (slower turning at high speed)
 		var velocity_factor = clamp(abs(current_velocity) / max_forward_speed, 0.2, 1.0)
 		var effective_turn_speed = lerp(max_turn_speed, turn_speed_at_max_velocity, velocity_factor)
@@ -394,10 +420,18 @@ func _apply_steering(delta: float) -> void:
 		# Update ship animation to show turning
 		_update_turning_animation(steering_input)
 
-		_log_message("PlayerShip3D: Steering applied - Turn amount: %.2f deg, New rotation: %.2f deg" % [turn_amount, rad_to_deg(rotation.y)])
+		# Only log steering when debug is enabled and at intervals or significant changes
+		if enable_debug_logs and (debug_log_timer >= debug_log_interval or
+			abs(steering_input - last_logged_steering) > 0.3):
+			_log_message("PlayerShip3D: Steering - Input: %.2f, Turn: %.1f°" % [steering_input, turn_amount])
+			last_logged_steering = steering_input
 	else:
 		# Not turning - reset animation to straight
 		_update_turning_animation(0.0)
+
+	# Reset debug timer when it reaches interval
+	if debug_log_timer >= debug_log_interval:
+		debug_log_timer = 0.0
 
 func _apply_gravity(delta: float) -> void:
 	##Apply gravity for floating/jumping mechanics
