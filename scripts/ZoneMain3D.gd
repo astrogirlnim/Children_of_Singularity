@@ -1232,48 +1232,58 @@ func _on_select_max_debris(debris_type: String, max_quantity: int) -> void:
 	_update_debris_row_value(debris_type)
 	_update_selection_summary()
 
-func _update_debris_row_value(debris_type: String) -> void:
-	##Update the selected value display for a specific debris row
-	var selected_quantity = selected_debris.get(debris_type, 0)
+func _get_debris_value(debris_type: String) -> int:
+	##Get the individual value for a specific debris type from player inventory
+	if not player_ship:
+		return 0
 
-	# Add debugging
+	for item in player_ship.current_inventory:
+		if item.get("type") == debris_type:
+			return item.get("value", 0)
+
+	# If not found in current inventory, use default values
+	match debris_type:
+		"scrap_metal":
+			return 5
+		"bio_waste":
+			return 8
+		"ai_component":
+			return 500
+		"broken_satellite":
+			return 25
+		"unknown_artifact":
+			return 100
+		_:
+			return 1  # Default value
+
+func _update_debris_row_value(debris_type: String) -> void:
+	##Update the selected value display for a specific debris type
+	var selected_quantity = selected_debris.get(debris_type, 0)
 	_log_message("ZoneMain3D: DEBUG - _update_debris_row_value - Type: %s, Selected Quantity: %d" % [debris_type, selected_quantity])
 
-	var selected_value_label = debris_selection_list.get_node_or_null("Row_%s/SelectedValue_%s" % [debris_type, debris_type])
-
-	# Debug node finding
-	if not selected_value_label:
-		_log_message("ZoneMain3D: ERROR - Could not find selected value label for %s at path: Row_%s/SelectedValue_%s" % [debris_type, debris_type, debris_type])
+	# Safety check: make sure debris_selection_list exists and hasn't been cleared
+	if not debris_selection_list or not debris_selection_list.get_child_count() > 0:
+		_log_message("ZoneMain3D: DEBUG - Debris selection list not available, skipping value update")
 		return
-	else:
-		_log_message("ZoneMain3D: DEBUG - Found selected value label for %s" % debris_type)
 
-	if player_ship:
-		# Calculate value based on selected quantity
-		var individual_value = 0
-		for item in player_ship.current_inventory:
-			if item.get("type") == debris_type:
-				individual_value = item.get("value", 0)
-				_log_message("ZoneMain3D: DEBUG - Found individual value for %s: %d" % [debris_type, individual_value])
-				break
+	# Find the selected value label
+	var selected_value_label = debris_selection_list.get_node_or_null("Row_%s/SelectedValue_%s" % [debris_type, debris_type])
+	if not selected_value_label:
+		_log_message("ZoneMain3D: DEBUG - Could not find selected value label for %s (UI may have been refreshed)" % debris_type)
+		return
 
-		if individual_value == 0:
-			_log_message("ZoneMain3D: WARNING - No individual value found for %s in inventory" % debris_type)
+	_log_message("ZoneMain3D: DEBUG - Found selected value label for %s" % debris_type)
 
-		var total_selected_value = selected_quantity * individual_value
-		_log_message("ZoneMain3D: DEBUG - Calculated total value: %d x %d = %d" % [selected_quantity, individual_value, total_selected_value])
+	# Get the individual value for this debris type
+	var individual_value = _get_debris_value(debris_type)
+	_log_message("ZoneMain3D: DEBUG - Found individual value for %s: %d" % [debris_type, individual_value])
 
-		selected_value_label.text = "%d credits" % total_selected_value
+	# Calculate and display total value for selected quantity
+	var total_value = selected_quantity * individual_value
+	_log_message("ZoneMain3D: DEBUG - Calculated total value: %d x %d = %d" % [selected_quantity, individual_value, total_value])
 
-		# Color coding
-		if selected_quantity > 0:
-			selected_value_label.add_theme_color_override("font_color", Color.YELLOW)
-		else:
-			selected_value_label.add_theme_color_override("font_color", Color.GRAY)
-
-		_log_message("ZoneMain3D: DEBUG - Updated label text to: %s" % selected_value_label.text)
-	else:
-		_log_message("ZoneMain3D: ERROR - No player ship found!")
+	selected_value_label.text = "%d credits" % total_value
+	_log_message("ZoneMain3D: DEBUG - Updated label text to: %s" % selected_value_label.text)
 
 func _update_selection_summary() -> void:
 	##Update the selection summary display and button states
