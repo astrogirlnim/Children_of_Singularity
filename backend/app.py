@@ -93,7 +93,8 @@ def initialize_database():
                             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                             name VARCHAR(255) NOT NULL,
                             credits INTEGER NOT NULL DEFAULT 0,
-                            progression_path VARCHAR(50) NOT NULL DEFAULT 'rogue',
+                            progression_path VARCHAR(50) NOT NULL
+                                DEFAULT 'rogue',
                             position_x FLOAT NOT NULL DEFAULT 0.0,
                             position_y FLOAT NOT NULL DEFAULT 0.0,
                             position_z FLOAT NOT NULL DEFAULT 0.0,
@@ -179,7 +180,8 @@ def _create_test_data():
             with conn.cursor() as cursor:
                 # Check if test player exists
                 cursor.execute(
-                    "SELECT id FROM players WHERE name = %s", ("Test Salvager",)
+                    "SELECT id FROM players WHERE name = %s",
+                    ("Test Salvager",),
                 )
                 if not cursor.fetchone():
                     # Create test player
@@ -195,14 +197,16 @@ def _create_test_data():
 
                     player_id = cursor.fetchone()["id"]
 
-                    # Create initial upgrades for test player
+                    # Create initial upgrades for test player (skip if exist)
                     cursor.execute(
                         """
-                        INSERT INTO upgrades (player_id, upgrade_type, level) VALUES
+                        INSERT INTO upgrades (player_id, upgrade_type, level)
+                        VALUES
                         (%s, 'speed_boost', 0),
                         (%s, 'inventory_expansion', 0),
                         (%s, 'collection_efficiency', 0),
                         (%s, 'zone_access', 1)
+                        ON CONFLICT (player_id, upgrade_type) DO NOTHING
                     """,
                         (player_id, player_id, player_id, player_id),
                     )
@@ -267,7 +271,8 @@ async def get_player(player_id: str):
                 # Get player upgrades
                 cursor.execute(
                     """
-                    SELECT upgrade_type, level FROM upgrades WHERE player_id = %s
+                    SELECT upgrade_type, level FROM upgrades
+                    WHERE player_id = %s
                 """,
                     (player_id,),
                 )
@@ -343,7 +348,8 @@ async def create_or_update_player(player_id: str, player_data: PlayerData):
                     # Create new player
                     cursor.execute(
                         """
-                        INSERT INTO players (id, name, credits, progression_path,
+                        INSERT INTO players (id, name, credits,
+                                           progression_path,
                                            position_x, position_y, position_z)
                         VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
@@ -374,7 +380,10 @@ async def create_or_update_player(player_id: str, player_data: PlayerData):
 
                 conn.commit()
                 logger.info(f"Player {player_id} saved successfully")
-                return {"message": "Player saved successfully", "player_id": player_id}
+                return {
+                    "message": "Player saved successfully",
+                    "player_id": player_id,
+                }
 
     except Exception as e:
         logger.error(f"Database error saving player: {e}")
@@ -543,7 +552,8 @@ async def clear_player_inventory(player_id: str):
                 conn.commit()
 
                 logger.info(
-                    f"Cleared {len(cleared_items)} items from {player_id}'s inventory"
+                    f"Cleared {len(cleared_items)} items from "
+                    f"{player_id}'s inventory"
                 )
                 return {
                     "message": "Inventory cleared",
@@ -594,7 +604,8 @@ async def update_player_credits(player_id: str, credits_change: int):
                 # Update credits
                 cursor.execute(
                     """
-                    UPDATE players SET credits = %s, updated_at = CURRENT_TIMESTAMP
+                    UPDATE players SET credits = %s,
+                           updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """,
                     (new_credits, player_id),
@@ -681,7 +692,11 @@ async def get_player_zones(player_id: str):
             raise HTTPException(status_code=404, detail="Player not found")
 
         zones = zones_db.get(player_id, [])
-        return {"player_id": player_id, "zones": zones, "total_zones": len(zones)}
+        return {
+            "player_id": player_id,
+            "zones": zones,
+            "total_zones": len(zones),
+        }
 
 
 @app.get("/api/v1/health")
