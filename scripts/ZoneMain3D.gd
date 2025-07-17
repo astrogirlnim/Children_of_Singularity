@@ -37,6 +37,21 @@ signal npc_hub_entered()
 @onready var ai_communicator: Node = $AICommunicator
 @onready var network_manager: Node = $NetworkManager
 
+# Trading interface UI elements
+@onready var trading_interface: Panel = $UILayer/HUD/TradingInterface
+@onready var trading_title: Label = $UILayer/HUD/TradingInterface/TradingTitle
+@onready var trading_content: VBoxContainer = $UILayer/HUD/TradingInterface/TradingContent
+@onready var trading_result: Label = $UILayer/HUD/TradingInterface/TradingContent/TradingResult
+@onready var sell_all_button: Button = $UILayer/HUD/TradingInterface/TradingContent/SellAllButton
+@onready var trading_close_button: Button = $UILayer/HUD/TradingInterface/TradingCloseButton
+
+# Selective trading UI elements (will be created dynamically)
+var debris_selection_container: ScrollContainer
+var debris_selection_list: VBoxContainer
+var selection_summary_label: Label
+var sell_selected_button: Button
+var selected_debris: Dictionary = {}  # Store selected quantities per debris type
+
 # Preloaded scripts for 3D systems
 const SpaceStationModule3DScript = preload("res://scripts/SpaceStationModule3D.gd")
 const SpaceStationManager3DScript = preload("res://scripts/SpaceStationManager3D.gd")
@@ -112,6 +127,9 @@ func _initialize_3d_zone() -> void:
 		player_ship.npc_hub_entered.connect(_on_npc_hub_entered)
 		player_ship.npc_hub_exited.connect(_on_npc_hub_exited)
 		_log_message("ZoneMain3D: Player ship signals connected")
+
+	# Initialize trading interface UI connections
+	_initialize_trading_interface()
 
 	# Initialize 3D debris manager
 	_initialize_debris_manager_3d()
@@ -767,3 +785,468 @@ func _get_rarity_color(item_type: String) -> Color:
 			return Color.GOLD  # Legendary
 		_:
 			return Color.WHITE  # Default
+
+func _initialize_trading_interface() -> void:
+	##Initialize trading interface UI connections and functionality
+	_log_message("ZoneMain3D: Initializing enhanced trading interface with selective selling")
+
+	# Initially hide trading interface
+	if trading_interface:
+		trading_interface.visible = false
+		_log_message("ZoneMain3D: Trading interface hidden initially")
+
+	# Create enhanced trading UI structure
+	_create_selective_trading_ui()
+
+	# Connect buttons
+	if sell_all_button:
+		sell_all_button.pressed.connect(_on_sell_all_pressed)
+		_log_message("ZoneMain3D: Sell all button connected")
+
+	# Connect close button
+	if trading_close_button:
+		trading_close_button.pressed.connect(_on_trading_close_pressed)
+		_log_message("ZoneMain3D: Trading close button connected")
+
+func _create_selective_trading_ui() -> void:
+	##Create the enhanced selective trading UI elements
+	_log_message("ZoneMain3D: Creating selective trading UI elements")
+
+	if not trading_content:
+		_log_message("ZoneMain3D: ERROR - Trading content container not found!")
+		return
+
+	# Create scroll container for debris selection
+	debris_selection_container = ScrollContainer.new()
+	debris_selection_container.name = "DebrisSelectionContainer"
+	debris_selection_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	debris_selection_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	debris_selection_container.custom_minimum_size = Vector2(0, 200)
+
+	# Create VBox for debris list
+	debris_selection_list = VBoxContainer.new()
+	debris_selection_list.name = "DebrisSelectionList"
+	debris_selection_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	debris_selection_container.add_child(debris_selection_list)
+
+	# Create selection summary label
+	selection_summary_label = Label.new()
+	selection_summary_label.name = "SelectionSummary"
+	selection_summary_label.text = "No items selected"
+	selection_summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	selection_summary_label.add_theme_color_override("font_color", Color.CYAN)
+
+	# Create sell selected button
+	sell_selected_button = Button.new()
+	sell_selected_button.name = "SellSelectedButton"
+	sell_selected_button.text = "SELL SELECTED"
+	sell_selected_button.pressed.connect(_on_sell_selected_pressed)
+
+	# Rearrange trading content structure
+	# Move existing elements to correct positions
+	if trading_result:
+		trading_content.move_child(trading_result, 0)
+
+	# Add new elements in order
+	trading_content.add_child(debris_selection_container)
+	trading_content.add_child(selection_summary_label)
+	trading_content.add_child(sell_selected_button)
+
+	# Keep sell all button at the end
+	if sell_all_button:
+		trading_content.move_child(sell_all_button, -1)
+
+	_log_message("ZoneMain3D: Selective trading UI structure created")
+
+## Trading Interface Methods
+
+func open_trading_interface(hub_type: String) -> void:
+	##Open the trading interface when player presses F at a trading hub
+	_log_message("ZoneMain3D: Opening enhanced trading interface for %s hub" % hub_type)
+
+	if not trading_interface:
+		_log_message("ZoneMain3D: ERROR - Trading interface not found!")
+		return
+
+	# Clear previous selections
+	selected_debris.clear()
+
+	# Show the trading interface
+	trading_interface.visible = true
+
+	# Update title
+	if trading_title:
+		trading_title.text = "TRADING TERMINAL - %s" % hub_type.to_upper()
+
+	# Update basic info
+	if trading_result and player_ship:
+		var inventory_count = player_ship.current_inventory.size()
+		var inventory_value = _calculate_inventory_total_value()
+		trading_result.text = "Total Inventory: %d items worth %d credits\nSelect items below to sell individually, or use 'SELL ALL'" % [inventory_count, inventory_value]
+		_log_message("ZoneMain3D: Trading interface updated - %d items worth %d credits" % [inventory_count, inventory_value])
+
+	# Populate selective trading UI
+	_populate_debris_selection_ui()
+
+	# Update selection summary
+	_update_selection_summary()
+
+	_log_message("ZoneMain3D: Enhanced trading interface opened successfully")
+
+func close_trading_interface() -> void:
+	##Close the trading interface
+	_log_message("ZoneMain3D: Closing trading interface")
+
+	if trading_interface:
+		trading_interface.visible = false
+
+	_log_message("ZoneMain3D: Trading interface closed")
+
+func _on_sell_all_pressed() -> void:
+	##Handle sell all button press - sell all debris in inventory
+	_log_message("ZoneMain3D: Sell all button pressed")
+
+	if not player_ship:
+		_log_message("ZoneMain3D: ERROR - Player ship not found!")
+		return
+
+	var inventory = player_ship.current_inventory
+	if inventory.is_empty():
+		_update_trading_result("No debris to sell!", Color.YELLOW)
+		_log_message("ZoneMain3D: No debris in inventory to sell")
+		return
+
+	# Calculate total value
+	var total_value = _calculate_inventory_total_value()
+	var item_count = inventory.size()
+
+	_log_message("ZoneMain3D: Selling %d items for %d credits total" % [item_count, total_value])
+
+	# Clear inventory and add credits
+	var sold_items = player_ship.clear_inventory()
+	player_ship.add_credits(total_value)
+
+	# Update UI immediately
+	_update_inventory_displays()
+	_update_credits_display()
+
+	# Show success message
+	var success_message = "SUCCESS!\nSold %d items for %d credits\nTotal Credits: %d" % [item_count, total_value, player_ship.credits]
+	_update_trading_result(success_message, Color.GREEN)
+
+	# Sync with backend API
+	_sync_sale_with_backend(sold_items, total_value)
+
+	_log_message("ZoneMain3D: Sale completed - %d items sold for %d credits" % [item_count, total_value])
+
+func _on_trading_close_pressed() -> void:
+	##Handle trading close button press
+	_log_message("ZoneMain3D: Trading close button pressed")
+	close_trading_interface()
+
+func _calculate_inventory_total_value() -> int:
+	##Calculate total value of all items in inventory
+	if not player_ship:
+		return 0
+
+	var total_value = 0
+	for item in player_ship.current_inventory:
+		total_value += item.get("value", 0)
+
+	return total_value
+
+func _update_trading_result(message: String, color: Color = Color.WHITE) -> void:
+	##Update the trading result display
+	if trading_result:
+		trading_result.text = message
+		trading_result.modulate = color
+		_log_message("ZoneMain3D: Trading result updated: %s" % message)
+
+func _sync_sale_with_backend(sold_items: Array, total_value: int) -> void:
+	##Sync the sale transaction with the backend API
+	if not api_client:
+		_log_message("ZoneMain3D: Warning - No API client available for backend sync")
+		return
+
+	# Create transaction data
+	var transaction_data = {
+		"player_id": player_ship.player_id,
+		"transaction_type": "sell_all",
+		"items_sold": sold_items,
+		"credits_earned": total_value,
+		"timestamp": Time.get_unix_time_from_system()
+	}
+
+	# Send to backend if method exists
+	if api_client.has_method("record_transaction"):
+		api_client.record_transaction(transaction_data)
+		_log_message("ZoneMain3D: Transaction synced with backend API")
+	elif api_client.has_method("sell_all_inventory"):
+		api_client.sell_all_inventory()
+		_log_message("ZoneMain3D: Sell all request sent to backend API")
+	else:
+		_log_message("ZoneMain3D: Warning - Backend API does not support transaction recording")
+
+func _update_inventory_displays() -> void:
+	##Update all inventory-related UI displays
+	if player_ship and inventory_status:
+		var current_size = player_ship.current_inventory.size()
+		var max_size = player_ship.inventory_capacity
+		inventory_status.text = "%d/%d Items" % [current_size, max_size]
+
+		# Color code based on fullness
+		if current_size >= max_size:
+			inventory_status.modulate = Color.RED
+		elif current_size >= max_size * 0.8:
+			inventory_status.modulate = Color.YELLOW
+		else:
+			inventory_status.modulate = Color.WHITE
+
+		# Update grouped inventory display
+		_update_grouped_inventory_display(player_ship.current_inventory)
+
+		_log_message("ZoneMain3D: Inventory displays updated - %d/%d items" % [current_size, max_size])
+
+func _update_credits_display() -> void:
+	##Update the credits display
+	if player_ship and credits_label:
+		credits_label.text = "Credits: %d" % player_ship.credits
+		_log_message("ZoneMain3D: Credits display updated - %d credits" % player_ship.credits)
+
+func _on_sell_selected_pressed() -> void:
+	##Handle sell selected button press - sell the currently selected items
+	_log_message("ZoneMain3D: Sell selected button pressed")
+
+	if not player_ship:
+		_log_message("ZoneMain3D: ERROR - Player ship not found!")
+		return
+
+	if selected_debris.is_empty():
+		_update_trading_result("No items selected to sell!", Color.YELLOW)
+		_log_message("ZoneMain3D: No items selected to sell")
+		return
+
+	var sold_items = []
+	var total_value = 0
+	var items_to_remove = []
+
+	# Process each selected debris type
+	for debris_type in selected_debris:
+		var quantity_to_sell = selected_debris[debris_type]
+		if quantity_to_sell <= 0:
+			continue
+
+		var items_found = 0
+
+		# Find and mark items for removal
+		for i in range(player_ship.current_inventory.size()):
+			var item = player_ship.current_inventory[i]
+			if item.get("type") == debris_type and items_found < quantity_to_sell:
+				sold_items.append(item)
+				items_to_remove.append(i)
+				total_value += item.get("value", 0)
+				items_found += 1
+
+		_log_message("ZoneMain3D: Found %d/%d %s items to sell" % [items_found, quantity_to_sell, debris_type])
+
+	if sold_items.is_empty():
+		_update_trading_result("No items found to sell!", Color.YELLOW)
+		_log_message("ZoneMain3D: No items found to sell")
+		return
+
+	# Remove items from inventory (reverse order to maintain indices)
+	items_to_remove.sort()
+	items_to_remove.reverse()
+	for index in items_to_remove:
+		player_ship.current_inventory.remove_at(index)
+
+	# Add credits
+	player_ship.add_credits(total_value)
+
+	# Clear selections
+	selected_debris.clear()
+
+	# Update UI immediately
+	_update_inventory_displays()
+	_update_credits_display()
+
+	# Refresh the selection UI with new inventory
+	_populate_debris_selection_ui()
+	_update_selection_summary()
+
+	# Show success message
+	var success_message = "SUCCESS!\nSold %d selected items for %d credits\nTotal Credits: %d" % [sold_items.size(), total_value, player_ship.credits]
+	_update_trading_result(success_message, Color.GREEN)
+
+	# Sync with backend API
+	_sync_sale_with_backend(sold_items, total_value)
+
+	_log_message("ZoneMain3D: Selective sale completed - %d items sold for %d credits" % [sold_items.size(), total_value])
+
+func _populate_debris_selection_ui() -> void:
+	##Populate the debris selection UI with current inventory
+	if not debris_selection_list or not player_ship:
+		return
+
+	# Clear existing selection items
+	for child in debris_selection_list.get_children():
+		child.queue_free()
+
+	# Group inventory by type
+	var grouped_inventory = _group_inventory_by_type(player_ship.current_inventory)
+	_log_message("ZoneMain3D: Populating selection UI with %d debris types" % grouped_inventory.size())
+
+	# Create selection row for each debris type
+	for debris_type in grouped_inventory:
+		var group_data = grouped_inventory[debris_type]
+		var selection_row = _create_debris_selection_row(debris_type, group_data)
+		debris_selection_list.add_child(selection_row)
+
+	_log_message("ZoneMain3D: Created %d debris selection rows" % grouped_inventory.size())
+
+func _create_debris_selection_row(debris_type: String, group_data: Dictionary) -> Control:
+	##Create a selection row for a specific debris type
+	var row_container = HBoxContainer.new()
+	row_container.name = "Row_%s" % debris_type
+	row_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Debris type label
+	var type_label = Label.new()
+	type_label.text = debris_type.capitalize().replace("_", " ")
+	type_label.custom_minimum_size = Vector2(120, 0)
+	type_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row_container.add_child(type_label)
+
+	# Available quantity label
+	var available_label = Label.new()
+	available_label.text = "x%d" % group_data.quantity
+	available_label.custom_minimum_size = Vector2(40, 0)
+	available_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	available_label.add_theme_color_override("font_color", Color.WHITE)
+	row_container.add_child(available_label)
+
+	# Quantity selector (SpinBox)
+	var quantity_selector = SpinBox.new()
+	quantity_selector.name = "QuantitySelector_%s" % debris_type
+	quantity_selector.min_value = 0
+	quantity_selector.max_value = group_data.quantity
+	quantity_selector.step = 1
+	quantity_selector.value = 0
+	quantity_selector.custom_minimum_size = Vector2(80, 0)
+	quantity_selector.value_changed.connect(_on_debris_quantity_changed.bind(debris_type))
+	row_container.add_child(quantity_selector)
+
+	# Individual value label
+	var individual_value_label = Label.new()
+	individual_value_label.text = "%d ea" % group_data.individual_value
+	individual_value_label.custom_minimum_size = Vector2(50, 0)
+	individual_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	individual_value_label.add_theme_color_override("font_color", Color.GRAY)
+	row_container.add_child(individual_value_label)
+
+	# Selected value label (will update based on quantity)
+	var selected_value_label = Label.new()
+	selected_value_label.name = "SelectedValue_%s" % debris_type
+	selected_value_label.text = "0 credits"
+	selected_value_label.custom_minimum_size = Vector2(80, 0)
+	selected_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	selected_value_label.add_theme_color_override("font_color", Color.YELLOW)
+	row_container.add_child(selected_value_label)
+
+	# Max button for quick selection
+	var max_button = Button.new()
+	max_button.text = "MAX"
+	max_button.custom_minimum_size = Vector2(50, 0)
+	max_button.pressed.connect(_on_select_max_debris.bind(debris_type, group_data.quantity))
+	row_container.add_child(max_button)
+
+	return row_container
+
+func _on_debris_quantity_changed(debris_type: String, new_quantity: float) -> void:
+	##Handle debris quantity selection change
+	var quantity = int(new_quantity)
+	selected_debris[debris_type] = quantity
+
+	_log_message("ZoneMain3D: Selected %d %s for sale" % [quantity, debris_type])
+
+	# Update the selected value display for this debris type
+	_update_debris_row_value(debris_type)
+
+	# Update overall selection summary
+	_update_selection_summary()
+
+func _on_select_max_debris(debris_type: String, max_quantity: int) -> void:
+	##Handle max button press - select all available quantity
+	selected_debris[debris_type] = max_quantity
+
+	# Update the quantity selector
+	var quantity_selector = debris_selection_list.get_node_or_null("Row_%s/QuantitySelector_%s" % [debris_type, debris_type])
+	if quantity_selector:
+		quantity_selector.value = max_quantity
+
+	_log_message("ZoneMain3D: Selected maximum %d %s for sale" % [max_quantity, debris_type])
+
+	# Update displays
+	_update_debris_row_value(debris_type)
+	_update_selection_summary()
+
+func _update_debris_row_value(debris_type: String) -> void:
+	##Update the selected value display for a specific debris row
+	var selected_quantity = selected_debris.get(debris_type, 0)
+	var selected_value_label = debris_selection_list.get_node_or_null("Row_%s/SelectedValue_%s" % [debris_type, debris_type])
+
+	if selected_value_label and player_ship:
+		# Calculate value based on selected quantity
+		var individual_value = 0
+		for item in player_ship.current_inventory:
+			if item.get("type") == debris_type:
+				individual_value = item.get("value", 0)
+				break
+
+		var total_selected_value = selected_quantity * individual_value
+		selected_value_label.text = "%d credits" % total_selected_value
+
+		# Color coding
+		if selected_quantity > 0:
+			selected_value_label.add_theme_color_override("font_color", Color.YELLOW)
+		else:
+			selected_value_label.add_theme_color_override("font_color", Color.GRAY)
+
+func _update_selection_summary() -> void:
+	##Update the selection summary display
+	if not selection_summary_label:
+		return
+
+	var total_selected_items = 0
+	var total_selected_value = 0
+
+	# Calculate totals
+	for debris_type in selected_debris:
+		var quantity = selected_debris[debris_type]
+		if quantity > 0:
+			total_selected_items += quantity
+
+			# Find individual value
+			if player_ship:
+				for item in player_ship.current_inventory:
+					if item.get("type") == debris_type:
+						total_selected_value += quantity * item.get("value", 0)
+						break
+
+	# Update summary text
+	if total_selected_items > 0:
+		selection_summary_label.text = "Selected: %d items worth %d credits" % [total_selected_items, total_selected_value]
+		selection_summary_label.add_theme_color_override("font_color", Color.CYAN)
+
+		# Enable sell selected button
+		if sell_selected_button:
+			sell_selected_button.disabled = false
+	else:
+		selection_summary_label.text = "No items selected"
+		selection_summary_label.add_theme_color_override("font_color", Color.GRAY)
+
+		# Disable sell selected button
+		if sell_selected_button:
+			sell_selected_button.disabled = true
+
+	_log_message("ZoneMain3D: Selection summary updated - %d items, %d credits" % [total_selected_items, total_selected_value])
