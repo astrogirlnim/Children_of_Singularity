@@ -926,9 +926,16 @@ func _on_sell_all_pressed() -> void:
 	var sold_items = player_ship.clear_inventory()
 	player_ship.add_credits(total_value)
 
+	# Clear selections since inventory is now empty
+	selected_debris.clear()
+
 	# Update UI immediately
 	_update_inventory_displays()
 	_update_credits_display()
+
+	# Refresh the trading interface to show updated inventory
+	_populate_debris_selection_ui()
+	_update_selection_summary()
 
 	# Show success message
 	var success_message = "SUCCESS!\nSold %d items for %d credits\nTotal Credits: %d" % [item_count, total_value, player_ship.credits]
@@ -1133,7 +1140,15 @@ func _create_debris_selection_row(debris_type: String, group_data: Dictionary) -
 	quantity_selector.step = 1
 	quantity_selector.value = 0
 	quantity_selector.custom_minimum_size = Vector2(80, 0)
+	quantity_selector.allow_greater = false  # Prevent values above max
+	quantity_selector.allow_lesser = false   # Prevent values below min
+
+	# Connect multiple signals with debugging
 	quantity_selector.value_changed.connect(_on_debris_quantity_changed.bind(debris_type))
+	quantity_selector.get_line_edit().text_submitted.connect(_on_debris_quantity_text_submitted.bind(debris_type))
+	quantity_selector.get_line_edit().text_changed.connect(_on_debris_quantity_text_changed.bind(debris_type))
+	_log_message("ZoneMain3D: DEBUG - Connected SpinBox signals for %s (min: %d, max: %d)" % [debris_type, quantity_selector.min_value, quantity_selector.max_value])
+
 	row_container.add_child(quantity_selector)
 
 	# Individual value label
@@ -1162,24 +1177,51 @@ func _create_debris_selection_row(debris_type: String, group_data: Dictionary) -
 
 	return row_container
 
-func _on_debris_quantity_changed(debris_type: String, new_quantity: float) -> void:
+func _on_debris_quantity_changed(new_quantity: float, debris_type: String) -> void:
 	##Handle debris quantity selection change
 	var quantity = int(new_quantity)
-	selected_debris[debris_type] = quantity
 
-	_log_message("ZoneMain3D: Selected %d %s for sale" % [quantity, debris_type])
+	# Add extensive debugging
+	_log_message("ZoneMain3D: DEBUG - _on_debris_quantity_changed called - Type: %s, New Quantity: %f, Int Quantity: %d" % [debris_type, new_quantity, quantity])
+
+	# Store or remove from selected_debris based on quantity
+	if quantity > 0:
+		selected_debris[debris_type] = quantity
+		_log_message("ZoneMain3D: Selected %d %s for sale" % [quantity, debris_type])
+	else:
+		# Remove from dictionary if quantity is 0 to keep it clean
+		if debris_type in selected_debris:
+			selected_debris.erase(debris_type)
+		_log_message("ZoneMain3D: Deselected %s (quantity 0)" % debris_type)
+
+	# Debug the selected_debris dictionary state
+	_log_message("ZoneMain3D: DEBUG - selected_debris dictionary: %s" % selected_debris)
 
 	# Update the selected value display for this debris type
 	_update_debris_row_value(debris_type)
 
-	# Update overall selection summary
+	# Update overall selection summary (this will enable/disable sell selected button)
 	_update_selection_summary()
+
+func _on_debris_quantity_text_submitted(text: String, debris_type: String) -> void:
+	##Handle when user types a number and presses Enter in the SpinBox
+	_log_message("ZoneMain3D: DEBUG - Text submitted for %s: '%s'" % [debris_type, text])
+	var quantity = int(text)
+	_on_debris_quantity_changed(quantity, debris_type)
+
+func _on_debris_quantity_text_changed(text: String, debris_type: String) -> void:
+	##Handle when user types in the SpinBox (every character change)
+	_log_message("ZoneMain3D: DEBUG - Text changed for %s: '%s'" % [debris_type, text])
+	# Only process if the text is a valid number
+	if text.is_valid_int():
+		var quantity = int(text)
+		_on_debris_quantity_changed(quantity, debris_type)
 
 func _on_select_max_debris(debris_type: String, max_quantity: int) -> void:
 	##Handle max button press - select all available quantity
 	selected_debris[debris_type] = max_quantity
 
-	# Update the quantity selector
+	# Update the quantity selector to reflect the MAX selection
 	var quantity_selector = debris_selection_list.get_node_or_null("Row_%s/QuantitySelector_%s" % [debris_type, debris_type])
 	if quantity_selector:
 		quantity_selector.value = max_quantity
@@ -1193,17 +1235,34 @@ func _on_select_max_debris(debris_type: String, max_quantity: int) -> void:
 func _update_debris_row_value(debris_type: String) -> void:
 	##Update the selected value display for a specific debris row
 	var selected_quantity = selected_debris.get(debris_type, 0)
+
+	# Add debugging
+	_log_message("ZoneMain3D: DEBUG - _update_debris_row_value - Type: %s, Selected Quantity: %d" % [debris_type, selected_quantity])
+
 	var selected_value_label = debris_selection_list.get_node_or_null("Row_%s/SelectedValue_%s" % [debris_type, debris_type])
 
-	if selected_value_label and player_ship:
+	# Debug node finding
+	if not selected_value_label:
+		_log_message("ZoneMain3D: ERROR - Could not find selected value label for %s at path: Row_%s/SelectedValue_%s" % [debris_type, debris_type, debris_type])
+		return
+	else:
+		_log_message("ZoneMain3D: DEBUG - Found selected value label for %s" % debris_type)
+
+	if player_ship:
 		# Calculate value based on selected quantity
 		var individual_value = 0
 		for item in player_ship.current_inventory:
 			if item.get("type") == debris_type:
 				individual_value = item.get("value", 0)
+				_log_message("ZoneMain3D: DEBUG - Found individual value for %s: %d" % [debris_type, individual_value])
 				break
 
+		if individual_value == 0:
+			_log_message("ZoneMain3D: WARNING - No individual value found for %s in inventory" % debris_type)
+
 		var total_selected_value = selected_quantity * individual_value
+		_log_message("ZoneMain3D: DEBUG - Calculated total value: %d x %d = %d" % [selected_quantity, individual_value, total_selected_value])
+
 		selected_value_label.text = "%d credits" % total_selected_value
 
 		# Color coding
@@ -1212,15 +1271,19 @@ func _update_debris_row_value(debris_type: String) -> void:
 		else:
 			selected_value_label.add_theme_color_override("font_color", Color.GRAY)
 
+		_log_message("ZoneMain3D: DEBUG - Updated label text to: %s" % selected_value_label.text)
+	else:
+		_log_message("ZoneMain3D: ERROR - No player ship found!")
+
 func _update_selection_summary() -> void:
-	##Update the selection summary display
+	##Update the selection summary display and button states
 	if not selection_summary_label:
 		return
 
 	var total_selected_items = 0
 	var total_selected_value = 0
 
-	# Calculate totals
+	# Calculate totals (only count items with quantity > 0)
 	for debris_type in selected_debris:
 		var quantity = selected_debris[debris_type]
 		if quantity > 0:
@@ -1233,7 +1296,7 @@ func _update_selection_summary() -> void:
 						total_selected_value += quantity * item.get("value", 0)
 						break
 
-	# Update summary text
+	# Update summary text and button state
 	if total_selected_items > 0:
 		selection_summary_label.text = "Selected: %d items worth %d credits" % [total_selected_items, total_selected_value]
 		selection_summary_label.add_theme_color_override("font_color", Color.CYAN)
@@ -1241,6 +1304,7 @@ func _update_selection_summary() -> void:
 		# Enable sell selected button
 		if sell_selected_button:
 			sell_selected_button.disabled = false
+			_log_message("ZoneMain3D: Sell Selected button ENABLED - %d items selected" % total_selected_items)
 	else:
 		selection_summary_label.text = "No items selected"
 		selection_summary_label.add_theme_color_override("font_color", Color.GRAY)
@@ -1248,5 +1312,7 @@ func _update_selection_summary() -> void:
 		# Disable sell selected button
 		if sell_selected_button:
 			sell_selected_button.disabled = true
+			_log_message("ZoneMain3D: Sell Selected button DISABLED - no items selected")
 
-	_log_message("ZoneMain3D: Selection summary updated - %d items, %d credits" % [total_selected_items, total_selected_value])
+	_log_message("ZoneMain3D: Selection summary updated - %d items, %d credits, button enabled: %s" %
+		[total_selected_items, total_selected_value, not sell_selected_button.disabled if sell_selected_button else false])
