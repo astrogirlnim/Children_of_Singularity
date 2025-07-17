@@ -42,6 +42,7 @@ Deliver a playable, networked game with the core gameplay loop: explore, collect
 - [x] Unlock deeper zone access with upgrades
 - [x] Track progression state per player
 - [x] Log upgrade purchases
+- [ ] **Implement upgrade purchase UI at trading hubs** ⚠️ *See: `_docs/trading_hub_upgrade_system_implementation_plan.md`*
 
 ### 5. AI Messaging (Static)
 - [ ] Trigger static AI text messages at key milestones (first upgrade, sale, new zone)
@@ -88,6 +89,7 @@ Deliver a playable, networked game with the core gameplay loop: explore, collect
 - **Cost System**: Exponential cost scaling with purchase validation
 - **Effect Application**: Real-time upgrade effects on player systems
 - **Progression Tracking**: Persistent upgrade states with backend sync
+- **⚠️ Missing**: Player UI for purchasing upgrades (backend logic complete, needs trading hub integration)
 
 ### Player & Zone Management
 - **PlayerShip**: Enhanced movement, debris collection, inventory management
