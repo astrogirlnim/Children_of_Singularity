@@ -14,19 +14,15 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.05, 0.05, 0.1, 1)
+color = Color(0.02, 0.02, 0.05, 1)
 
-[node name="VideoContainer" type="CenterContainer" parent="."]
+[node name="VideoDisplay" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-
-[node name="VideoDisplay" type="TextureRect" parent="VideoContainer"]
-layout_mode = 2
-texture_filter = 1
 expand_mode = 1
-stretch_mode = 5
+stretch_mode = 6
 
 [node name="PressAnyKeyLabel" type="Label" parent="."]
 layout_mode = 1
