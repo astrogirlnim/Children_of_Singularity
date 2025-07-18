@@ -24,6 +24,7 @@ var current_loading_index: int = 0
 var loading_timer: float = 0.0
 var message_change_timer: float = 0.0
 var spinner_timer: float = 0.0
+var active_threaded_loads: Dictionary = {}  # Track which resources are actively loading
 
 ## Loading messages for immersive feedback
 var loading_messages: Array[String] = [
@@ -56,6 +57,11 @@ func _ready() -> void:
 	_setup_loading_screen()
 	_setup_loading_items()
 	_start_spinner_animation()
+
+func _exit_tree() -> void:
+	##Clean up when the loading screen is freed
+	cleanup_loading()
+	print("LoadingScreen: Cleaned up loading system on exit")
 
 func _process(delta: float) -> void:
 	##Handle loading screen updates
@@ -152,6 +158,10 @@ func start_loading() -> void:
 	loading_start_time = Time.get_time_dict_from_system()["unix"]
 	current_loading_index = 0
 	current_message_index = 0
+	assets_loaded = false
+
+	# Reset loading tracking
+	active_threaded_loads.clear()
 
 	# Reset progress
 	if loading_progress:
@@ -167,13 +177,25 @@ func _start_resource_preloading() -> void:
 	##Start background preloading of game resources
 	print("LoadingScreen: Starting resource preloading")
 
+	# Clear previous loading states
+	active_threaded_loads.clear()
+
 	# Begin threaded loading of the main scene and critical resources
 	for item in loading_items:
 		var resource_path = item.get("resource_path", "")
 		if resource_path != "" and ResourceLoader.exists(resource_path):
+			# Check if already loaded in cache
+			if ResourceLoader.has_cached(resource_path):
+				print("LoadingScreen: Resource already cached: %s" % resource_path)
+				continue
+
 			# Use threaded loading for better performance
-			ResourceLoader.load_threaded_request(resource_path)
-			print("LoadingScreen: Queued threaded loading for: %s" % resource_path)
+			var load_result = ResourceLoader.load_threaded_request(resource_path)
+			if load_result == OK:
+				active_threaded_loads[resource_path] = true
+				print("LoadingScreen: Queued threaded loading for: %s" % resource_path)
+			else:
+				print("LoadingScreen: Failed to initiate threaded loading for: %s" % resource_path)
 
 func _process_loading_queue(delta: float) -> void:
 	##Process the loading queue and update progress
@@ -186,20 +208,34 @@ func _process_loading_queue(delta: float) -> void:
 	var load_time = current_item.get("load_time", 1.0)
 	var weight = current_item.get("weight", 10)
 
-	# Check if this resource has finished loading
-	if ResourceLoader.exists(resource_path):
+	# Check if this resource path exists and is actively being loaded
+	if ResourceLoader.exists(resource_path) and active_threaded_loads.has(resource_path):
 		var status = ResourceLoader.load_threaded_get_status(resource_path)
 
 		if status == ResourceLoader.THREAD_LOAD_LOADED:
 			# Item loaded successfully
 			print("LoadingScreen: Loaded: %s" % current_item.get("name", "Unknown"))
+			active_threaded_loads.erase(resource_path)  # Remove from active tracking
 			current_loading_index += 1
 			_update_progress()
 		elif status == ResourceLoader.THREAD_LOAD_FAILED:
 			# Handle loading failure
 			print("LoadingScreen: Failed to load: %s" % current_item.get("name", "Unknown"))
+			active_threaded_loads.erase(resource_path)  # Remove from active tracking
 			current_loading_index += 1
 			_update_progress()
+		elif status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+			# Resource doesn't exist or is invalid
+			print("LoadingScreen: Invalid resource: %s" % current_item.get("name", "Unknown"))
+			active_threaded_loads.erase(resource_path)  # Remove from active tracking
+			current_loading_index += 1
+			_update_progress()
+		# If status is THREAD_LOAD_IN_PROGRESS, just wait for next frame
+	else:
+		# Resource doesn't exist or isn't actively loading, skip it
+		print("LoadingScreen: Skipping resource: %s (not found or not loading)" % current_item.get("name", "Unknown"))
+		current_loading_index += 1
+		_update_progress()
 
 func _update_progress() -> void:
 	##Update loading progress bar and messages
@@ -258,9 +294,13 @@ func _check_loading_completion() -> void:
 		var elapsed_time = current_time - loading_start_time
 
 		if elapsed_time >= min_loading_time:
-			print("LoadingScreen: All assets loaded, completing loading process")
-			assets_loaded = true
-			_complete_loading()
+			# Final check - make sure no active threaded loads remain
+			if active_threaded_loads.size() == 0:
+				print("LoadingScreen: All assets loaded, completing loading process")
+				assets_loaded = true
+				_complete_loading()
+			else:
+				print("LoadingScreen: Waiting for %d remaining threaded loads to complete" % active_threaded_loads.size())
 
 func _complete_loading() -> void:
 	##Complete the loading process and emit completion signal
@@ -303,3 +343,17 @@ func get_current_message() -> String:
 	if loading_label:
 		return loading_label.text
 	return ""
+
+func cleanup_loading() -> void:
+	##Clean up loading resources and state
+	print("LoadingScreen: Cleaning up loading system")
+
+	# Cancel any remaining threaded loads
+	for resource_path in active_threaded_loads.keys():
+		# Note: Godot doesn't have a direct way to cancel threaded loads
+		# but we can clear our tracking to avoid further status checks
+		print("LoadingScreen: Clearing tracking for: %s" % resource_path)
+
+	active_threaded_loads.clear()
+	is_loading = false
+	assets_loaded = false
