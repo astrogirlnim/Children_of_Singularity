@@ -50,22 +50,16 @@ description = "Godot encryption key"
 regex = '''(?i)(encryption_key|ENCRYPTION_KEY|crypt_key|CRYPT_KEY)\s*[=:]\s*["\']([a-zA-Z0-9._-]{16,})["\']'''
 tags = ["godot", "encryption", "key"]
 
-# File patterns to ignore
+# File patterns to ignore (allowlist for false positives only)
 [allowlist]
-description = "Allowlist for false positives"
+description = "Allowlist for false positives and safe files only"
 files = [
     '''\.git/.*''',
     '''\.gitleaks\.toml''',
     '''backend/venv/.*''',
     '''logs/.*''',
     '''\.log$''',
-    '''test_.*\.py$''',
-    '''.*_test\.py$''',
-    '''.*_test\.gd$''',
-    '''test_.*\.gd$''',
     '''README\.md$''',
-    '''\.md$''',
-    '''\.sample$''',
     '''memory_bank/.*''',
     '''documentation/.*''',
     '''_docs/.*''',
@@ -74,29 +68,34 @@ files = [
     '''\.tmp$''',
     '''\.rdb$''',
     '''\.dmp$''',
-    '''\.sql$''',
-    '''schema\.sql$''',
     '''project\.godot$''',
 ]
 
-# Paths to ignore specific rules
+# SAFE patterns for specific test/example contexts only
+# Only add patterns here that are genuinely safe (test files, documentation examples)
 regexes = [
-    '''(postgresql|postgres):\/\/[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+:\d+\/[a-zA-Z0-9._-]+''',
-    '''(?i)(secret_key|SECRET_KEY|api_key|API_KEY)\s*[=:]\s*["\']([a-zA-Z0-9._-]{16,})["\']''',
-    '''(?i)(example|placeholder|dummy|test).*''',
+    # Only ignore secrets in obvious test/example/placeholder contexts
+    '''(?i)(example|placeholder|dummy|test|sample).*secret.*''',
+    '''(?i)(example|placeholder|dummy|test|sample).*key.*''',
+    '''(?i)(example|placeholder|dummy|test|sample).*password.*''',
 ]
 
+# Specific paths for safe files only - be very conservative here
 paths = [
-    '''data/postgres/.*''',
-    '''backend/.*\.py$''',
-    '''.*\.sql$''',
+    '''.*_test\.py$''',
+    '''.*_test\.gd$''',
+    '''test_.*\.py$''',
+    '''test_.*\.gd$''',
+    '''.*\.sample$''',
+    '''.*\.example$''',
+    '''.*\.template$''',
     '''.*\.md$''',
     '''documentation/.*''',
     '''_docs/.*''',
     '''memory_bank/.*''',
-    '''.*\.sample$''',
-    '''.*\.example$''',
-    '''.*\.template$''',
+    # Schema files should be checked for embedded secrets
+    # Only exclude if they contain no sensitive data
+    '''data/postgres/schema\.sql$''',
 ]
 
 # Entropy detection settings
