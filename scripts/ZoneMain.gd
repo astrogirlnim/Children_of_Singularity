@@ -136,6 +136,11 @@ func _connect_signals() -> void:
 		if player_ship.has_signal("npc_hub_exited"):
 			player_ship.npc_hub_exited.connect(_on_npc_hub_exited)
 
+		# Connect upgrade effect signals for immediate UI updates
+		if player_ship.has_signal("inventory_expanded"):
+			player_ship.inventory_expanded.connect(_on_inventory_expanded)
+			print("ZoneMain: Connected to inventory_expanded signal")
+
 	# API client signals
 	if api_client:
 		if api_client.has_signal("player_data_loaded"):
@@ -157,6 +162,11 @@ func _connect_signals() -> void:
 		upgrade_system.upgrade_purchased.connect(_on_upgrade_purchased)
 		upgrade_system.upgrade_purchase_failed.connect(_on_upgrade_purchase_failed)
 		upgrade_system.upgrade_effects_applied.connect(_on_upgrade_effects_applied)
+
+		# Connect upgrade effect signals for immediate UI feedback
+		if upgrade_system.has_signal("upgrade_effects_applied"):
+			upgrade_system.upgrade_effects_applied.connect(_on_upgrade_effects_applied_ui_update)
+			print("ZoneMain: Connected to upgrade_effects_applied signal")
 
 	# Network manager signals
 	if network_manager:
@@ -347,6 +357,46 @@ func _on_upgrade_purchase_failed(upgrade_type: String, reason: String) -> void:
 func _on_upgrade_effects_applied(effects: Dictionary) -> void:
 	##Handle upgrade effects being applied
 	_log_message("Upgrade effects applied: %s" % effects)
+
+func _on_inventory_expanded(old_capacity: int, new_capacity: int) -> void:
+	##Handle inventory capacity expansion - update UI immediately for 2D
+	_log_message("ZoneMain: Inventory expanded from %d to %d - updating UI" % [old_capacity, new_capacity])
+
+	# Update UI manager with new inventory status
+	if ui_manager and player_ship:
+		var current_size = player_ship.current_inventory.size()
+		ui_manager.update_inventory_status(current_size, new_capacity)
+
+		# Update upgrade status display
+		ui_manager.update_upgrade_status_display(player_ship.upgrades, upgrade_system)
+
+		# Log the UI update
+		_log_message("ZoneMain: UI updated for inventory expansion to %d items" % new_capacity)
+
+func _on_upgrade_effects_applied_ui_update(upgrade_type: String, level: int) -> void:
+	##Handle when upgrade effects are applied - update relevant UI panels for 2D
+	_log_message("ZoneMain: Upgrade effects applied: %s level %d - updating UI" % [upgrade_type, level])
+
+	# Update UI manager with current player state
+	if ui_manager and player_ship:
+		# Update credits display
+		ui_manager.update_credits_display(player_ship.credits)
+
+		# Update inventory status (capacity might have changed)
+		ui_manager.update_inventory_status(player_ship.current_inventory.size(), player_ship.inventory_capacity)
+
+		# Update collection range display (might have changed)
+		var upgrade_bonus = player_ship.upgrades.get("collection_efficiency", 0) * 20  # 2D uses different scaling
+		ui_manager.update_collection_range(player_ship.collection_range, upgrade_bonus)
+
+		# Update upgrade status display
+		ui_manager.update_upgrade_status_display(player_ship.upgrades, upgrade_system)
+
+		# Force inventory display update if needed
+		if ui_manager.has_method("update_inventory_display"):
+			ui_manager.update_inventory_display(player_ship.current_inventory)
+
+		_log_message("ZoneMain: UI updated for %s upgrade level %d" % [upgrade_type, level])
 
 func _on_sell_all_requested() -> void:
 	##Handle sell all request

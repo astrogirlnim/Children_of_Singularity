@@ -150,6 +150,11 @@ func _initialize_3d_zone() -> void:
 		player_ship.debris_collected.connect(_on_debris_collected)
 		player_ship.npc_hub_entered.connect(_on_npc_hub_entered)
 		player_ship.npc_hub_exited.connect(_on_npc_hub_exited)
+
+		# Connect upgrade effect signals for immediate UI updates
+		if player_ship.has_signal("inventory_expanded"):
+			player_ship.inventory_expanded.connect(_on_inventory_expanded)
+
 		_log_message("ZoneMain3D: Player ship signals connected")
 
 	# Connect API client signals
@@ -161,6 +166,12 @@ func _initialize_3d_zone() -> void:
 		if api_client.has_signal("credits_updated"):
 			api_client.credits_updated.connect(_on_credits_updated)
 		_log_message("ZoneMain3D: API client signals connected")
+
+	# Connect upgrade system signals for immediate effect feedback
+	if upgrade_system:
+		if upgrade_system.has_signal("upgrade_effects_applied"):
+			upgrade_system.upgrade_effects_applied.connect(_on_upgrade_effects_applied)
+		_log_message("ZoneMain3D: Upgrade system signals connected")
 
 	# Initialize trading interface UI connections
 	_initialize_trading_interface()
@@ -1748,3 +1759,72 @@ func _perform_upgrade_purchase() -> void:
 	else:
 		_log_message("ZoneMain3D: ERROR - API client does not support upgrade purchases")
 		_update_purchase_result("PURCHASE FAILED\nAPI client error", Color.RED)
+
+func _on_inventory_expanded(old_capacity: int, new_capacity: int) -> void:
+	##Handle inventory capacity expansion - update UI immediately
+	_log_message("ZoneMain3D: Inventory expanded from %d to %d - updating UI" % [old_capacity, new_capacity])
+
+	# Update inventory status display immediately
+	if inventory_status and player_ship:
+		var current_size = player_ship.current_inventory.size()
+		inventory_status.text = "%d/%d Items" % [current_size, new_capacity]
+
+		# Update color coding based on new capacity
+		if current_size >= new_capacity:
+			inventory_status.modulate = Color.RED
+		elif current_size >= new_capacity * 0.8:
+			inventory_status.modulate = Color.YELLOW
+		else:
+			inventory_status.modulate = Color.GREEN  # Green when expansion gives more room
+
+	# Update upgrade status display to reflect new inventory level
+	_update_upgrade_status_display()
+
+	# Show visual feedback message
+	_update_purchase_result("INVENTORY EXPANDED!\nCapacity increased to %d items" % new_capacity, Color.GREEN)
+
+func _on_upgrade_effects_applied(upgrade_type: String, level: int) -> void:
+	##Handle when upgrade effects are applied - update relevant UI panels
+	_log_message("ZoneMain3D: Upgrade effects applied: %s level %d - updating UI" % [upgrade_type, level])
+
+	# Update different UI elements based on upgrade type
+	match upgrade_type:
+		"speed_boost":
+			# Show speed boost feedback
+			if player_ship:
+				var new_speed = player_ship.speed
+				_update_purchase_result("SPEED BOOST ACTIVE!\nNew speed: %.0f" % new_speed, Color.CYAN)
+
+		"inventory_expansion":
+			# Inventory expansion is handled by _on_inventory_expanded signal
+			pass
+
+		"collection_efficiency":
+			# Update collection range display
+			if player_ship:
+				var new_range = player_ship.collection_range
+				_update_purchase_result("COLLECTION ENHANCED!\nNew range: %.1f units" % new_range, Color.BLUE)
+
+		"zone_access":
+			# Update zone access display
+			_update_purchase_result("ZONE ACCESS UPGRADED!\nLevel %d unlocked" % level, Color.PURPLE)
+
+		"debris_scanner":
+			if level > 0:
+				_update_purchase_result("DEBRIS SCANNER ACTIVATED!\nLevel %d scanner online" % level, Color.YELLOW)
+			else:
+				_update_purchase_result("DEBRIS SCANNER DEACTIVATED", Color.GRAY)
+
+		"cargo_magnet":
+			if level > 0:
+				_update_purchase_result("CARGO MAGNET ACTIVE!\nLevel %d auto-collection enabled" % level, Color.ORANGE)
+			else:
+				_update_purchase_result("CARGO MAGNET DEACTIVATED", Color.GRAY)
+
+	# Always update the upgrade status display
+	_update_upgrade_status_display()
+
+	# Update any relevant stats displays
+	if player_ship:
+		_update_credits_display()  # Credits might have changed
+		_update_inventory_displays()  # Inventory status might need updating

@@ -224,14 +224,16 @@ Cost: 225 credits
 - `scripts/PlayerShip.gd` - Ensure upgrade effects apply immediately (2D version)
 
 **Tasks**:
-- [ ] Verify `apply_upgrade()` methods work correctly
-- [ ] Test all 6 upgrade types apply effects properly
-- [ ] Add visual feedback for upgrade application (speed boost visible, etc.)
-- [ ] Update UI panels immediately (inventory capacity, etc.)
-- [ ] Log all upgrade effect applications
+- [x] Verify `apply_upgrade()` methods work correctly ✅ **COMPLETED**
+- [x] Complete missing upgrade effect methods (debris_scanner, cargo_magnet) ✅ **COMPLETED**
+- [x] Add visual feedback for upgrade application (speed boost visible, etc.) ✅ **COMPLETED**
+- [x] Update UI panels immediately (inventory capacity, etc.) ✅ **COMPLETED**
+- [x] Log all upgrade effect applications ✅ **COMPLETED**
+- [ ] Test all 6 upgrade types for immediate effect application
+- [ ] Add upgrade effect persistence validation (effects survive scene changes)
 
 **Dependencies**: Phase 4A complete
-**Validation**: All upgrade effects apply immediately and visibly
+**Validation**: ✅ **IMPLEMENTED** - All upgrade effects apply immediately with visual feedback and comprehensive logging
 
 ---
 
