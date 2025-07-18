@@ -439,7 +439,7 @@ func _on_dump_inventory_pressed() -> void:
 	var dialog = ConfirmationDialog.new()
 	dialog.title = "Confirm Dump Inventory"
 	dialog.dialog_text = confirmation_text
-	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_ON_SCREEN
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_PRIMARY_SCREEN
 
 	# Add to scene temporarily
 	get_tree().current_scene.add_child(dialog)
@@ -507,7 +507,7 @@ func _on_clear_upgrades_pressed() -> void:
 	var dialog = ConfirmationDialog.new()
 	dialog.title = "Confirm Clear All Upgrades"
 	dialog.dialog_text = confirmation_text
-	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_ON_SCREEN
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_PRIMARY_SCREEN
 
 	# Add to scene temporarily
 	get_tree().current_scene.add_child(dialog)
@@ -585,13 +585,6 @@ func _update_trading_result(message: String, color: Color) -> void:
 		trading_result.text = message
 		trading_result.modulate = color
 		print("ZoneUIManager: Trading result updated: %s" % message)
-
-func _update_purchase_result(message: String, color: Color) -> void:
-	##Update purchase result display with message and color
-	if purchase_result:
-		purchase_result.text = message
-		purchase_result.modulate = color
-		print("ZoneUIManager: Purchase result updated: %s" % message)
 
 func _on_trading_close_pressed() -> void:
 	##Handle trading close button press

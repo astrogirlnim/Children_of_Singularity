@@ -974,6 +974,11 @@ func open_trading_interface(hub_type: String) -> void:
 		_log_message("ZoneMain3D: ERROR - Trading interface not found!")
 		return
 
+	# Lock player ship movement while trading interface is open
+	if player_ship and player_ship.has_method("lock_movement"):
+		player_ship.lock_movement()
+		_log_message("ZoneMain3D: Player ship movement locked for trading")
+
 	# Clear previous selections
 	selected_debris.clear()
 
@@ -1008,6 +1013,11 @@ func close_trading_interface() -> void:
 
 	if trading_interface:
 		trading_interface.visible = false
+
+	# Unlock player ship movement when trading interface is closed
+	if player_ship and player_ship.has_method("unlock_movement"):
+		player_ship.unlock_movement()
+		_log_message("ZoneMain3D: Player ship movement unlocked")
 
 	_log_message("ZoneMain3D: Trading interface closed")
 

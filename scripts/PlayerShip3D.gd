@@ -102,6 +102,9 @@ var speed: float = 200.0
 var acceleration: float = 800.0
 var friction: float = 600.0
 
+## Movement lock state for trading interface
+var movement_locked: bool = false
+
 ## Debug logging control (to prevent spam)
 var debug_log_timer: float = 0.0
 var debug_log_interval: float = 2.0  # Log every 2 seconds instead of every frame
@@ -312,6 +315,13 @@ func _physics_process(delta: float) -> void:
 
 func _handle_input() -> void:
 	##Handle Mario Kart style steering input
+	# Check if movement is locked (e.g., when trading interface is open)
+	if movement_locked:
+		# Reset input values to prevent movement
+		steering_input = 0.0
+		acceleration_input = 0.0
+		return
+
 	# Only log periodically or when significant changes occur, not every frame
 	var should_log_debug = enable_debug_logs and (debug_log_timer >= debug_log_interval or
 		abs(steering_input - last_logged_steering) > 0.5)
@@ -1404,3 +1414,18 @@ func _set_ship_frame_interpolated(frame: float) -> void:
 	##Set ship frame with interpolation support for smooth animation
 	var rounded_frame = int(round(frame))
 	_set_ship_frame(rounded_frame)
+
+## Movement lock methods for trading interface
+func lock_movement() -> void:
+	##Lock player ship movement (used when trading interface is open)
+	movement_locked = true
+	_log_message("PlayerShip3D: Movement locked - Ship cannot move while trading interface is open")
+
+func unlock_movement() -> void:
+	##Unlock player ship movement (used when trading interface is closed)
+	movement_locked = false
+	_log_message("PlayerShip3D: Movement unlocked - Ship movement restored")
+
+func is_movement_locked() -> bool:
+	##Check if movement is currently locked
+	return movement_locked
