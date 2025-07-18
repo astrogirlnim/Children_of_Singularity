@@ -292,6 +292,297 @@ func _handle_loading_failure() -> void:
 
 ---
 
+## **Phase 6: Inventory Stacking System Refactor** 🔄
+**Priority**: Critical | **Timeline**: 4-5 days | **Status**: 📋 PLANNED
+
+### **Critical Problem Identified**
+During Phase 2 testing, a fundamental inventory architecture flaw was discovered:
+- **Current System**: Each debris item stored individually (177 items for 25-item inventory!)
+- **Backend Issue**: Individual database rows per item instead of stacking by type
+- **Trading Bug**: Items accumulate forever because backend sync only clears locally
+- **Result**: Database bloat, performance issues, inventory count mismatches
+
+### 6.1 Frontend Inventory Architecture Refactor
+**Files**: `PlayerShip3D.gd`, `PlayerShip.gd`, `ZoneMain3D.gd`, `ZoneMain.gd`
+
+#### 6.1.1 Replace Individual Item Storage with Type-Based Stacking
+- [ ] Replace `current_inventory: Array[Dictionary]` with `inventory_stacks: Dictionary`
+- [ ] Implement stack-based inventory data structure:
+```gdscript
+# NEW: Type-based stacking system
+var inventory_stacks: Dictionary = {
+    # item_type: {quantity: int, value_per_unit: int, total_value: int}
+    "scrap_metal": {"quantity": 25, "value_per_unit": 5, "total_value": 125},
+    "bio_waste": {"quantity": 8, "value_per_unit": 8, "total_value": 64},
+    "ai_component": {"quantity": 2, "value_per_unit": 500, "total_value": 1000}
+}
+var inventory_count: int = 0  # Total individual items across all stacks
+var inventory_capacity: int = 25  # Maximum individual items allowed
+```
+
+#### 6.1.2 Refactor Collection System
+**Files**: `PlayerShip3D.gd`, `PlayerShip.gd`
+- [ ] Modify `_collect_debris_object()` to use stacking:
+```gdscript
+func _collect_debris_object(debris_object) -> void:
+    var debris_type = debris_object.get_debris_type()
+    var debris_value = debris_object.get_debris_value()
+
+    # Check inventory capacity (count individual items, not stacks)
+    if inventory_count >= inventory_capacity:
+        _show_inventory_full_message()
+        return
+
+    # Add to existing stack or create new stack
+    if inventory_stacks.has(debris_type):
+        inventory_stacks[debris_type].quantity += 1
+        inventory_stacks[debris_type].total_value += debris_value
+    else:
+        inventory_stacks[debris_type] = {
+            "quantity": 1,
+            "value_per_unit": debris_value,
+            "total_value": debris_value
+        }
+
+    inventory_count += 1
+    # Sync individual item to backend (for immediate persistence)
+    _sync_item_collection_to_backend(debris_type, debris_value)
+```
+
+#### 6.1.3 Refactor Trading System
+**Files**: `ZoneMain3D.gd`, `ZoneMain.gd`
+- [ ] Update trading interface to work with stacks:
+```gdscript
+func _populate_debris_selection_ui() -> void:
+    # Display each item type with quantity selector
+    for item_type in inventory_stacks:
+        var stack_data = inventory_stacks[item_type]
+        var quantity = stack_data.quantity
+        var value_per_unit = stack_data.value_per_unit
+        var total_value = stack_data.total_value
+
+        # Create UI row: "Scrap Metal x25 (5 credits each, 125 total)"
+        _create_stack_selection_row(item_type, quantity, value_per_unit, total_value)
+```
+
+- [ ] Update selling logic to remove from stacks:
+```gdscript
+func _sell_selected_items(selected_stacks: Dictionary) -> void:
+    var total_credits_earned = 0
+    var total_items_sold = 0
+
+    for item_type in selected_stacks:
+        var quantity_to_sell = selected_stacks[item_type]
+        if inventory_stacks.has(item_type):
+            var stack = inventory_stacks[item_type]
+            var quantity_available = min(quantity_to_sell, stack.quantity)
+
+            # Calculate earnings
+            var credits_earned = quantity_available * stack.value_per_unit
+            total_credits_earned += credits_earned
+            total_items_sold += quantity_available
+
+            # Remove from stack
+            stack.quantity -= quantity_available
+            stack.total_value -= credits_earned
+            inventory_count -= quantity_available
+
+            # Remove empty stacks
+            if stack.quantity <= 0:
+                inventory_stacks.erase(item_type)
+
+    # Update credits and sync to backend
+    player_ship.add_credits(total_credits_earned)
+    _sync_partial_sale_to_backend(selected_stacks, total_credits_earned)
+```
+
+### 6.2 Backend Database Schema Refactor
+**Files**: `backend/app.py`, `data/postgres/schema.sql`
+
+#### 6.2.1 New Inventory Table Schema
+- [ ] Create new inventory table optimized for stacking:
+```sql
+-- NEW: Type-based inventory storage
+CREATE TABLE inventory_stacks (
+    player_id UUID REFERENCES players(id) ON DELETE CASCADE,
+    item_type VARCHAR(50) NOT NULL,
+    total_quantity INTEGER NOT NULL DEFAULT 0,
+    value_per_unit INTEGER NOT NULL,
+    total_value INTEGER NOT NULL,
+    first_collected_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (player_id, item_type),
+    CONSTRAINT positive_quantity CHECK (total_quantity >= 0),
+    CONSTRAINT positive_value CHECK (value_per_unit > 0)
+);
+
+-- Index for performance
+CREATE INDEX idx_inventory_stacks_player_type ON inventory_stacks(player_id, item_type);
+```
+
+#### 6.2.2 Migration Strategy
+- [ ] Create migration script to convert existing individual items to stacks:
+```sql
+-- Migration: Convert individual items to stacks
+INSERT INTO inventory_stacks (player_id, item_type, total_quantity, value_per_unit, total_value)
+SELECT
+    player_id,
+    item_type,
+    COUNT(*) as total_quantity,
+    AVG(value)::INTEGER as value_per_unit,  -- Use average if values differ
+    SUM(value) as total_value
+FROM inventory
+GROUP BY player_id, item_type;
+
+-- Backup old table, then drop
+ALTER TABLE inventory RENAME TO inventory_individual_backup;
+```
+
+#### 6.2.3 New API Endpoints
+- [ ] Implement stack-based inventory endpoints:
+```python
+@app.get("/api/v1/players/{player_id}/inventory/stacks")
+async def get_player_inventory_stacks(player_id: str):
+    """Get player inventory as stacks by type"""
+    # Return: {"scrap_metal": {"quantity": 25, "value_per_unit": 5, "total_value": 125}}
+
+@app.post("/api/v1/players/{player_id}/inventory/stacks/add")
+async def add_to_inventory_stack(player_id: str, item_data: InventoryStackItem):
+    """Add items to stack (or create new stack)"""
+    # UPSERT: Add to existing quantity or create new stack
+
+@app.post("/api/v1/players/{player_id}/inventory/stacks/remove")
+async def remove_from_inventory_stack(player_id: str, removal_data: InventoryStackRemoval):
+    """Remove specific quantities from stacks"""
+    # Support partial removal: remove 10 scrap_metal from stack of 25
+
+@app.delete("/api/v1/players/{player_id}/inventory/stacks")
+async def clear_all_inventory_stacks(player_id: str):
+    """Clear all inventory stacks (sell all)"""
+```
+
+### 6.3 API Client Integration
+**Files**: `APIClient.gd`
+
+#### 6.3.1 New Stack-Based Methods
+- [ ] Replace individual item methods with stack methods:
+```gdscript
+func load_inventory_stacks() -> void:
+    # GET /inventory/stacks - returns stacks by type
+
+func add_to_inventory_stack(item_type: String, quantity: int, value_per_unit: int) -> void:
+    # POST /inventory/stacks/add - add to existing stack
+
+func remove_from_inventory_stack(item_type: String, quantity: int) -> void:
+    # POST /inventory/stacks/remove - remove from stack
+
+func sell_inventory_stacks(selected_stacks: Dictionary) -> void:
+    # POST /inventory/stacks/remove + POST /credits (atomic transaction)
+```
+
+#### 6.3.2 Signal Updates
+- [ ] Update signals to work with stacks:
+```gdscript
+signal inventory_stacks_loaded(stacks_data: Dictionary)
+signal inventory_stack_updated(item_type: String, new_quantity: int, total_value: int)
+signal inventory_stacks_cleared(total_items_cleared: int, total_value: int)
+```
+
+### 6.4 UI System Updates
+**Files**: `ZoneMain3D.gd`, `ZoneMain.gd`, UI components
+
+#### 6.4.1 Inventory Display Refactor
+- [ ] Update inventory UI to show stacks instead of individual items:
+```gdscript
+func _update_grouped_inventory_display(inventory_stacks: Dictionary) -> void:
+    # Clear existing displays
+    _clear_inventory_ui()
+
+    # Create stack-based display
+    for item_type in inventory_stacks:
+        var stack = inventory_stacks[item_type]
+        var display_text = "%s x%d (%d each)" % [
+            item_type.replace("_", " ").capitalize(),
+            stack.quantity,
+            stack.value_per_unit
+        ]
+        _create_inventory_stack_ui_element(item_type, display_text, stack.total_value)
+
+    # Update inventory count display
+    var total_items = _calculate_total_item_count(inventory_stacks)
+    inventory_status.text = "%d/%d Items" % [total_items, player_ship.inventory_capacity]
+```
+
+#### 6.4.2 Trading Interface Refactor
+- [ ] Update trading interface for stack-based selection:
+```gdscript
+func _create_stack_selection_row(item_type: String, available_quantity: int, value_per_unit: int, total_value: int) -> Control:
+    # Create: [Scrap Metal] [Quantity Spinner: 1-25] [Value: 5 each] [Total: 125] [Select All]
+    # Allow partial selection from stacks
+```
+
+### 6.5 Data Migration and Compatibility
+**Files**: Migration scripts, `ZoneMain3D.gd`
+
+#### 6.5.1 Automatic Migration on Load
+- [ ] Detect legacy individual inventory format and migrate:
+```gdscript
+func _migrate_legacy_inventory_to_stacks(legacy_inventory: Array) -> Dictionary:
+    var migrated_stacks = {}
+
+    for item in legacy_inventory:
+        var item_type = item.get("type", "unknown")
+        var value = item.get("value", 0)
+
+        if migrated_stacks.has(item_type):
+            migrated_stacks[item_type].quantity += 1
+            migrated_stacks[item_type].total_value += value
+        else:
+            migrated_stacks[item_type] = {
+                "quantity": 1,
+                "value_per_unit": value,
+                "total_value": value
+            }
+
+    return migrated_stacks
+```
+
+#### 6.5.2 Backward Compatibility Support
+- [ ] Support loading both formats during transition period
+- [ ] Automatic conversion from individual items to stacks
+- [ ] Data validation and cleanup for migrated data
+
+### **6.6 Performance Optimizations**
+
+#### 6.6.1 Database Performance
+- [ ] Implement proper indexing on inventory_stacks table
+- [ ] Use UPSERT operations for efficient stack updates
+- [ ] Batch operations for multiple stack modifications
+- [ ] Connection pooling for high-frequency updates
+
+#### 6.6.2 Memory Optimization
+- [ ] Reduce memory footprint from Array[Dictionary] to Dictionary
+- [ ] Efficient UI updates (only refresh changed stacks)
+- [ ] Lazy loading for large inventories
+
+### **Success Criteria**:
+- [ ] **Storage Efficiency**: Max 6 stacks instead of 177+ individual items
+- [ ] **Database Performance**: 10x reduction in inventory table rows
+- [ ] **UI Responsiveness**: Stack-based display loads instantly
+- [ ] **Backend Sync**: Proper add/remove operations instead of clear-all
+- [ ] **Inventory Limits**: Accurate count enforcement (25 items max)
+- [ ] **Migration Success**: Existing player data converted without loss
+- [ ] **Backward Compatibility**: System handles both old and new formats during transition
+
+**Timeline Breakdown**:
+- **Day 1**: Frontend inventory architecture refactor (6.1)
+- **Day 2**: Backend schema and API endpoints (6.2-6.3)
+- **Day 3**: UI system updates and trading interface (6.4)
+- **Day 4**: Data migration and testing (6.5)
+- **Day 5**: Performance optimization and validation (6.6)
+
+---
+
 ## **Testing Protocol** 🧪
 
 ### Phase 1 Testing
@@ -333,12 +624,14 @@ func _handle_loading_failure() -> void:
 
 | File | Changes | Phase |
 |------|---------|-------|
-| `scripts/PlayerShip3D.gd` | Add loading flag, fix initialization order | 1, 2 |
-| `scripts/PlayerShip.gd` | Add loading flag, fix initialization order | 1, 2 |
-| `scripts/APIClient.gd` | Add UUID validation, error handling | 1, 3 |
-| `scripts/ZoneMain3D.gd` | Add complete data loading logic, upgrade restoration | 2, 4 |
-| `scripts/ZoneMain.gd` | Add complete data loading logic (2D version) | 2 |
+| `scripts/PlayerShip3D.gd` | Add loading flag, fix initialization order, inventory stacking system | 1, 2, 6 |
+| `scripts/PlayerShip.gd` | Add loading flag, fix initialization order, inventory stacking system | 1, 2, 6 |
+| `scripts/APIClient.gd` | Add UUID validation, error handling, stack-based API methods | 1, 3, 6 |
+| `scripts/ZoneMain3D.gd` | Add complete data loading logic, upgrade restoration, stack-based trading | 2, 4, 6 |
+| `scripts/ZoneMain.gd` | Add complete data loading logic (2D version), stack-based trading | 2, 6 |
 | `scripts/UpgradeSystem.gd` | Ensure upgrade effects apply correctly after loading | 2 |
+| `backend/app.py` | Add stack-based inventory endpoints, migration logic | 6 |
+| `data/postgres/schema.sql` | Create inventory_stacks table, migration scripts | 6 |
 
 ---
 
@@ -348,36 +641,54 @@ func _handle_loading_failure() -> void:
 - [ ] **Complete Data Persistence**: 100% of progress persists across restarts
 - [ ] **Error Elimination**: 0 UUID format errors
 - [ ] **Load Success Rate**: >95% successful data loads
+- [ ] **Inventory Architecture**: Max 6 stacks instead of 177+ individual items (Phase 6)
+- [ ] **Database Efficiency**: 10x reduction in inventory table rows (Phase 6)
 
 ### Secondary Goals
 - [ ] **Load Time**: <2 seconds for complete data loading
 - [ ] **User Experience**: Clear feedback during all operations
 - [ ] **System Resilience**: Graceful handling of all error scenarios
 - [ ] **Upgrade Effect Integrity**: All upgrade effects work immediately after loading
+- [ ] **Inventory Limits**: Accurate count enforcement (25 items max) (Phase 6)
+- [ ] **Backend Sync**: Proper add/remove operations instead of clear-all (Phase 6)
 
 ---
 
 ## **Rollout Strategy**
 
 ### Development Environment
-- [ ] Implement Phase 1 (UUID fix)
-- [ ] Test thoroughly with existing database
-- [ ] Implement Phase 2 (loading system)
-- [ ] Validate full cycle works
+- [ ] Implement Phase 1 (UUID fix) ✅ COMPLETED
+- [ ] Test thoroughly with existing database ✅ COMPLETED
+- [ ] Implement Phase 2 (loading system) ✅ COMPLETED
+- [ ] Validate full cycle works ✅ COMPLETED
+- [ ] Implement Phase 6 (inventory stacking refactor) 📋 PLANNED
+- [ ] Test migration from individual items to stacks
+- [ ] Validate stack-based operations work correctly
 
 ### Quality Assurance
 - [ ] Test all scenarios from testing strategy
 - [ ] Performance validation for load times
 - [ ] Error scenario testing
+- [ ] **Phase 6 Specific Testing**:
+  - [ ] Migration testing with existing player data
+  - [ ] Stack-based trading interface testing
+  - [ ] Backend performance testing with stacks
+  - [ ] Backward compatibility testing
 
 ### Production Deployment
 - [ ] Deploy backend changes first
 - [ ] Deploy client changes second
 - [ ] Monitor error logs closely
 - [ ] Have rollback plan ready
+- [ ] **Phase 6 Deployment**:
+  - [ ] Deploy database migration scripts
+  - [ ] Deploy new stack-based backend APIs
+  - [ ] Deploy frontend stack-based inventory system
+  - [ ] Monitor inventory data integrity
 
 ---
 
-**Total Estimated Duration**: 7-11 days
-**Critical Path**: Phase 1 → Phase 2 → Testing
-**Immediate Priority**: Phase 2.1 (Zone Initialization Data Loading)
+**Total Estimated Duration**: 12-16 days
+**Critical Path**: Phase 1 → Phase 2 → Phase 6 → Testing
+**Immediate Priority**: Phase 6.1 (Frontend Inventory Architecture Refactor)
+**Current Status**: Phase 2 completed, Phase 6 planned and ready for implementation
