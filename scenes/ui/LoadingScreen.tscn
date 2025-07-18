@@ -1,0 +1,88 @@
+[gd_scene load_steps=3 format=3 uid="uid://bj8xvwgqjlm8nh"]
+
+[ext_resource type="Script" path="res://scripts/LoadingScreen.gd" id="1_loading_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/loading_screen.png" id="2_loading_texture"]
+
+[node name="LoadingScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_loading_script")
+
+[node name="LoadingBackground" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("2_loading_texture")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="LoadingOverlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.3)
+mouse_filter = 2
+
+[node name="LoadingContent" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="LoadingLabel" type="Label" parent="LoadingContent"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.8
+anchor_right = 0.5
+anchor_bottom = 0.85
+offset_left = -200.0
+offset_right = 200.0
+text = "Loading quantum drive systems..."
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LoadingProgress" type="ProgressBar" parent="LoadingContent"]
+layout_mode = 0
+anchor_left = 0.3
+anchor_top = 0.85
+anchor_right = 0.7
+anchor_bottom = 0.87
+show_percentage = false
+step = 1.0
+
+[node name="LoadingSpinner" type="Control" parent="LoadingContent"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.75
+anchor_right = 0.5
+anchor_bottom = 0.78
+offset_left = -25.0
+offset_right = 25.0
+
+[node name="SpinnerDot1" type="ColorRect" parent="LoadingContent/LoadingSpinner"]
+layout_mode = 0
+anchor_left = 0.2
+anchor_top = 0.4
+anchor_right = 0.3
+anchor_bottom = 0.6
+color = Color(0.8, 0.9, 1, 1)
+
+[node name="SpinnerDot2" type="ColorRect" parent="LoadingContent/LoadingSpinner"]
+layout_mode = 0
+anchor_left = 0.45
+anchor_top = 0.4
+anchor_right = 0.55
+anchor_bottom = 0.6
+color = Color(0.8, 0.9, 1, 0.7)
+
+[node name="SpinnerDot3" type="ColorRect" parent="LoadingContent/LoadingSpinner"]
+layout_mode = 0
+anchor_left = 0.7
+anchor_top = 0.4
+anchor_right = 0.8
+anchor_bottom = 0.6
+color = Color(0.8, 0.9, 1, 0.4)

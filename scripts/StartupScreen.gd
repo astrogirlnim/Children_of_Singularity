@@ -31,12 +31,17 @@ var is_transitioning: bool = false
 var press_key_timer: float = 0.0
 var key_prompt_visible: bool = false
 
+## Loading system
+var loading_screen_scene: PackedScene
+var loading_screen_instance: LoadingScreen
+
 func _ready() -> void:
 	print("StartupScreen: Starting animation startup sequence")
 	_setup_startup_screen()
 	_load_startup_animation()
 	_setup_animation_timer()
 	_start_animation_loop()
+	_preload_loading_screen()
 
 func _exit_tree() -> void:
 	# Clean up animation resources when node is freed
@@ -259,12 +264,21 @@ func _animate_press_key_label() -> void:
 	tween.tween_property(press_key_label, "modulate", Color.WHITE * 0.6, 1.2)
 	tween.tween_property(press_key_label, "modulate", Color.WHITE * 1.0, 1.2)
 
+func _preload_loading_screen() -> void:
+	##Preload the loading screen for instant transition
+	print("StartupScreen: Preloading loading screen scene")
+	loading_screen_scene = preload("res://scenes/ui/LoadingScreen.tscn")
+	if loading_screen_scene:
+		print("StartupScreen: Loading screen scene preloaded successfully")
+	else:
+		print("StartupScreen: ERROR - Failed to preload loading screen scene")
+
 func _start_transition() -> void:
 	# Start transition to main game
 	if is_transitioning:
 		return
 
-	print("StartupScreen: Starting transition to main game")
+	print("StartupScreen: Starting transition to loading screen")
 	is_transitioning = true
 
 	# Stop animation during transition
@@ -287,13 +301,63 @@ func _start_transition() -> void:
 	tween.tween_callback(_complete_transition).set_delay(fade_duration)
 
 func _complete_transition() -> void:
-	# Complete the transition to main game
-	print("StartupScreen: Transition complete, emitting startup_complete signal")
+	# Complete the transition to loading screen
+	print("StartupScreen: Transition complete, switching to loading screen")
 
 	# Emit signal to notify of completion
 	startup_complete.emit()
 
+	# Switch to loading screen instead of directly to main game
+	_switch_to_loading_screen()
+
+func _switch_to_loading_screen() -> void:
+	##Switch to the custom loading screen
+	print("StartupScreen: Switching to custom loading screen")
+
+	# Create loading screen instance
+	if loading_screen_scene:
+		loading_screen_instance = loading_screen_scene.instantiate() as LoadingScreen
+		if loading_screen_instance:
+			# Connect loading screen signals
+			loading_screen_instance.loading_complete.connect(_on_loading_complete)
+			loading_screen_instance.loading_progress_updated.connect(_on_loading_progress_updated)
+
+			# Add loading screen to scene tree
+			get_tree().root.add_child(loading_screen_instance)
+
+			# Remove startup screen
+			queue_free()
+
+			# Start loading process
+			loading_screen_instance.start_loading()
+
+			print("StartupScreen: Successfully switched to loading screen")
+		else:
+			print("StartupScreen: ERROR - Failed to instantiate loading screen, falling back to direct scene change")
+			_fallback_to_direct_scene_change()
+	else:
+		print("StartupScreen: ERROR - Loading screen scene not available, falling back to direct scene change")
+		_fallback_to_direct_scene_change()
+
+func _on_loading_complete() -> void:
+	##Handle loading completion and transition to main game
+	print("StartupScreen: Loading complete, transitioning to main game")
+
+	# Fade out loading screen
+	if loading_screen_instance:
+		await loading_screen_instance.fade_out()
+		loading_screen_instance.queue_free()
+
 	# Load the main game scene
+	_load_main_game()
+
+func _on_loading_progress_updated(progress: float, message: String) -> void:
+	##Handle loading progress updates for debugging
+	print("StartupScreen: Loading progress: %.1f%% - %s" % [progress, message])
+
+func _fallback_to_direct_scene_change() -> void:
+	##Fallback to direct scene change if loading screen fails
+	print("StartupScreen: Using fallback direct scene change method")
 	_load_main_game()
 
 func _load_main_game() -> void:
