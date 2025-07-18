@@ -159,7 +159,7 @@ func _initialize_player_state() -> void:
 		"speed_boost": 0,
 		"inventory_expansion": 0,
 		"collection_efficiency": 0,
-		"zone_access": 1
+		"cargo_magnet": 0
 	}
 	_log_message("PlayerShip: Player state initialized - Credits: %d, Capacity: %d/%d" % [credits, current_inventory.size(), inventory_capacity])
 
@@ -407,8 +407,12 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 	##Apply the effects of an upgrade
 	match upgrade_type:
 		"speed_boost":
-			speed = 200.0 + (level * 50.0)
+			# FIXED: Much more reasonable speed progression
+			# Level 0: 120 (comfortable base), Level 5: 220 (+83% vs old +125%)
+			speed = 120.0 + (level * 20.0)  # Base 120, +20 per level (was +50!)
 			max_speed = speed * 1.5  # Allow burst speed above base speed
+			# CRITICAL FIX: Update visual feedback when speed changes (including removal at level 0)
+			_update_speed_visual_feedback()
 			_log_message("PlayerShip: Speed boost applied - Speed: %.1f, Max Speed: %.1f" % [speed, max_speed])
 		"inventory_expansion":
 			var old_capacity = inventory_capacity
@@ -422,16 +426,6 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 			if collection_collision and collection_collision.shape:
 				collection_collision.shape.radius = collection_range
 			_log_message("PlayerShip: Collection efficiency applied - Range: %.1f, Cooldown: %.2fs" % [collection_range, collection_cooldown])
-		"zone_access":
-			# Set zone access level for future zone system integration
-			upgrades["zone_access"] = level
-			_log_message("PlayerShip: Zone access applied - Level: %d" % level)
-		"debris_scanner":
-			if level > 0:
-				enable_debris_scanner(level)
-			else:
-				disable_debris_scanner()
-			_log_message("PlayerShip: Debris scanner applied - Level: %d, Active: %s" % [level, level > 0])
 		"cargo_magnet":
 			if level > 0:
 				enable_cargo_magnet(level)
@@ -454,7 +448,7 @@ func set_speed(new_speed: float) -> void:
 
 func _update_speed_visual_feedback() -> void:
 	##Update visual feedback based on current speed upgrades for 2D
-	var speed_level = int((speed - 200.0) / 50.0)  # Calculate upgrade level based on speed
+	var speed_level = int((speed - 120.0) / 20.0)  # FIXED: Calculate upgrade level with new values (was 200.0/50.0)
 
 	if speed_level > 0:
 		_create_speed_boost_effects_2d(speed_level)

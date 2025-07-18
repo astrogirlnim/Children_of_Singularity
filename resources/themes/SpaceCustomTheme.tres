@@ -1,194 +1,117 @@
 [gd_resource type="Theme" format=3]
 
-# Generated card styles that match gui_card.png aesthetic
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_main_panel"]
-bg_color = Color(0.08, 0.12, 0.18, 0.92)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.25, 0.4, 0.65, 0.85)
-corner_radius_top_left = 15
-corner_radius_top_right = 15
-corner_radius_bottom_left = 15
-corner_radius_bottom_right = 15
-content_margin_left = 18.0
-content_margin_top = 16.0
-content_margin_right = 18.0
-content_margin_bottom = 16.0
-shadow_color = Color(0.0, 0.0, 0.0, 0.4)
-shadow_size = 8
-shadow_offset = Vector2(2, 3)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_inventory_panel"]
-bg_color = Color(0.05, 0.08, 0.14, 0.95)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.2, 0.75, 0.6, 0.8)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_left = 12
-corner_radius_bottom_right = 12
-content_margin_left = 20.0
-content_margin_top = 18.0
-content_margin_right = 20.0
-content_margin_bottom = 18.0
-shadow_color = Color(0.0, 0.0, 0.0, 0.5)
-shadow_size = 10
-shadow_offset = Vector2(3, 4)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_small_panel"]
-bg_color = Color(0.06, 0.09, 0.15, 0.88)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_main"]
+bg_color = Color(0.05, 0.1, 0.15, 0.8)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.35, 0.55, 0.85, 0.7)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_left = 10
-corner_radius_bottom_right = 10
-content_margin_left = 16.0
-content_margin_top = 14.0
-content_margin_right = 16.0
-content_margin_bottom = 14.0
-shadow_color = Color(0.0, 0.0, 0.0, 0.3)
-shadow_size = 6
-shadow_offset = Vector2(2, 2)
+border_color = Color(0.4, 0.8, 1.0, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_horizontal_panel"]
-bg_color = Color(0.07, 0.11, 0.17, 0.93)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.3, 0.5, 0.8, 0.8)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_left = 14
-corner_radius_bottom_right = 14
-content_margin_left = 20.0
-content_margin_top = 16.0
-content_margin_right = 20.0
-content_margin_bottom = 16.0
-shadow_color = Color(0.0, 0.0, 0.0, 0.4)
-shadow_size = 8
-shadow_offset = Vector2(2, 3)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_green"]
+bg_color = Color(0.05, 0.15, 0.1, 0.8)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 1.0, 0.6, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_horizontal_alt_panel"]
-bg_color = Color(0.05, 0.08, 0.13, 0.96)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.18, 0.78, 0.65, 0.75)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_left = 12
-corner_radius_bottom_right = 12
-content_margin_left = 22.0
-content_margin_top = 18.0
-content_margin_right = 22.0
-content_margin_bottom = 18.0
-shadow_color = Color(0.0, 0.0, 0.0, 0.5)
-shadow_size = 10
-shadow_offset = Vector2(3, 4)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_red"]
+bg_color = Color(0.15, 0.05, 0.05, 0.8)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1.0, 0.4, 0.4, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
-# Enhanced button styles with card-like appearance
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
-bg_color = Color(0.12, 0.18, 0.28, 0.85)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.4, 0.6, 0.8, 0.75)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_left = 8
-corner_radius_bottom_right = 8
-content_margin_left = 20.0
-content_margin_top = 15.0
-content_margin_right = 20.0
-content_margin_bottom = 15.0
-shadow_color = Color(0.0, 0.0, 0.0, 0.3)
-shadow_size = 4
-shadow_offset = Vector2(1, 2)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
-bg_color = Color(0.18, 0.24, 0.35, 0.92)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.5, 0.7, 0.9, 0.85)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_left = 8
-corner_radius_bottom_right = 8
-content_margin_left = 20.0
-content_margin_top = 15.0
-content_margin_right = 20.0
-content_margin_bottom = 15.0
-shadow_color = Color(0.0, 0.0, 0.0, 0.4)
-shadow_size = 6
-shadow_offset = Vector2(2, 3)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_active"]
-bg_color = Color(0.22, 0.28, 0.38, 0.95)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.6, 0.8, 1.0, 0.9)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_left = 8
-corner_radius_bottom_right = 8
-content_margin_left = 20.0
-content_margin_top = 15.0
-content_margin_right = 20.0
-content_margin_bottom = 15.0
-shadow_color = Color(0.0, 0.0, 0.0, 0.5)
-shadow_size = 8
-shadow_offset = Vector2(3, 4)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_disabled"]
-bg_color = Color(0.06, 0.09, 0.14, 0.65)
+bg_color = Color(0.1, 0.2, 0.3, 0.6)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.25, 0.35, 0.45, 0.5)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_left = 8
-corner_radius_bottom_right = 8
-content_margin_left = 20.0
-content_margin_top = 15.0
-content_margin_right = 20.0
-content_margin_bottom = 15.0
-shadow_color = Color(0.0, 0.0, 0.0, 0.2)
-shadow_size = 2
-shadow_offset = Vector2(1, 1)
+border_color = Color(0.6, 1.0, 1.0, 0.6)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.15, 0.25, 0.35, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.8, 1.0, 1.0, 0.8)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
+bg_color = Color(0.2, 0.3, 0.4, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.8, 1.0, 1.0)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_disabled"]
+bg_color = Color(0.05, 0.1, 0.15, 0.4)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.5, 0.5, 0.4)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [resource]
-Button/styles/disabled = SubResource("StyleBoxFlat_button_disabled")
-Button/styles/focus = SubResource("StyleBoxFlat_button_hover")
-Button/styles/hover = SubResource("StyleBoxFlat_button_hover")
-Button/styles/normal = SubResource("StyleBoxFlat_button_normal")
-Button/styles/pressed = SubResource("StyleBoxFlat_button_active")
-Label/colors/font_color = Color(0.92, 0.94, 0.96, 1.0)
-Label/colors/font_shadow_color = Color(0.0, 0.0, 0.0, 0.8)
-Label/constants/shadow_offset_x = 1
-Label/constants/shadow_offset_y = 1
-Panel/styles/panel = SubResource("StyleBoxFlat_main_panel")
-PanelContainer/styles/panel = SubResource("StyleBoxFlat_main_panel")
+default_font_size = 14
 
-# Card-like theme variations with enhanced styling
-Panel/theme_types/HorizontalPanel/styles/panel = SubResource("StyleBoxFlat_horizontal_panel")
-Panel/theme_types/HorizontalAltPanel/styles/panel = SubResource("StyleBoxFlat_horizontal_alt_panel")
-Panel/theme_types/InventoryPanel/styles/panel = SubResource("StyleBoxFlat_inventory_panel")
-Panel/theme_types/SmallPanel/styles/panel = SubResource("StyleBoxFlat_small_panel")
+Panel/styles/panel = SubResource("StyleBoxFlat_panel_main")
+
+Button/styles/normal = SubResource("StyleBoxFlat_button_normal")
+Button/styles/hover = SubResource("StyleBoxFlat_button_hover")
+Button/styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+Button/styles/disabled = SubResource("StyleBoxFlat_button_disabled")
+Button/font_sizes/font_size = 16
+Button/colors/font_color = Color(0.6, 1.0, 1.0, 1.0)
+Button/colors/font_hover_color = Color(0.8, 1.0, 1.0, 1.0)
+Button/colors/font_pressed_color = Color(0.4, 0.8, 1.0, 1.0)
+Button/colors/font_disabled_color = Color(0.3, 0.5, 0.5, 0.6)
+
+Label/font_sizes/font_size = 14
+Label/colors/font_color = Color(0.7, 1.0, 1.0, 1.0)
+
+HeaderLabel/font_sizes/font_size = 18
+HeaderLabel/colors/font_color = Color(0.9, 1.0, 1.0, 1.0)
+HeaderLabel/colors/font_shadow_color = Color(0.2, 0.6, 0.8, 0.8)
+HeaderLabel/constants/shadow_offset_x = 1
+HeaderLabel/constants/shadow_offset_y = 1
+
+Label/colors/inventory_type_color = Color(0.6, 1.0, 1.0, 1.0)
+Label/colors/inventory_quantity_color = Color(0.4, 1.0, 0.6, 1.0)
+Label/colors/inventory_value_color = Color(1.0, 1.0, 0.4, 1.0)
+Label/colors/inventory_reference_color = Color(0.5, 0.8, 0.9, 1.0)
+
+PanelGreen/styles/panel = SubResource("StyleBoxFlat_panel_green")
+PanelRed/styles/panel = SubResource("StyleBoxFlat_panel_red")

@@ -129,8 +129,8 @@ SELECT p.id, 'collection_efficiency', 0 FROM players p
 WHERE NOT EXISTS (SELECT 1 FROM upgrades u WHERE u.player_id = p.id AND u.upgrade_type = 'collection_efficiency');
 
 INSERT INTO upgrades (player_id, upgrade_type, level)
-SELECT p.id, 'zone_access', 1 FROM players p
-WHERE NOT EXISTS (SELECT 1 FROM upgrades u WHERE u.player_id = p.id AND u.upgrade_type = 'zone_access');
+SELECT p.id, 'cargo_magnet', 0 FROM players p
+WHERE NOT EXISTS (SELECT 1 FROM upgrades u WHERE u.player_id = p.id AND u.upgrade_type = 'cargo_magnet');
 
 -- Create a function to initialize default upgrades for new players
 CREATE OR REPLACE FUNCTION initialize_player_upgrades()
@@ -140,7 +140,7 @@ BEGIN
         (NEW.id, 'speed_boost', 0),
         (NEW.id, 'inventory_expansion', 0),
         (NEW.id, 'collection_efficiency', 0),
-        (NEW.id, 'zone_access', 1);
+        (NEW.id, 'cargo_magnet', 0);
     RETURN NEW;
 END;
 $$ language 'plpgsql';

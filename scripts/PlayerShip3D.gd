@@ -83,6 +83,9 @@ var inventory_capacity: int = 10
 var credits: int = 0
 var upgrades: Dictionary = {}
 
+## Data loading state
+var is_loading_from_backend: bool = false  # Flag to prevent clearing data during backend loading
+
 ## Interaction state
 var can_collect: bool = true
 var collection_range: float = 3.0  # Touching distance - just overlaps with debris (2.0 radius)
@@ -270,14 +273,20 @@ func _setup_interaction_area() -> void:
 func _initialize_player_state() -> void:
 	##Initialize player state and inventory
 	_log_message("PlayerShip3D: Initializing 3D player state")
-	current_inventory.clear()
-	upgrades = {
-		"speed_boost": 0,
-		"inventory_expansion": 0,
-		"collection_efficiency": 0,
-		"zone_access": 1
-	}
-	_log_message("PlayerShip3D: 3D player state initialized - Credits: %d, Capacity: %d/%d" % [credits, current_inventory.size(), inventory_capacity])
+
+	# Don't clear data if we're loading from backend
+	if not is_loading_from_backend:
+		current_inventory.clear()
+		credits = 0
+		upgrades = {
+			"speed_boost": 0,
+			"inventory_expansion": 0,
+			"collection_efficiency": 0,
+			"cargo_magnet": 0
+		}
+		_log_message("PlayerShip3D: Initialized with default values - Credits: %d, Capacity: %d/%d" % [credits, current_inventory.size(), inventory_capacity])
+	else:
+		_log_message("PlayerShip3D: Waiting for backend data load - Current credits: %d, inventory: %d items" % [credits, current_inventory.size()])
 
 func _physics_process(delta: float) -> void:
 	##Handle 3D physics processing
@@ -521,6 +530,11 @@ func _collect_debris_object(debris_object: RigidBody3D) -> void:
 	# Emit signal
 	debris_collected.emit(debris_type, debris_value)
 
+	# Play debris collection sound effect
+	if AudioManager:
+		AudioManager.play_sfx("pickup_debris")
+		_log_message("PlayerShip3D: Played debris collection sound effect")
+
 	# Sync inventory item with backend API
 	if zone_main and zone_main.has_method("get_api_client"):
 		var api_client = zone_main.get_api_client()
@@ -700,10 +714,14 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 	##Apply the effects of an upgrade
 	match upgrade_type:
 		"speed_boost":
-			speed = 200.0 + (level * 50.0)
+			# FIXED: Much more reasonable speed progression
+			# Level 0: 120 (comfortable base), Level 5: 220 (+83% vs old +125%)
+			speed = 120.0 + (level * 20.0)  # Base 120, +20 per level (was +50!)
 			# Update movement parameters for 3D (Mario Kart style)
 			max_forward_speed = speed
 			max_reverse_speed = speed * 0.6  # Reverse is 60% of forward speed
+			# CRITICAL FIX: Update visual feedback when speed changes (including removal at level 0)
+			_update_speed_visual_feedback()
 			_log_message("PlayerShip3D: Speed boost applied - Speed: %.1f, Max Forward: %.1f, Max Reverse: %.1f" % [speed, max_forward_speed, max_reverse_speed])
 		"inventory_expansion":
 			set_inventory_capacity(10 + (level * 5))
@@ -719,16 +737,6 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 				collection_indicator.mesh.radius = collection_range
 				_log_message("PlayerShip3D: Updated collection range indicator to %.1f units" % collection_range)
 			_log_message("PlayerShip3D: Collection efficiency applied - Range: %.1f, Cooldown: %.2fs" % [collection_range, collection_cooldown])
-		"zone_access":
-			# Set zone access level for future zone system integration
-			upgrades["zone_access"] = level
-			_log_message("PlayerShip3D: Zone access applied - Level: %d" % level)
-		"debris_scanner":
-			if level > 0:
-				enable_debris_scanner(level)
-			else:
-				disable_debris_scanner()
-			_log_message("PlayerShip3D: Debris scanner applied - Level: %d, Active: %s" % [level, level > 0])
 		"cargo_magnet":
 			if level > 0:
 				enable_cargo_magnet(level)
@@ -752,7 +760,7 @@ func set_speed(new_speed: float) -> void:
 
 func _update_speed_visual_feedback() -> void:
 	##Update visual feedback based on current speed upgrades
-	var speed_level = int((speed - 200.0) / 50.0)  # Calculate upgrade level based on speed
+	var speed_level = int((speed - 120.0) / 20.0)  # FIXED: Calculate upgrade level with new values (was 200.0/50.0)
 
 	if speed_level > 0:
 		_create_speed_boost_effects(speed_level)

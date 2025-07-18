@@ -23,6 +23,9 @@ signal upgrade_purchased(result: Dictionary)
 ## Signal emitted when upgrade purchase fails
 signal upgrade_purchase_failed(reason: String, upgrade_type: String)
 
+## Signal emitted when upgrades are cleared
+signal upgrades_cleared(cleared_data: Dictionary)
+
 # API configuration
 var base_url: String = "http://localhost:8000/api/v1"
 var player_id: String = "550e8400-e29b-41d4-a716-446655440000"
@@ -40,12 +43,43 @@ func _ready() -> void:
 	_log_message("APIClient: Initializing HTTP client")
 	request_completed.connect(_on_request_completed)
 	request_timeout = 30.0
+
+	# Validate the default player ID
+	if not _is_valid_uuid(player_id):
+		_log_message("APIClient: WARNING - Default player_id is not a valid UUID: %s" % player_id)
+
 	_log_message("APIClient: HTTP client ready")
+
+## Validate UUID format
+func _is_valid_uuid(uuid_string: String) -> bool:
+	"""Validate that a string is a properly formatted UUID"""
+	if uuid_string.is_empty():
+		return false
+
+	# UUID format: 8-4-4-4-12 characters (36 total with hyphens)
+	# Example: 550e8400-e29b-41d4-a716-446655440000
+	var uuid_regex = RegEx.new()
+	uuid_regex.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+	var result = uuid_regex.search(uuid_string)
+	var is_valid = result != null
+
+	if not is_valid:
+		_log_message("APIClient: Invalid UUID format detected: %s" % uuid_string)
+
+	return is_valid
 
 ## Load player data from the backend
 func load_player_data(target_player_id: String = "") -> void:
 	if target_player_id.is_empty():
 		target_player_id = self.player_id
+
+	# Validate UUID format before making request
+	if not _is_valid_uuid(target_player_id):
+		var error_msg = "Invalid UUID format for player ID: %s" % target_player_id
+		_log_message("APIClient: %s" % error_msg)
+		api_error.emit(error_msg)
+		return
 
 	var url = "%s/players/%s" % [base_url, target_player_id]
 	_log_message("APIClient: Loading player data from %s" % url)
@@ -56,6 +90,13 @@ func load_player_data(target_player_id: String = "") -> void:
 
 ## Save player data to the backend
 func save_player_data(player_data: Dictionary) -> void:
+	# Validate UUID format before making request
+	if not _is_valid_uuid(player_id):
+		var error_msg = "Invalid UUID format for player ID: %s" % player_id
+		_log_message("APIClient: %s" % error_msg)
+		api_error.emit(error_msg)
+		return
+
 	var url = "%s/players/%s" % [base_url, player_id]
 	_log_message("APIClient: Saving player data to %s" % url)
 
@@ -66,8 +107,18 @@ func save_player_data(player_data: Dictionary) -> void:
 		api_error.emit("Failed to initiate player data save request")
 
 ## Load inventory from the backend
-func load_inventory() -> void:
-	var url = "%s/players/%s/inventory" % [base_url, player_id]
+func load_inventory(target_player_id: String = "") -> void:
+	if target_player_id.is_empty():
+		target_player_id = self.player_id
+
+	# Validate UUID format before making request
+	if not _is_valid_uuid(target_player_id):
+		var error_msg = "Invalid UUID format for player ID: %s" % target_player_id
+		_log_message("APIClient: %s" % error_msg)
+		api_error.emit(error_msg)
+		return
+
+	var url = "%s/players/%s/inventory" % [base_url, target_player_id]
 	_log_message("APIClient: Loading inventory from %s" % url)
 
 	var request_id = _make_request(url, HTTPClient.METHOD_GET, [], "load_inventory")
@@ -76,6 +127,13 @@ func load_inventory() -> void:
 
 ## Add item to inventory via backend
 func add_inventory_item(item_data: Dictionary) -> void:
+	# Validate UUID format before making request
+	if not _is_valid_uuid(player_id):
+		var error_msg = "Invalid UUID format for player ID: %s" % player_id
+		_log_message("APIClient: %s" % error_msg)
+		api_error.emit(error_msg)
+		return
+
 	var url = "%s/players/%s/inventory" % [base_url, player_id]
 	_log_message("APIClient: Adding inventory item to %s" % url)
 
@@ -87,6 +145,13 @@ func add_inventory_item(item_data: Dictionary) -> void:
 
 ## Clear inventory (sell all items)
 func clear_inventory() -> void:
+	# Validate UUID format before making request
+	if not _is_valid_uuid(player_id):
+		var error_msg = "Invalid UUID format for player ID: %s" % player_id
+		_log_message("APIClient: %s" % error_msg)
+		api_error.emit(error_msg)
+		return
+
 	var url = "%s/players/%s/inventory" % [base_url, player_id]
 	_log_message("APIClient: Clearing inventory at %s" % url)
 
@@ -94,8 +159,31 @@ func clear_inventory() -> void:
 	if request_id == -1:
 		api_error.emit("Failed to initiate inventory clear request")
 
+## Clear all upgrades (reset to defaults)
+func clear_upgrades() -> void:
+	# Validate UUID format before making request
+	if not _is_valid_uuid(player_id):
+		var error_msg = "Invalid UUID format for player ID: %s" % player_id
+		_log_message("APIClient: %s" % error_msg)
+		api_error.emit(error_msg)
+		return
+
+	var url = "%s/players/%s/upgrades" % [base_url, player_id]
+	_log_message("APIClient: Clearing all upgrades at %s" % url)
+
+	var request_id = _make_request(url, HTTPClient.METHOD_DELETE, [], "clear_upgrades")
+	if request_id == -1:
+		api_error.emit("Failed to initiate upgrades clear request")
+
 ## Update credits
 func update_credits(credits_change: int) -> void:
+	# Validate UUID format before making request
+	if not _is_valid_uuid(player_id):
+		var error_msg = "Invalid UUID format for player ID: %s" % player_id
+		_log_message("APIClient: %s" % error_msg)
+		api_error.emit(error_msg)
+		return
+
 	var url = "%s/players/%s/credits" % [base_url, player_id]
 	_log_message("APIClient: Updating credits at %s" % url)
 
@@ -122,6 +210,13 @@ func purchase_upgrade(target_player_id: String, upgrade_type: String, expected_c
 	# Validate input parameters
 	if target_player_id.is_empty():
 		target_player_id = self.player_id
+
+	# Validate UUID format before making request
+	if not _is_valid_uuid(target_player_id):
+		var error_msg = "Invalid UUID format for player ID: %s" % target_player_id
+		_log_message("APIClient: %s" % error_msg)
+		upgrade_purchase_failed.emit(error_msg, upgrade_type)
+		return
 
 	if upgrade_type.is_empty():
 		var error_msg = "Invalid upgrade type: cannot be empty"
@@ -249,6 +344,9 @@ func _handle_successful_response(response_data: Dictionary, request_context: Dic
 		_log_message("APIClient: Inventory data received")
 		var inventory_data = response_data.get("inventory", [])
 		inventory_updated.emit(inventory_data)
+	elif response_data is Dictionary and "cleared_upgrades" in response_data:
+		_log_message("APIClient: Upgrades cleared successfully")
+		upgrades_cleared.emit(response_data)
 	elif response_data is Dictionary and "credits" in response_data:
 		_log_message("APIClient: Credits updated")
 		credits_updated.emit(response_data.credits)

@@ -157,10 +157,10 @@ vertical_alignment = 2
 
 [node name="InventoryPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.02
-anchor_top = 0.1
-anchor_right = 0.27
-anchor_bottom = 0.55
+anchor_left = 0.04
+anchor_top = 0.12
+anchor_right = 0.24
+anchor_bottom = 0.48
 theme_type_variation = "InventoryPanel"
 
 [node name="InventoryTitle" type="Label" parent="UILayer/HUD/InventoryPanel"]
@@ -190,10 +190,10 @@ horizontal_alignment = 1
 
 [node name="StatsPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.02
-anchor_top = 0.6
-anchor_right = 0.27
-anchor_bottom = 0.98
+anchor_left = 0.04
+anchor_top = 0.62
+anchor_right = 0.24
+anchor_bottom = 0.88
 theme_type_variation = "SmallPanel"
 
 [node name="StatsTitle" type="Label" parent="UILayer/HUD/StatsPanel"]
@@ -230,10 +230,10 @@ text = "Collection Range: 80"
 
 [node name="UpgradeStatusPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.73
-anchor_top = 0.6
-anchor_right = 0.98
-anchor_bottom = 0.98
+anchor_left = 0.78
+anchor_top = 0.62
+anchor_right = 0.94
+anchor_bottom = 0.88
 theme_type_variation = "SmallPanel"
 
 [node name="UpgradeStatusTitle" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
@@ -255,10 +255,10 @@ vertical_alignment = 1
 
 [node name="ControlsPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.73
-anchor_top = 0.1
-anchor_right = 0.98
-anchor_bottom = 0.55
+anchor_left = 0.78
+anchor_top = 0.12
+anchor_right = 0.94
+anchor_bottom = 0.48
 theme_type_variation = "HorizontalPanel"
 
 [node name="ControlsTitle" type="Label" parent="UILayer/HUD/ControlsPanel"]
@@ -345,6 +345,11 @@ horizontal_alignment = 1
 layout_mode = 2
 text = "SELL ALL DEBRIS"
 
+[node name="DumpInventoryButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent"]
+layout_mode = 2
+text = "DUMP ALL INVENTORY"
+modulate = Color(1, 0.5, 0.5, 1)
+
 [node name="BUY" type="Control" parent="UILayer/HUD/TradingInterface/TradingTabs"]
 layout_mode = 2
 metadata/_tab_index = 1
@@ -393,6 +398,15 @@ layout_mode = 2
 text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
+
+[node name="ClearUpgradesContainer" type="HBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+
+[node name="ClearUpgradesButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CLEAR ALL UPGRADES"
+modulate = Color(1, 0.5, 0.5, 1)
 
 [node name="TradingCloseButton" type="Button" parent="UILayer/HUD/TradingInterface"]
 layout_mode = 0

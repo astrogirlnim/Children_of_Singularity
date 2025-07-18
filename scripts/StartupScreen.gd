@@ -94,11 +94,11 @@ func _setup_startup_screen() -> void:
 	if background:
 		background.color = Color(0.02, 0.02, 0.05, 1.0)  # Very dark space blue
 
-	# Configure video display for proper frame scaling
+	# Configure video display for exact window scaling
 	if video_display:
 		print("StartupScreen: Configuring VideoDisplay...")
 		video_display.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-		video_display.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		video_display.stretch_mode = TextureRect.STRETCH_KEEP
 		video_display.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 
 		# Ensure it's visible and properly sized for full viewport
@@ -212,6 +212,9 @@ func _set_startup_frame(frame_number: int) -> void:
 	# Apply the texture and verify it worked
 	video_display.texture = texture
 	current_frame = frame_number
+
+	# Apply exact window scaling for this frame
+	_apply_exact_window_scaling(video_display)
 
 	# Debug: Verify the texture was actually set
 	if video_display.texture == texture:
@@ -371,6 +374,30 @@ func _change_scene(scene_path: String) -> void:
 		print("StartupScreen: ❌ ERROR: Failed to change scene. Error code: %d" % result)
 	else:
 		print("StartupScreen: ✅ Scene change initiated successfully")
+
+func _apply_exact_window_scaling(texture_rect: TextureRect) -> void:
+	##Apply exact window scaling like the border manager does
+	var viewport_size = get_viewport().get_visible_rect().size
+
+	if viewport_size == Vector2.ZERO or not texture_rect or not texture_rect.texture:
+		return
+
+	var texture_size = texture_rect.texture.get_size()
+	print("StartupScreen: Applying exact scaling - Viewport: %s, Texture: %s" % [viewport_size, texture_size])
+
+	# Reset position and remove size constraints to let texture display naturally
+	texture_rect.position = Vector2.ZERO
+	texture_rect.size = Vector2.ZERO  # Let TextureRect size itself naturally
+	texture_rect.custom_minimum_size = Vector2.ZERO  # Remove size constraints
+
+	# Calculate scale factors to fit texture exactly to viewport
+	var scale_x = viewport_size.x / texture_size.x if texture_size.x > 0 else 1.0
+	var scale_y = viewport_size.y / texture_size.y if texture_size.y > 0 else 1.0
+
+	# Apply direct scale transformation - this overrides texture sizing behavior
+	texture_rect.scale = Vector2(scale_x, scale_y)
+
+	print("StartupScreen: Applied scale transformation - X: %.3f, Y: %.3f" % [scale_x, scale_y])
 
 ## Public API methods for testing and configuration
 

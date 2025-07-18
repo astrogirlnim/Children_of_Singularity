@@ -34,6 +34,8 @@ signal ai_message_display_requested(message: String)
 @export var trading_interface: Panel
 @export var trading_title: Label
 @export var sell_all_button: Button
+@export var dump_inventory_button: Button
+@export var clear_upgrades_button: Button
 @export var trading_result: Label
 @export var trading_close_button: Button
 
@@ -96,6 +98,12 @@ func _setup_ui_connections() -> void:
 	##Setup signal connections for UI elements
 	if sell_all_button:
 		sell_all_button.pressed.connect(_on_sell_all_pressed)
+
+	if dump_inventory_button:
+		dump_inventory_button.pressed.connect(_on_dump_inventory_pressed)
+
+	if clear_upgrades_button:
+		clear_upgrades_button.pressed.connect(_on_clear_upgrades_pressed)
 
 	if trading_close_button:
 		trading_close_button.pressed.connect(_on_trading_close_pressed)
@@ -409,6 +417,181 @@ func _on_sell_all_pressed() -> void:
 	##Handle sell all button press
 	sell_all_requested.emit()
 	print("ZoneUIManager: Sell all requested")
+
+func _on_dump_inventory_pressed() -> void:
+	##Handle dump inventory button press - clear all inventory without selling
+	print("ZoneUIManager: Dump inventory button pressed")
+
+	if not player_ship:
+		print("ZoneUIManager: ERROR - Player ship not found!")
+		return
+
+	var inventory = player_ship.current_inventory
+	if inventory.is_empty():
+		_update_trading_result("No inventory to dump!", Color.YELLOW)
+		print("ZoneUIManager: No inventory to dump")
+		return
+
+	# Show confirmation dialog
+	var confirmation_text = "Are you sure you want to DUMP ALL inventory?\n\nThis will permanently delete all %d items.\nYou will NOT receive any credits!\n\nThis action cannot be undone." % inventory.size()
+
+	# Create confirmation dialog
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Confirm Dump Inventory"
+	dialog.dialog_text = confirmation_text
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_ON_SCREEN
+
+	# Add to scene temporarily
+	get_tree().current_scene.add_child(dialog)
+
+	# Connect signals
+	dialog.confirmed.connect(_on_dump_inventory_confirmed.bind(dialog))
+	dialog.canceled.connect(_on_dump_inventory_canceled.bind(dialog))
+
+	# Show dialog
+	dialog.popup_centered(Vector2i(500, 300))
+	print("ZoneUIManager: Dump inventory confirmation dialog shown")
+
+func _on_dump_inventory_confirmed(dialog: ConfirmationDialog) -> void:
+	##Handle confirmed dump inventory action
+	print("ZoneUIManager: Dump inventory confirmed by user")
+
+	if not player_ship:
+		print("ZoneUIManager: ERROR - Player ship not found!")
+		dialog.queue_free()
+		return
+
+	var inventory = player_ship.current_inventory
+	var item_count = inventory.size()
+
+	# Clear inventory locally (no credits gained)
+	var dumped_items = player_ship.clear_inventory()
+
+	# Clear inventory on backend
+	if api_client and api_client.has_method("clear_inventory"):
+		api_client.clear_inventory()
+		print("ZoneUIManager: Inventory cleared on backend")
+
+	# Update UI immediately
+	_update_trading_result("DUMPED %d items - No credits gained" % item_count, Color.RED)
+	update_inventory_display(player_ship.current_inventory)
+
+	# CRITICAL FIX: Refresh any trading interface elements if they exist
+	if has_method("_populate_debris_selection_ui"):
+		call("_populate_debris_selection_ui")
+	if has_method("_update_selection_summary"):
+		call("_update_selection_summary")
+
+	print("ZoneUIManager: Dumped %d items, no credits gained, UI refreshed" % item_count)
+
+	# Clean up dialog
+	dialog.queue_free()
+
+func _on_dump_inventory_canceled(dialog: ConfirmationDialog) -> void:
+	##Handle canceled dump inventory action
+	print("ZoneUIManager: Dump inventory canceled by user")
+	dialog.queue_free()
+
+func _on_clear_upgrades_pressed() -> void:
+	##Handle clear upgrades button press - reset all upgrades to defaults
+	print("ZoneUIManager: Clear upgrades button pressed")
+
+	if not player_ship:
+		print("ZoneUIManager: ERROR - Player ship not found!")
+		return
+
+	# Show confirmation dialog
+	var confirmation_text = "Are you sure you want to CLEAR ALL upgrades?\n\nThis will reset all upgrades to default levels:\n• Speed Boost: Level 0\n• Inventory Expansion: Level 0\n• Collection Efficiency: Level 0\n• Zone Access: Level 1 (minimum)\n• Debris Scanner: Level 0\n• Cargo Magnet: Level 0\n\nYou will NOT receive any credit refunds!\nThis action cannot be undone."
+
+	# Create confirmation dialog
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Confirm Clear All Upgrades"
+	dialog.dialog_text = confirmation_text
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_ON_SCREEN
+
+	# Add to scene temporarily
+	get_tree().current_scene.add_child(dialog)
+
+	# Connect signals
+	dialog.confirmed.connect(_on_clear_upgrades_confirmed.bind(dialog))
+	dialog.canceled.connect(_on_clear_upgrades_canceled.bind(dialog))
+
+	# Show dialog
+	dialog.popup_centered(Vector2i(600, 400))
+	print("ZoneUIManager: Clear upgrades confirmation dialog shown")
+
+func _on_clear_upgrades_confirmed(dialog: ConfirmationDialog) -> void:
+	##Handle confirmed clear upgrades action
+	print("ZoneUIManager: Clear upgrades confirmed by user")
+
+	if not player_ship:
+		print("ZoneUIManager: ERROR - Player ship not found!")
+		dialog.queue_free()
+		return
+
+	# Clear upgrades on backend first
+	if api_client and api_client.has_method("clear_upgrades"):
+		api_client.clear_upgrades()
+		print("ZoneUIManager: Upgrades clear request sent to backend")
+	else:
+		print("ZoneUIManager: ERROR - API client does not support clear_upgrades")
+
+	# Clean up dialog
+	dialog.queue_free()
+
+func _on_clear_upgrades_canceled(dialog: ConfirmationDialog) -> void:
+	##Handle canceled clear upgrades action
+	print("ZoneUIManager: Clear upgrades canceled by user")
+	dialog.queue_free()
+
+func handle_upgrades_cleared(cleared_data: Dictionary) -> void:
+	##Handle upgrades cleared response from API (called by ZoneMain)
+	print("ZoneUIManager: Upgrades cleared successfully - %s" % cleared_data)
+
+	if not player_ship:
+		print("ZoneUIManager: ERROR - Player ship not found!")
+		return
+
+	# Reset player ship upgrades to defaults locally
+	player_ship.upgrades = {
+		"speed_boost": 0,
+		"inventory_expansion": 0,
+		"collection_efficiency": 0,
+		"cargo_magnet": 0
+	}
+
+	# Apply default upgrade effects
+	for upgrade_type in player_ship.upgrades:
+		var level = player_ship.upgrades[upgrade_type]
+		player_ship._apply_upgrade_effects(upgrade_type, level)
+
+	# Update UI immediately
+	_update_purchase_result("ALL UPGRADES CLEARED", Color.RED)
+	_populate_upgrade_catalog()  # Refresh catalog to show Level 0
+	update_upgrade_status_display(player_ship.upgrades, upgrade_system)
+
+	# CRITICAL FIX: Refresh trading interface elements if they exist (inventory capacity may have changed)
+	if has_method("_populate_debris_selection_ui"):
+		call("_populate_debris_selection_ui")
+	if has_method("_update_selection_summary"):
+		call("_update_selection_summary")
+
+	var total_cleared = cleared_data.get("total_cleared", 0)
+	print("ZoneUIManager: All upgrades reset to defaults - %d upgrades cleared, UI refreshed" % total_cleared)
+
+func _update_trading_result(message: String, color: Color) -> void:
+	##Update trading result display with message and color
+	if trading_result:
+		trading_result.text = message
+		trading_result.modulate = color
+		print("ZoneUIManager: Trading result updated: %s" % message)
+
+func _update_purchase_result(message: String, color: Color) -> void:
+	##Update purchase result display with message and color
+	if purchase_result:
+		purchase_result.text = message
+		purchase_result.modulate = color
+		print("ZoneUIManager: Purchase result updated: %s" % message)
 
 func _on_trading_close_pressed() -> void:
 	##Handle trading close button press

@@ -185,24 +185,6 @@ UPGRADE_DEFINITIONS = {
         "effect_per_level": 20.0,
         "category": "collection",
     },
-    "zone_access": {
-        "name": "Zone Access",
-        "description": "Unlocks access to deeper zones",
-        "max_level": 5,
-        "base_cost": 500,
-        "cost_multiplier": 2.0,
-        "effect_per_level": 1,
-        "category": "access",
-    },
-    "debris_scanner": {
-        "name": "Debris Scanner",
-        "description": "Highlights valuable debris on the map",
-        "max_level": 3,
-        "base_cost": 300,
-        "cost_multiplier": 1.6,
-        "effect_per_level": 1,
-        "category": "utility",
-    },
     "cargo_magnet": {
         "name": "Cargo Magnet",
         "description": "Automatically attracts nearby debris",
@@ -340,7 +322,7 @@ def _create_test_data():
                         (%s, 'speed_boost', 0),
                         (%s, 'inventory_expansion', 0),
                         (%s, 'collection_efficiency', 0),
-                        (%s, 'zone_access', 1)
+                        (%s, 'cargo_magnet', 0)
                         ON CONFLICT (player_id, upgrade_type) DO NOTHING
                     """,
                         (player_id, player_id, player_id, player_id),
@@ -352,7 +334,7 @@ def _create_test_data():
         logger.error(f"Database test data creation failed: {e}")
         # Fall back to in-memory storage
         test_player = PlayerData(
-            player_id="player_001",
+            player_id="550e8400-e29b-41d4-a716-446655440000",
             name="Test Salvager",
             credits=100,
             progression_path="rogue",
@@ -361,11 +343,11 @@ def _create_test_data():
                 "speed_boost": 0,
                 "inventory_expansion": 0,
                 "collection_efficiency": 0,
-                "zone_access": 1,
+                "cargo_magnet": 0,
             },
         )
-        players_db["player_001"] = test_player
-        inventory_db["player_001"] = []
+        players_db["550e8400-e29b-41d4-a716-446655440000"] = test_player
+        inventory_db["550e8400-e29b-41d4-a716-446655440000"] = []
         logger.info("Test data created in memory (fallback)")
 
 
@@ -1009,6 +991,79 @@ async def purchase_upgrade(player_id: str, upgrade_data: UpgradePurchaseRequest)
             remaining_credits=player.credits,
             error_message="",
         )
+
+
+@app.delete("/api/v1/players/{player_id}/upgrades")
+async def clear_player_upgrades(player_id: str):
+    """Clear all player upgrades (reset to defaults)"""
+    logger.info(f"Clearing all upgrades for player: {player_id}")
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Check if player exists
+                cursor.execute("SELECT id FROM players WHERE id = %s", (player_id,))
+                if not cursor.fetchone():
+                    logger.warning(f"Player not found: {player_id}")
+                    raise HTTPException(status_code=404, detail="Player not found")
+
+                # Get current upgrades before clearing
+                cursor.execute(
+                    """
+                    SELECT upgrade_type, level
+                    FROM upgrades WHERE player_id = %s
+                """,
+                    (player_id,),
+                )
+
+                cleared_upgrades = {}
+                for row in cursor.fetchall():
+                    cleared_upgrades[row["upgrade_type"]] = row["level"]
+
+                # Reset all upgrades to level 0
+                cursor.execute(
+                    "DELETE FROM upgrades WHERE player_id = %s", (player_id,)
+                )
+
+                conn.commit()
+
+                logger.info(
+                    f"Cleared {len(cleared_upgrades)} upgrades for "
+                    f"{player_id}, reset to defaults"
+                )
+                return {
+                    "message": "All upgrades cleared and reset to defaults",
+                    "cleared_upgrades": cleared_upgrades,
+                    "total_cleared": len(cleared_upgrades),
+                    "default_upgrades": {},
+                }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Database error clearing upgrades: {e}")
+        # Fall back to in-memory storage
+        if player_id not in players_db:
+            raise HTTPException(status_code=404, detail="Player not found")
+
+        player = players_db[player_id]
+        cleared_upgrades = player.upgrades.copy()
+
+        # Reset to defaults
+        player.upgrades = {
+            "speed_boost": 0,
+            "inventory_expansion": 0,
+            "collection_efficiency": 0,
+            "cargo_magnet": 0,
+        }
+
+        logger.info(f"Upgrades cleared in fallback mode for {player_id}")
+        return {
+            "message": "All upgrades cleared and reset to defaults (fallback)",
+            "cleared_upgrades": cleared_upgrades,
+            "total_cleared": len(cleared_upgrades),
+            "default_upgrades": {},
+        }
 
 
 @app.get("/api/v1/health")

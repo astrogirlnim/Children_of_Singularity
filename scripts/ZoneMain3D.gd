@@ -45,6 +45,8 @@ signal npc_hub_entered()
 @onready var trading_content: VBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent
 @onready var trading_result: Label = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent/TradingResult
 @onready var sell_all_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent/SellAllButton
+@onready var dump_inventory_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent/DumpInventoryButton
+@onready var clear_upgrades_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer/ClearUpgradesButton
 @onready var trading_close_button: Button = $UILayer/HUD/TradingInterface/TradingCloseButton
 
 # Upgrade interface UI elements
@@ -171,6 +173,13 @@ func _initialize_3d_zone() -> void:
 			api_client.upgrade_purchase_failed.connect(_on_upgrade_purchase_failed)
 		if api_client.has_signal("credits_updated"):
 			api_client.credits_updated.connect(_on_credits_updated)
+		if api_client.has_signal("upgrades_cleared"):
+			api_client.upgrades_cleared.connect(_on_upgrades_cleared)
+		# NEW: Connect data loading signals for backend persistence
+		if api_client.has_signal("player_data_loaded"):
+			api_client.player_data_loaded.connect(_on_player_data_loaded)
+		if api_client.has_signal("inventory_updated"):
+			api_client.inventory_updated.connect(_on_inventory_loaded)
 		_log_message("ZoneMain3D: API client signals connected")
 
 	# Connect upgrade system signals for immediate effect feedback
@@ -181,6 +190,10 @@ func _initialize_3d_zone() -> void:
 
 	# Initialize trading interface UI connections
 	_initialize_trading_interface()
+
+	# NEW: Load existing player data BEFORE other initialization
+	if api_client and player_ship:
+		_load_complete_player_data_from_backend()
 
 	# Initialize 3D debris manager
 	_initialize_debris_manager_3d()
@@ -590,6 +603,12 @@ func _on_hub_created(hub: Node3D) -> void:
 func _on_player_entered_hub(hub_type: String, _hub: Node3D) -> void:
 	##Handle player entering trading hub
 	_log_message("ZoneMain3D: Player entered trading hub: %s" % hub_type)
+
+	# Play trading hub approach sound effect
+	if AudioManager:
+		AudioManager.play_sfx("approach_station")
+		_log_message("ZoneMain3D: Played trading hub approach sound effect")
+
 	npc_hub_entered.emit()
 
 func _on_player_exited_hub(hub_type: String, _hub: Node3D) -> void:
@@ -879,6 +898,14 @@ func _initialize_trading_interface() -> void:
 		sell_all_button.pressed.connect(_on_sell_all_pressed)
 		_log_message("ZoneMain3D: Sell all button connected")
 
+	if dump_inventory_button:
+		dump_inventory_button.pressed.connect(_on_dump_inventory_pressed)
+		_log_message("ZoneMain3D: Dump inventory button connected")
+
+	if clear_upgrades_button:
+		clear_upgrades_button.pressed.connect(_on_clear_upgrades_pressed)
+		_log_message("ZoneMain3D: Clear upgrades button connected")
+
 	# Connect close button
 	if trading_close_button:
 		trading_close_button.pressed.connect(_on_trading_close_pressed)
@@ -1033,6 +1060,169 @@ func _on_sell_all_pressed() -> void:
 
 	_log_message("ZoneMain3D: Sale completed - %d items sold for %d credits" % [item_count, total_value])
 
+func _on_dump_inventory_pressed() -> void:
+	##Handle dump inventory button press - clear all inventory without selling
+	_log_message("ZoneMain3D: Dump inventory button pressed")
+
+	if not player_ship:
+		_log_message("ZoneMain3D: ERROR - Player ship not found!")
+		return
+
+	var inventory = player_ship.current_inventory
+	if inventory.is_empty():
+		_update_trading_result("No inventory to dump!", Color.YELLOW)
+		_log_message("ZoneMain3D: No inventory to dump")
+		return
+
+	# Show confirmation dialog
+	var confirmation_text = "Are you sure you want to DUMP ALL inventory?\n\nThis will permanently delete all %d items.\nYou will NOT receive any credits!\n\nThis action cannot be undone." % inventory.size()
+
+	# Create confirmation dialog
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Confirm Dump Inventory"
+	dialog.dialog_text = confirmation_text
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_SCREEN_WITH_MOUSE_FOCUS
+
+	# Add to scene temporarily
+	add_child(dialog)
+
+	# Connect signals
+	dialog.confirmed.connect(_on_dump_inventory_confirmed.bind(dialog))
+	dialog.canceled.connect(_on_dump_inventory_canceled.bind(dialog))
+
+	# Show dialog
+	dialog.popup_centered(Vector2i(500, 300))
+	_log_message("ZoneMain3D: Dump inventory confirmation dialog shown")
+
+func _on_dump_inventory_confirmed(dialog: ConfirmationDialog) -> void:
+	##Handle confirmed dump inventory action
+	_log_message("ZoneMain3D: Dump inventory confirmed by user")
+
+	if not player_ship:
+		_log_message("ZoneMain3D: ERROR - Player ship not found!")
+		dialog.queue_free()
+		return
+
+	var inventory = player_ship.current_inventory
+	var item_count = inventory.size()
+
+	# Clear inventory locally (no credits gained)
+	var dumped_items = player_ship.clear_inventory()
+
+	# Clear inventory on backend
+	if api_client and api_client.has_method("clear_inventory"):
+		api_client.clear_inventory()
+		_log_message("ZoneMain3D: Inventory cleared on backend")
+
+	# Clear selections
+	selected_debris.clear()
+
+	# Update UI immediately
+	_update_trading_result("DUMPED %d items - No credits gained" % item_count, Color.RED)
+	_update_grouped_inventory_display(player_ship.current_inventory)
+	_update_inventory_displays()
+
+	# CRITICAL FIX: Refresh the trading interface to show updated inventory
+	_populate_debris_selection_ui()
+	_update_selection_summary()
+
+	_log_message("ZoneMain3D: Dumped %d items, no credits gained, trading interface refreshed" % item_count)
+
+	# Clean up dialog
+	dialog.queue_free()
+
+func _on_dump_inventory_canceled(dialog: ConfirmationDialog) -> void:
+	##Handle canceled dump inventory action
+	_log_message("ZoneMain3D: Dump inventory canceled by user")
+	dialog.queue_free()
+
+func _on_clear_upgrades_pressed() -> void:
+	##Handle clear upgrades button press - reset all upgrades to defaults
+	_log_message("ZoneMain3D: Clear upgrades button pressed")
+
+	if not player_ship:
+		_log_message("ZoneMain3D: ERROR - Player ship not found!")
+		return
+
+	# Show confirmation dialog
+	var confirmation_text = "Are you sure you want to CLEAR ALL upgrades?\n\nThis will reset all upgrades to default levels:\n• Speed Boost: Level 0\n• Inventory Expansion: Level 0\n• Collection Efficiency: Level 0\n• Zone Access: Level 1 (minimum)\n• Debris Scanner: Level 0\n• Cargo Magnet: Level 0\n\nYou will NOT receive any credit refunds!\nThis action cannot be undone."
+
+	# Create confirmation dialog
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Confirm Clear All Upgrades"
+	dialog.dialog_text = confirmation_text
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_SCREEN_WITH_MOUSE_FOCUS
+
+	# Add to scene temporarily
+	add_child(dialog)
+
+	# Connect signals
+	dialog.confirmed.connect(_on_clear_upgrades_confirmed.bind(dialog))
+	dialog.canceled.connect(_on_clear_upgrades_canceled.bind(dialog))
+
+	# Show dialog
+	dialog.popup_centered(Vector2i(600, 400))
+	_log_message("ZoneMain3D: Clear upgrades confirmation dialog shown")
+
+func _on_clear_upgrades_confirmed(dialog: ConfirmationDialog) -> void:
+	##Handle confirmed clear upgrades action
+	_log_message("ZoneMain3D: Clear upgrades confirmed by user")
+
+	if not player_ship:
+		_log_message("ZoneMain3D: ERROR - Player ship not found!")
+		dialog.queue_free()
+		return
+
+	# Clear upgrades on backend first
+	if api_client and api_client.has_method("clear_upgrades"):
+		api_client.clear_upgrades()
+		_log_message("ZoneMain3D: Upgrades clear request sent to backend")
+	else:
+		_log_message("ZoneMain3D: ERROR - API client does not support clear_upgrades")
+
+	# Clean up dialog
+	dialog.queue_free()
+
+func _on_clear_upgrades_canceled(dialog: ConfirmationDialog) -> void:
+	##Handle canceled clear upgrades action
+	_log_message("ZoneMain3D: Clear upgrades canceled by user")
+	dialog.queue_free()
+
+func _on_upgrades_cleared(cleared_data: Dictionary) -> void:
+	##Handle upgrades cleared response from API
+	_log_message("ZoneMain3D: Upgrades cleared successfully - %s" % cleared_data)
+
+	if not player_ship:
+		_log_message("ZoneMain3D: ERROR - Player ship not found!")
+		return
+
+	# Reset player ship upgrades to defaults locally
+	player_ship.upgrades = {
+		"speed_boost": 0,
+		"inventory_expansion": 0,
+		"collection_efficiency": 0,
+		"cargo_magnet": 0
+	}
+
+	# Apply default upgrade effects
+	for upgrade_type in player_ship.upgrades:
+		var level = player_ship.upgrades[upgrade_type]
+		player_ship._apply_upgrade_effects(upgrade_type, level)
+
+	# Update UI immediately
+	_update_purchase_result("ALL UPGRADES CLEARED", Color.RED)
+	_populate_upgrade_catalog()  # Refresh catalog to show Level 0
+	_update_upgrade_status_display()
+	_update_inventory_displays()  # Inventory capacity may have changed
+
+	# CRITICAL FIX: Also refresh trading interface if open (inventory capacity may have changed)
+	if trading_interface and trading_interface.visible:
+		_populate_debris_selection_ui()
+		_update_selection_summary()
+
+	var total_cleared = cleared_data.get("total_cleared", 0)
+	_log_message("ZoneMain3D: All upgrades reset to defaults - %d upgrades cleared, trading interface refreshed" % total_cleared)
+
 func _on_trading_close_pressed() -> void:
 	##Handle trading close button press
 	_log_message("ZoneMain3D: Trading close button pressed")
@@ -1068,6 +1258,13 @@ func _sync_sale_with_backend(sold_items: Array, total_value: int) -> void:
 		_log_message("ZoneMain3D: Credits synced with backend API - Added %d credits" % total_value)
 	else:
 		_log_message("ZoneMain3D: Warning - Backend API does not support credit updates")
+
+	# CRITICAL FIX: Clear sold items from backend inventory
+	if api_client.has_method("clear_inventory"):
+		api_client.clear_inventory()
+		_log_message("ZoneMain3D: FIXED - Cleared backend inventory to remove sold items")
+	else:
+		_log_message("ZoneMain3D: Warning - Backend API does not support inventory clearing")
 
 func _update_inventory_displays() -> void:
 	##Update all inventory-related UI displays
@@ -1824,7 +2021,10 @@ func _on_upgrade_effects_applied(upgrade_type: String, level: int) -> void:
 			# Show speed boost feedback
 			if player_ship:
 				var new_speed = player_ship.speed
-				_update_purchase_result("SPEED BOOST ACTIVE!\nNew speed: %.0f" % new_speed, Color.CYAN)
+				if level > 0:
+					_update_purchase_result("SPEED BOOST ACTIVE!\nNew speed: %.0f" % new_speed, Color.CYAN)
+				else:
+					_update_purchase_result("SPEED BOOST DEACTIVATED\nSpeed reset to: %.0f" % new_speed, Color.GRAY)
 
 		"inventory_expansion":
 			# Inventory expansion is handled by _on_inventory_expanded signal
@@ -1834,17 +2034,10 @@ func _on_upgrade_effects_applied(upgrade_type: String, level: int) -> void:
 			# Update collection range display
 			if player_ship:
 				var new_range = player_ship.collection_range
-				_update_purchase_result("COLLECTION ENHANCED!\nNew range: %.1f units" % new_range, Color.BLUE)
-
-		"zone_access":
-			# Update zone access display
-			_update_purchase_result("ZONE ACCESS UPGRADED!\nLevel %d unlocked" % level, Color.PURPLE)
-
-		"debris_scanner":
-			if level > 0:
-				_update_purchase_result("DEBRIS SCANNER ACTIVATED!\nLevel %d scanner online" % level, Color.YELLOW)
-			else:
-				_update_purchase_result("DEBRIS SCANNER DEACTIVATED", Color.GRAY)
+				if level > 0:
+					_update_purchase_result("COLLECTION ENHANCED!\nNew range: %.1f units" % new_range, Color.BLUE)
+				else:
+					_update_purchase_result("COLLECTION EFFICIENCY RESET\nRange reset to: %.1f units" % new_range, Color.GRAY)
 
 		"cargo_magnet":
 			if level > 0:
@@ -1859,3 +2052,76 @@ func _on_upgrade_effects_applied(upgrade_type: String, level: int) -> void:
 	if player_ship:
 		_update_credits_display()  # Credits might have changed
 		_update_inventory_displays()  # Inventory status might need updating
+
+func _load_complete_player_data_from_backend() -> void:
+	##Load complete player data from backend (Phase 2.1 implementation)
+	_log_message("ZoneMain3D: Loading player data from backend...")
+
+	# Set loading flag to prevent default initialization
+	if player_ship:
+		player_ship.is_loading_from_backend = true
+		_log_message("ZoneMain3D: Set loading flag on player ship")
+
+	# Load all player data
+	if api_client and api_client.has_method("load_player_data"):
+		api_client.load_player_data(player_ship.player_id)
+		_log_message("ZoneMain3D: Requested player data from backend")
+
+	# Load inventory data
+	if api_client and api_client.has_method("load_inventory"):
+		api_client.load_inventory(player_ship.player_id)
+		_log_message("ZoneMain3D: Requested inventory data from backend")
+
+func _on_player_data_loaded(data: Dictionary) -> void:
+	##Handle player data loaded from backend (Phase 2.2 implementation)
+	_log_message("ZoneMain3D: Applying loaded player data: %s" % data)
+
+	if player_ship and data.has("credits"):
+		player_ship.credits = data.credits
+		_log_message("ZoneMain3D: Restored credits: %d" % data.credits)
+
+	if player_ship and data.has("upgrades"):
+		# Apply each upgrade and its effects
+		for upgrade_type in data.upgrades:
+			var level = data.upgrades[upgrade_type]
+			player_ship.upgrades[upgrade_type] = level
+
+			# CRITICAL: Reapply upgrade effects
+			if level > 0:
+				player_ship._apply_upgrade_effects(upgrade_type, level)
+				_log_message("ZoneMain3D: Restored %s upgrade level %d with effects" % [upgrade_type, level])
+
+	# Update UI immediately
+	_update_credits_display()
+	_populate_upgrade_catalog()  # Refresh to show loaded upgrades
+
+	# Clear loading flag
+	if player_ship:
+		player_ship.is_loading_from_backend = false
+		_log_message("ZoneMain3D: Cleared loading flag - data loading complete")
+
+func _on_inventory_loaded(inventory_data: Array) -> void:
+	##Handle inventory data loaded from backend (Phase 2.3 implementation)
+	_log_message("ZoneMain3D: Applying loaded inventory: %d items" % inventory_data.size())
+
+	if player_ship:
+		player_ship.current_inventory.clear()
+
+		# Convert backend format to game format
+		var converted_inventory = []
+		for backend_item in inventory_data:
+			# Convert backend format to game format
+			var game_item = {
+				"type": backend_item.get("item_type", "unknown"),        # item_type → type
+				"value": backend_item.get("value", 0),                   # value → value
+				"id": backend_item.get("item_id", "unknown"),            # item_id → id
+				"timestamp": backend_item.get("timestamp", 0)            # timestamp → timestamp
+			}
+			converted_inventory.append(game_item)
+
+		player_ship.current_inventory = converted_inventory
+		_log_message("ZoneMain3D: Converted %d backend items to game format" % converted_inventory.size())
+		_log_message("ZoneMain3D: Restored inventory: %d/%d items" % [player_ship.current_inventory.size(), player_ship.inventory_capacity])
+
+		# Update UI immediately
+		_update_grouped_inventory_display(player_ship.current_inventory)

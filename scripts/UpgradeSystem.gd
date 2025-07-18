@@ -22,7 +22,7 @@ var upgrade_definitions: Dictionary = {
 		"max_level": 5,
 		"base_cost": 100,
 		"cost_multiplier": 1.5,
-		"effect_per_level": 50.0,
+		"effect_per_level": 20.0,  # FIXED: Reduced from 50.0 to 20.0 for balanced progression
 		"category": "movement"
 	},
 	"inventory_expansion": {
@@ -42,24 +42,6 @@ var upgrade_definitions: Dictionary = {
 		"cost_multiplier": 1.4,
 		"effect_per_level": 20.0,
 		"category": "collection"
-	},
-	"zone_access": {
-		"name": "Zone Access",
-		"description": "Unlocks access to deeper zones",
-		"max_level": 5,
-		"base_cost": 500,
-		"cost_multiplier": 2.0,
-		"effect_per_level": 1,
-		"category": "access"
-	},
-	"debris_scanner": {
-		"name": "Debris Scanner",
-		"description": "Highlights valuable debris on the map",
-		"max_level": 3,
-		"base_cost": 300,
-		"cost_multiplier": 1.6,
-		"effect_per_level": 1,
-		"category": "utility"
 	},
 	"cargo_magnet": {
 		"name": "Cargo Magnet",
@@ -169,10 +151,11 @@ func apply_upgrade_effects(upgrade_type: String, level: int, target_node: Node) 
 	match upgrade_type:
 		"speed_boost":
 			if target_node.has_method("set_speed"):
-				var new_speed = 200.0 + (level * effect_per_level)
+				# FIXED: Much more reasonable speed progression
+				var new_speed = 120.0 + (level * 20.0)  # Base 120, +20 per level (was 200 + 50!)
 				target_node.set_speed(new_speed)
 			elif target_node.has_property("speed"):
-				target_node.speed = 200.0 + (level * effect_per_level)
+				target_node.speed = 120.0 + (level * 20.0)  # Base 120, +20 per level (was 200 + 50!)
 
 		"inventory_expansion":
 			if target_node.has_method("set_inventory_capacity"):
@@ -187,16 +170,6 @@ func apply_upgrade_effects(upgrade_type: String, level: int, target_node: Node) 
 				target_node.set_collection_range(new_range)
 			elif target_node.has_property("collection_range"):
 				target_node.collection_range = 80.0 + (level * effect_per_level)
-
-		"zone_access":
-			if target_node.has_method("set_zone_access"):
-				target_node.set_zone_access(level)
-			elif target_node.has_property("zone_access_level"):
-				target_node.zone_access_level = level
-
-		"debris_scanner":
-			if target_node.has_method("enable_debris_scanner"):
-				target_node.enable_debris_scanner(level > 0)
 
 		"cargo_magnet":
 			if target_node.has_method("enable_cargo_magnet"):
