@@ -89,7 +89,7 @@ func _setup_loading_screen() -> void:
 	# Ensure background image fills screen properly
 	if loading_background:
 		loading_background.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-		loading_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		loading_background.stretch_mode = TextureRect.STRETCH_KEEP
 		print("LoadingScreen: Background image configured")
 
 	# Hide all progress UI elements for clean loading screen
