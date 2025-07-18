@@ -177,7 +177,7 @@ echo
 echo -e "${BLUE}🔧 Useful endpoints:${NC}"
 echo -e "  Health: ${YELLOW}curl http://localhost:$BACKEND_PORT/api/v1/health${NC}"
 echo -e "  Stats: ${YELLOW}curl http://localhost:$BACKEND_PORT/api/v1/stats${NC}"
-echo -e "  Player: ${YELLOW}curl http://localhost:$BACKEND_PORT/api/v1/players/player_001${NC}"
+echo -e "  Player: ${YELLOW}curl http://localhost:$BACKEND_PORT/api/v1/players/550e8400-e29b-41d4-a716-446655440000${NC}"
 echo
 echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
 

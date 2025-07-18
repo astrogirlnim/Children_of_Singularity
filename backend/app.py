@@ -352,7 +352,7 @@ def _create_test_data():
         logger.error(f"Database test data creation failed: {e}")
         # Fall back to in-memory storage
         test_player = PlayerData(
-            player_id="player_001",
+            player_id="550e8400-e29b-41d4-a716-446655440000",
             name="Test Salvager",
             credits=100,
             progression_path="rogue",
@@ -364,8 +364,8 @@ def _create_test_data():
                 "zone_access": 1,
             },
         )
-        players_db["player_001"] = test_player
-        inventory_db["player_001"] = []
+        players_db["550e8400-e29b-41d4-a716-446655440000"] = test_player
+        inventory_db["550e8400-e29b-41d4-a716-446655440000"] = []
         logger.info("Test data created in memory (fallback)")
 
 

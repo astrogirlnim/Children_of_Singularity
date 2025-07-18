@@ -21,7 +21,7 @@ echo
 
 # Test player data
 echo "3. Player Data:"
-curl -s "$BACKEND_URL/api/v1/players/player_001" | python3 -m json.tool 2>/dev/null || echo "❌ Player data failed"
+curl -s "$BACKEND_URL/api/v1/players/550e8400-e29b-41d4-a716-446655440000" | python3 -m json.tool 2>/dev/null || echo "❌ Player data failed"
 echo
 
 echo "✅ API connection tests complete!"
