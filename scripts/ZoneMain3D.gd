@@ -1078,6 +1078,13 @@ func _sync_sale_with_backend(sold_items: Array, total_value: int) -> void:
 	else:
 		_log_message("ZoneMain3D: Warning - Backend API does not support credit updates")
 
+	# CRITICAL FIX: Clear sold items from backend inventory
+	if api_client.has_method("clear_inventory"):
+		api_client.clear_inventory()
+		_log_message("ZoneMain3D: FIXED - Cleared backend inventory to remove sold items")
+	else:
+		_log_message("ZoneMain3D: Warning - Backend API does not support inventory clearing")
+
 func _update_inventory_displays() -> void:
 	##Update all inventory-related UI displays
 	if player_ship and inventory_status:
