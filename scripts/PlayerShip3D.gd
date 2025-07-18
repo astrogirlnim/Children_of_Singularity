@@ -83,6 +83,9 @@ var inventory_capacity: int = 10
 var credits: int = 0
 var upgrades: Dictionary = {}
 
+## Data loading state
+var is_loading_from_backend: bool = false  # Flag to prevent clearing data during backend loading
+
 ## Interaction state
 var can_collect: bool = true
 var collection_range: float = 3.0  # Touching distance - just overlaps with debris (2.0 radius)
@@ -270,14 +273,20 @@ func _setup_interaction_area() -> void:
 func _initialize_player_state() -> void:
 	##Initialize player state and inventory
 	_log_message("PlayerShip3D: Initializing 3D player state")
-	current_inventory.clear()
-	upgrades = {
-		"speed_boost": 0,
-		"inventory_expansion": 0,
-		"collection_efficiency": 0,
-		"zone_access": 1
-	}
-	_log_message("PlayerShip3D: 3D player state initialized - Credits: %d, Capacity: %d/%d" % [credits, current_inventory.size(), inventory_capacity])
+
+	# Don't clear data if we're loading from backend
+	if not is_loading_from_backend:
+		current_inventory.clear()
+		credits = 0
+		upgrades = {
+			"speed_boost": 0,
+			"inventory_expansion": 0,
+			"collection_efficiency": 0,
+			"zone_access": 1
+		}
+		_log_message("PlayerShip3D: Initialized with default values - Credits: %d, Capacity: %d/%d" % [credits, current_inventory.size(), inventory_capacity])
+	else:
+		_log_message("PlayerShip3D: Waiting for backend data load - Current credits: %d, inventory: %d items" % [credits, current_inventory.size()])
 
 func _physics_process(delta: float) -> void:
 	##Handle 3D physics processing

@@ -171,6 +171,11 @@ func _initialize_3d_zone() -> void:
 			api_client.upgrade_purchase_failed.connect(_on_upgrade_purchase_failed)
 		if api_client.has_signal("credits_updated"):
 			api_client.credits_updated.connect(_on_credits_updated)
+		# NEW: Connect data loading signals for backend persistence
+		if api_client.has_signal("player_data_loaded"):
+			api_client.player_data_loaded.connect(_on_player_data_loaded)
+		if api_client.has_signal("inventory_updated"):
+			api_client.inventory_updated.connect(_on_inventory_loaded)
 		_log_message("ZoneMain3D: API client signals connected")
 
 	# Connect upgrade system signals for immediate effect feedback
@@ -181,6 +186,10 @@ func _initialize_3d_zone() -> void:
 
 	# Initialize trading interface UI connections
 	_initialize_trading_interface()
+
+	# NEW: Load existing player data BEFORE other initialization
+	if api_client and player_ship:
+		_load_complete_player_data_from_backend()
 
 	# Initialize 3D debris manager
 	_initialize_debris_manager_3d()
@@ -1859,3 +1868,63 @@ func _on_upgrade_effects_applied(upgrade_type: String, level: int) -> void:
 	if player_ship:
 		_update_credits_display()  # Credits might have changed
 		_update_inventory_displays()  # Inventory status might need updating
+
+func _load_complete_player_data_from_backend() -> void:
+	##Load complete player data from backend (Phase 2.1 implementation)
+	_log_message("ZoneMain3D: Loading player data from backend...")
+
+	# Set loading flag to prevent default initialization
+	if player_ship:
+		player_ship.is_loading_from_backend = true
+		_log_message("ZoneMain3D: Set loading flag on player ship")
+
+	# Load all player data
+	if api_client and api_client.has_method("load_player_data"):
+		api_client.load_player_data(player_ship.player_id)
+		_log_message("ZoneMain3D: Requested player data from backend")
+
+	# Load inventory data
+	if api_client and api_client.has_method("load_inventory"):
+		api_client.load_inventory(player_ship.player_id)
+		_log_message("ZoneMain3D: Requested inventory data from backend")
+
+func _on_player_data_loaded(data: Dictionary) -> void:
+	##Handle player data loaded from backend (Phase 2.2 implementation)
+	_log_message("ZoneMain3D: Applying loaded player data: %s" % data)
+
+	if player_ship and data.has("credits"):
+		player_ship.credits = data.credits
+		_log_message("ZoneMain3D: Restored credits: %d" % data.credits)
+
+	if player_ship and data.has("upgrades"):
+		# Apply each upgrade and its effects
+		for upgrade_type in data.upgrades:
+			var level = data.upgrades[upgrade_type]
+			player_ship.upgrades[upgrade_type] = level
+
+			# CRITICAL: Reapply upgrade effects
+			if level > 0:
+				player_ship._apply_upgrade_effects(upgrade_type, level)
+				_log_message("ZoneMain3D: Restored %s upgrade level %d with effects" % [upgrade_type, level])
+
+	# Update UI immediately
+	_update_credits_display()
+	_populate_upgrade_catalog()  # Refresh to show loaded upgrades
+
+	# Clear loading flag
+	if player_ship:
+		player_ship.is_loading_from_backend = false
+		_log_message("ZoneMain3D: Cleared loading flag - data loading complete")
+
+func _on_inventory_loaded(inventory_data: Array) -> void:
+	##Handle inventory data loaded from backend (Phase 2.3 implementation)
+	_log_message("ZoneMain3D: Applying loaded inventory: %d items" % inventory_data.size())
+
+	if player_ship:
+		player_ship.current_inventory.clear()
+		player_ship.current_inventory = inventory_data.duplicate()
+
+		_log_message("ZoneMain3D: Restored inventory: %d/%d items" % [player_ship.current_inventory.size(), player_ship.inventory_capacity])
+
+		# Update UI immediately
+		_update_grouped_inventory_display(player_ship.current_inventory)
