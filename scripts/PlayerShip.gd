@@ -43,6 +43,9 @@ var acceleration: float = 800.0
 var friction: float = 600.0
 var max_speed: float = 300.0
 
+# Movement lock state for trading interface
+var movement_locked: bool = false
+
 # Player state
 var player_id: String = "550e8400-e29b-41d4-a716-446655440000"
 var current_inventory: Array[Dictionary] = []
@@ -170,6 +173,13 @@ func _physics_process(delta: float) -> void:
 
 func _handle_movement(delta: float) -> void:
 	##Handle player movement input and physics
+	# Check if movement is locked (e.g., when trading interface is open)
+	if movement_locked:
+		# Apply friction to stop the ship but don't process new input
+		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
+		move_and_slide()
+		return
+
 	var input_vector = Vector2.ZERO
 	var is_moving_left = false
 
@@ -1053,3 +1063,18 @@ func _update_sprite_direction(is_moving_left: bool) -> void:
 		if sprite_2d.texture != sprite_normal:
 			sprite_2d.texture = sprite_normal
 			_log_message("PlayerShip: Switched to normal sprite")
+
+## Movement lock methods for trading interface
+func lock_movement() -> void:
+	##Lock player ship movement (used when trading interface is open)
+	movement_locked = true
+	_log_message("PlayerShip: Movement locked - Ship cannot move while trading interface is open")
+
+func unlock_movement() -> void:
+	##Unlock player ship movement (used when trading interface is closed)
+	movement_locked = false
+	_log_message("PlayerShip: Movement unlocked - Ship movement restored")
+
+func is_movement_locked() -> bool:
+	##Check if movement is currently locked
+	return movement_locked
