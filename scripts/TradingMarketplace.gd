@@ -1,9 +1,9 @@
 extends Node
 class_name TradingMarketplace
 
-# Trading API configuration
-const BASE_URL = "https://2clyiu4f8f.execute-api.us-east-2.amazonaws.com/prod"
-const LISTINGS_ENDPOINT = "/listings"
+# Trading API configuration is managed by TradingConfig singleton
+# The actual API endpoint is loaded from user://trading_config.json
+# which can be configured based on your AWS deployment
 
 # HTTP client for API requests
 var http_request: HTTPRequest
@@ -37,7 +37,7 @@ func _ready():
 func get_listings() -> void:
 	print("[TradingMarketplace] Fetching trading listings from API")
 
-	var url = BASE_URL + LISTINGS_ENDPOINT
+	var url = TradingConfig.get_full_listings_url()
 	var headers = ["Content-Type: application/json"]
 
 	var error = http_request.request(url, headers, HTTPClient.METHOD_GET)
@@ -72,7 +72,7 @@ func post_listing(item_name: String, quantity: int, price_per_unit: int, descrip
 		"posted_at": Time.get_datetime_string_from_system()
 	}
 
-	var url = BASE_URL + LISTINGS_ENDPOINT
+	var url = TradingConfig.get_full_listings_url()
 	var headers = ["Content-Type: application/json"]
 	var json_body = JSON.stringify(listing_data)
 
@@ -106,7 +106,7 @@ func purchase_item(listing_id: String, seller_id: String, item_name: String, qua
 		"purchased_at": Time.get_datetime_string_from_system()
 	}
 
-	var url = BASE_URL + LISTINGS_ENDPOINT + "/" + listing_id + "/buy"
+	var url = TradingConfig.get_api_base_url() + TradingConfig.get_listings_endpoint() + "/" + listing_id + "/buy"
 	var headers = ["Content-Type: application/json"]
 	var json_body = JSON.stringify(purchase_data)
 
@@ -126,7 +126,7 @@ func get_player_trade_history() -> void:
 		return
 
 	var player_id = local_player_data.get_player_id()
-	var url = BASE_URL + "/history/" + player_id
+	var url = TradingConfig.get_api_base_url() + "/history/" + player_id
 	var headers = ["Content-Type: application/json"]
 
 	var error = http_request.request(url, headers, HTTPClient.METHOD_GET)
