@@ -44,9 +44,14 @@ func play_background_music() -> void:
 		print("AudioManager: ERROR - Failed to load background music")
 		return
 
+	# Enable seamless looping on the audio stream
+	if music_stream is AudioStreamOggVorbis:
+		music_stream.loop = true
+		print("AudioManager: Enabled seamless looping for OGG audio stream")
+
 	music_player.stream = music_stream
 	music_player.play()
-	print("AudioManager: Background music started successfully")
+	print("AudioManager: Background music started successfully with seamless looping")
 
 func _on_music_finished() -> void:
 	"""Restart music when it finishes to create seamless loop"""
