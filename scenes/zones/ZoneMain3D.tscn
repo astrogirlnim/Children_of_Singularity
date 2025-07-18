@@ -140,10 +140,10 @@ vertical_alignment = 2
 
 [node name="InventoryPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.02
-anchor_top = 0.1
-anchor_right = 0.27
-anchor_bottom = 0.55
+anchor_left = 0.04
+anchor_top = 0.12
+anchor_right = 0.24
+anchor_bottom = 0.48
 theme_type_variation = "InventoryPanel"
 
 [node name="InventoryTitle" type="Label" parent="UILayer/HUD/InventoryPanel"]
@@ -173,10 +173,10 @@ horizontal_alignment = 1
 
 [node name="StatsPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.02
-anchor_top = 0.6
-anchor_right = 0.27
-anchor_bottom = 0.98
+anchor_left = 0.04
+anchor_top = 0.62
+anchor_right = 0.24
+anchor_bottom = 0.92
 theme_type_variation = "SmallPanel"
 
 [node name="StatsTitle" type="Label" parent="UILayer/HUD/StatsPanel"]
@@ -213,10 +213,10 @@ text = "Collection Range: 80"
 
 [node name="UpgradeStatusPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.73
-anchor_top = 0.6
-anchor_right = 0.98
-anchor_bottom = 0.98
+anchor_left = 0.76
+anchor_top = 0.62
+anchor_right = 0.96
+anchor_bottom = 0.92
 theme_type_variation = "SmallPanel"
 
 [node name="UpgradeStatusTitle" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
@@ -238,10 +238,10 @@ vertical_alignment = 1
 
 [node name="ControlsPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.73
-anchor_top = 0.1
-anchor_right = 0.98
-anchor_bottom = 0.55
+anchor_left = 0.76
+anchor_top = 0.12
+anchor_right = 0.96
+anchor_bottom = 0.48
 theme_type_variation = "HorizontalPanel"
 
 [node name="ControlsTitle" type="Label" parent="UILayer/HUD/ControlsPanel"]
