@@ -4,9 +4,10 @@
 Deliver a playable, networked game with the core gameplay loop: explore, collect, trade, upgrade. The enhanced MVP includes production-ready cloud database infrastructure (AWS RDS) and user authentication systems, making it suitable for internet-scale multiplayer deployment.
 
 ## Enhanced Deliverables
-- Multiplayer zone with basic networking (ENet)
-- Player can navigate, collect trash, and see inventory
+- Trading lobby system for player-to-player exchanges (room-based multiplayer)
+- Player can navigate, collect trash, and see inventory (single-player zones)
 - Trading at NPC hub for credits
+- Player-to-player trading of upgrades and debris
 - Simple upgrade system (speed, capacity, zone access)
 - Static AI text messages at milestones
 - **NEW**: AWS RDS PostgreSQL cloud database integration
@@ -20,12 +21,13 @@ Deliver a playable, networked game with the core gameplay loop: explore, collect
 
 ## Enhanced Features & Actionable Steps
 
-### 1. Multiplayer Zone (ENet)
-- [ ] Implement server-authoritative ENet networking for a single shared zone
-- [ ] Sync player positions and basic state
-- [ ] Handle player join/leave events
-- [ ] Add basic logging for network events
-- [ ] **NEW**: Integrate authentication tokens with multiplayer sessions
+### 1. Trading Lobby System
+- [ ] Implement multiplayer trading lobbies (room-based, not real-time zones)
+- [ ] Create lobby creation/joining system with room codes
+- [ ] Add player-to-player trading interface for upgrades and debris
+- [ ] Handle trading session state and transaction validation
+- [ ] Add basic logging for trading events
+- [ ] **NEW**: Integrate authentication tokens with trading sessions
 
 ### 2. Player Navigation & Trash Collection
 - [x] Implement player movement controls (2D/2.5D)
@@ -185,7 +187,9 @@ Deliver a playable, networked game with the core gameplay loop: explore, collect
 
 ## Completion Criteria (Enhanced)
 - Players can create accounts and authenticate securely
-- Players can join a shared zone, move, collect trash, trade, and upgrade
+- Players can navigate single-player zones, collect trash, and manage inventory
+- Players can join trading lobbies to exchange upgrades and debris with other players
+- Players can trade with NPCs for credits and purchase upgrades
 - All core systems are networked and persistent
 - Player data is stored securely in AWS RDS
 - Authentication tokens protect all sensitive operations
@@ -247,11 +251,11 @@ Deliver a playable, networked game with the core gameplay loop: explore, collect
 - Production security monitoring and alerting
 
 ### **Priority 4: Original MVP Features**
-- Multiplayer networking with authentication integration
+- Trading lobby system with room-based multiplayer
 - Visual inventory management interface
 - Upgrade selection and purchasing UI
 - HUD elements for credits and inventory status
-- Trading interface improvements
+- Player-to-player trading interface improvements
 - AI integration and milestone trigger system
 
 ## **Architecture Considerations for Enhanced MVP**
