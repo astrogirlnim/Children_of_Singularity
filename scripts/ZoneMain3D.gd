@@ -1922,8 +1922,21 @@ func _on_inventory_loaded(inventory_data: Array) -> void:
 
 	if player_ship:
 		player_ship.current_inventory.clear()
-		player_ship.current_inventory = inventory_data.duplicate()
 
+		# Convert backend format to game format
+		var converted_inventory = []
+		for backend_item in inventory_data:
+			# Convert backend format to game format
+			var game_item = {
+				"type": backend_item.get("item_type", "unknown"),        # item_type → type
+				"value": backend_item.get("value", 0),                   # value → value
+				"id": backend_item.get("item_id", "unknown"),            # item_id → id
+				"timestamp": backend_item.get("timestamp", 0)            # timestamp → timestamp
+			}
+			converted_inventory.append(game_item)
+
+		player_ship.current_inventory = converted_inventory
+		_log_message("ZoneMain3D: Converted %d backend items to game format" % converted_inventory.size())
 		_log_message("ZoneMain3D: Restored inventory: %d/%d items" % [player_ship.current_inventory.size(), player_ship.inventory_capacity])
 
 		# Update UI immediately
