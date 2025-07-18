@@ -213,9 +213,9 @@ text = "Collection Range: 80"
 
 [node name="UpgradeStatusPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.76
+anchor_left = 0.78
 anchor_top = 0.62
-anchor_right = 0.96
+anchor_right = 0.94
 anchor_bottom = 0.92
 theme_type_variation = "SmallPanel"
 
@@ -238,9 +238,9 @@ vertical_alignment = 1
 
 [node name="ControlsPanel" type="Panel" parent="UILayer/HUD"]
 layout_mode = 0
-anchor_left = 0.76
+anchor_left = 0.78
 anchor_top = 0.12
-anchor_right = 0.96
+anchor_right = 0.94
 anchor_bottom = 0.48
 theme_type_variation = "HorizontalPanel"
 
