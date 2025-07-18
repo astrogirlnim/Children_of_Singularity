@@ -1363,71 +1363,12 @@ func _on_purchase_button_pressed() -> void:
 	if confirm_purchase_dialog:
 		confirm_purchase_dialog.popup_centered()
 
-func _on_upgrade_purchase_requested(upgrade_type: String) -> void:
-	##Handle upgrade purchase request - main entry point for Phase 4A purchase flow
-	_log_message("ZoneMain3D: Upgrade purchase requested for %s" % upgrade_type)
-
-	if not upgrade_system or not player_ship:
-		_log_message("ZoneMain3D: ERROR - Missing upgrade system or player ship")
-		return
-
-	# Get upgrade data
-	var upgrade_definitions = upgrade_system.upgrade_definitions
-	if upgrade_type not in upgrade_definitions:
-		_log_message("ZoneMain3D: ERROR - Invalid upgrade type: %s" % upgrade_type)
-		return
-
-	var upgrade_data = upgrade_definitions[upgrade_type]
-	var current_level = player_ship.upgrades.get(upgrade_type, 0)
-	var max_level = upgrade_data.max_level
-	var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
-	var player_credits = player_ship.credits
-
-	# Client-side validation
-	if current_level >= max_level:
-		_update_purchase_result("UPGRADE MAXED OUT\n%s is already at maximum level (%d)" % [upgrade_data.name, max_level], Color.GOLD)
-		_log_message("ZoneMain3D: Upgrade purchase failed - %s already at max level" % upgrade_type)
-		return
-
-	if player_credits < cost:
-		_update_purchase_result("INSUFFICIENT CREDITS\nNeed %d credits, have %d" % [cost, player_credits], Color.RED)
-		_log_message("ZoneMain3D: Upgrade purchase failed - insufficient credits (%d needed, %d available)" % [cost, player_credits])
-		return
-
-	# Set current selection for confirmation dialog
-	current_selected_upgrade = upgrade_type
-	current_upgrade_cost = cost
-
-	# Update confirmation dialog
-	if confirm_upgrade_name:
-		confirm_upgrade_name.text = upgrade_data.name
-
-	if confirm_upgrade_info:
-		confirm_upgrade_info.text = upgrade_data.description
-
-	if confirm_cost_label:
-		confirm_cost_label.text = "Cost: %d credits" % cost
-
-	# Show confirmation dialog
-	if confirm_purchase_dialog:
-		confirm_purchase_dialog.popup_centered()
-
-	_log_message("ZoneMain3D: Showing confirmation dialog for %s purchase (cost: %d)" % [upgrade_type, cost])
-
 func _on_confirm_purchase_pressed() -> void:
 	##Handle confirmed purchase
-	if current_selected_upgrade.is_empty():
-		_log_message("ZoneMain3D: ERROR - No upgrade selected for confirmed purchase")
-		return
+	_log_message("ZoneMain3D: Purchase confirmed by user")
 
-	_log_message("ZoneMain3D: Confirming purchase of %s for %d credits" % [current_selected_upgrade, current_upgrade_cost])
-
-	# Call APIClient to purchase upgrade (Phase 2A completed)
-	if api_client and api_client.has_method("purchase_upgrade"):
-		api_client.purchase_upgrade(player_ship.player_id, current_selected_upgrade, current_upgrade_cost)
-		_log_message("ZoneMain3D: Purchase request sent to API")
-	else:
-		_log_message("ZoneMain3D: ERROR - API client does not support upgrade purchases")
+	# Perform the purchase using the shared method
+	_perform_upgrade_purchase()
 
 	# Close confirmation dialog
 	if confirm_purchase_dialog:
@@ -1726,3 +1667,84 @@ func _update_selection_summary() -> void:
 
 	_log_message("ZoneMain3D: Selection summary updated - %d items, %d credits, button enabled: %s" %
 		[total_selected_items, total_selected_value, not sell_selected_button.disabled if sell_selected_button else false])
+
+## Phase 4A: Purchase Processing Integration
+
+func _on_upgrade_purchase_requested(upgrade_type: String) -> void:
+	##Handle upgrade purchase request (Phase 4A requirement)
+	##Direct entry point for purchasing upgrades with full validation
+	_log_message("ZoneMain3D: Upgrade purchase requested for type: %s" % upgrade_type)
+
+	if not upgrade_system or not player_ship:
+		_log_message("ZoneMain3D: ERROR - Missing upgrade system or player ship for purchase")
+		return
+
+	# Get upgrade data and validate
+	var upgrade_definitions = upgrade_system.upgrade_definitions
+	var upgrade_data = upgrade_definitions.get(upgrade_type, {})
+
+	if upgrade_data.is_empty():
+		_log_message("ZoneMain3D: ERROR - Invalid upgrade type: %s" % upgrade_type)
+		return
+
+	# Get current state
+	var current_level = player_ship.upgrades.get(upgrade_type, 0)
+	var max_level = upgrade_data.max_level
+	var player_credits = player_ship.credits
+	var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+
+	# Client-side validation
+	if current_level >= max_level:
+		_log_message("ZoneMain3D: Purchase failed - %s already at max level (%d)" % [upgrade_type, max_level])
+		_update_purchase_result("PURCHASE FAILED\n%s is already at maximum level" % upgrade_data.name, Color.RED)
+		return
+
+	if player_credits < cost:
+		_log_message("ZoneMain3D: Purchase failed - Insufficient credits (need %d, have %d)" % [cost, player_credits])
+		_update_purchase_result("PURCHASE FAILED\nInsufficient credits for %s\nNeed: %d, Have: %d" % [upgrade_data.name, cost, player_credits], Color.RED)
+		return
+
+	# Set current selection for confirmation dialog
+	current_selected_upgrade = upgrade_type
+	current_upgrade_cost = cost
+
+	# Show confirmation dialog with upgrade details
+	if confirm_upgrade_name:
+		confirm_upgrade_name.text = upgrade_data.name
+
+	if confirm_upgrade_info:
+		var next_level = current_level + 1
+		confirm_upgrade_info.text = "%s\nUpgrade from Level %d to Level %d\nEffect: %s" % [
+			upgrade_data.description,
+			current_level,
+			next_level,
+			upgrade_data.description
+		]
+
+	if confirm_cost_label:
+		confirm_cost_label.text = "Cost: %d credits" % cost
+
+	# Show confirmation dialog
+	if confirm_purchase_dialog:
+		confirm_purchase_dialog.popup_centered()
+		_log_message("ZoneMain3D: Showing purchase confirmation for %s (cost: %d)" % [upgrade_type, cost])
+	else:
+		# If no confirmation dialog, proceed directly (for automated/programmatic purchases)
+		_log_message("ZoneMain3D: No confirmation dialog - proceeding with direct purchase")
+		_perform_upgrade_purchase()
+
+func _perform_upgrade_purchase() -> void:
+	##Perform the actual upgrade purchase (extracted for reuse)
+	if current_selected_upgrade.is_empty():
+		_log_message("ZoneMain3D: ERROR - No upgrade selected for purchase")
+		return
+
+	_log_message("ZoneMain3D: Performing upgrade purchase: %s for %d credits" % [current_selected_upgrade, current_upgrade_cost])
+
+	# Call APIClient to purchase upgrade (Phase 2A integration)
+	if api_client and api_client.has_method("purchase_upgrade"):
+		api_client.purchase_upgrade(player_ship.player_id, current_selected_upgrade, current_upgrade_cost)
+		_log_message("ZoneMain3D: Purchase request sent to API")
+	else:
+		_log_message("ZoneMain3D: ERROR - API client does not support upgrade purchases")
+		_update_purchase_result("PURCHASE FAILED\nAPI client error", Color.RED)

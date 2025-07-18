@@ -469,50 +469,6 @@ func _on_upgrade_purchase_failed_api(reason: String, upgrade_type: String) -> vo
 	if ui_manager:
 		ui_manager.handle_upgrade_purchase_failed(reason, upgrade_type)
 
-func _on_upgrade_purchase_requested(upgrade_type: String) -> void:
-	##Handle upgrade purchase request - main entry point for Phase 4A purchase flow
-	_log_message("ZoneMain: Upgrade purchase requested for %s" % upgrade_type)
-
-	if not upgrade_system or not player_ship or not ui_manager:
-		_log_message("ZoneMain: ERROR - Missing upgrade system, player ship, or UI manager")
-		return
-
-	# Get upgrade data
-	var upgrade_definitions = upgrade_system.upgrade_definitions
-	if upgrade_type not in upgrade_definitions:
-		_log_message("ZoneMain: ERROR - Invalid upgrade type: %s" % upgrade_type)
-		return
-
-	var upgrade_data = upgrade_definitions[upgrade_type]
-	var current_level = player_ship.upgrades.get(upgrade_type, 0)
-	var max_level = upgrade_data.max_level
-	var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
-	var player_credits = player_ship.credits
-
-	# Client-side validation
-	if current_level >= max_level:
-		_log_message("ZoneMain: Upgrade purchase failed - %s already at max level" % upgrade_type)
-		if ui_manager.has_method("show_upgrade_error"):
-			ui_manager.show_upgrade_error("UPGRADE MAXED OUT\n%s is already at maximum level (%d)" % [upgrade_data.name, max_level])
-		return
-
-	if player_credits < cost:
-		_log_message("ZoneMain: Upgrade purchase failed - insufficient credits (%d needed, %d available)" % [cost, player_credits])
-		if ui_manager.has_method("show_upgrade_error"):
-			ui_manager.show_upgrade_error("INSUFFICIENT CREDITS\nNeed %d credits, have %d" % [cost, player_credits])
-		return
-
-	# Delegate to UI manager for confirmation dialog
-	if ui_manager.has_method("show_upgrade_purchase_confirmation"):
-		ui_manager.show_upgrade_purchase_confirmation(upgrade_type, upgrade_data, cost)
-	else:
-		# Fallback: directly request purchase
-		_log_message("ZoneMain: UI manager doesn't support confirmation dialog, proceeding with purchase")
-		if api_client and api_client.has_method("purchase_upgrade"):
-			api_client.purchase_upgrade(player_ship.player_id, upgrade_type, cost)
-
-	_log_message("ZoneMain: Upgrade purchase request processed for %s (cost: %d)" % [upgrade_type, cost])
-
 ## Public API
 
 func get_zone_state() -> String:
@@ -542,8 +498,20 @@ func request_ai_analysis() -> void:
 func get_debris_stats() -> Dictionary:
 	##Get debris statistics
 	if debris_manager:
-		return debris_manager.get_debris_stats()
+		return debris_manager.get_stats()
 	return {}
+
+## Phase 4A: Purchase Processing Integration
+
+func _on_upgrade_purchase_requested(upgrade_type: String) -> void:
+	##Handle upgrade purchase request (Phase 4A requirement)
+	##Delegates to UIManager for 2D version functionality
+	_log_message("ZoneMain: Upgrade purchase requested for type: %s" % upgrade_type)
+
+	if ui_manager and ui_manager.has_method("_on_upgrade_purchase_requested"):
+		ui_manager._on_upgrade_purchase_requested(upgrade_type)
+	else:
+		_log_message("ZoneMain: ERROR - UIManager does not support upgrade purchase requests")
 
 func reset_zone() -> void:
 	##Reset zone to initial state

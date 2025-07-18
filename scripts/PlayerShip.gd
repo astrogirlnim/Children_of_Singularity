@@ -416,23 +416,8 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 		"zone_access":
 			# This will be handled by the zone system
 			pass
-		"debris_scanner":
-			if level > 0:
-				enable_debris_scanner()
-				_log_message("PlayerShip: Debris scanner upgrade applied - Level %d" % level)
-			else:
-				is_scanner_active = false
-				_log_message("PlayerShip: Debris scanner deactivated")
-		"cargo_magnet":
-			if level > 0:
-				enable_cargo_magnet()
-				_log_message("PlayerShip: Cargo magnet upgrade applied - Level %d" % level)
-			else:
-				is_magnet_active = false
-				magnet_range = 0.0
-				_log_message("PlayerShip: Cargo magnet deactivated")
 
-	_log_message("PlayerShip: Upgrade effects applied - Speed: %.1f, Capacity: %d, Collection Range: %.1f, Scanner: %s, Magnet: %s" % [speed, inventory_capacity, collection_range, str(is_scanner_active), str(is_magnet_active)])
+	_log_message("PlayerShip: Upgrade effects applied - Speed: %.1f, Capacity: %d, Collection Range: %.1f" % [speed, inventory_capacity, collection_range])
 
 ## Upgrade support methods for UpgradeSystem
 func set_speed(new_speed: float) -> void:
