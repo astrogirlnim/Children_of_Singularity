@@ -1,26 +1,52 @@
-# Inventory Persistence Fix Implementation Plan
-**Children of the Singularity - Backend Integration Phase**
+# Game Data Persistence Fix Implementation Plan
+**Children of the Singularity - Complete Backend Integration Phase**
 
 ## Overview
 
-This document outlines the implementation plan to fix inventory persistence issues where player inventory resets to zero upon game restart. The plan addresses both the immediate UUID format mismatch and the missing startup data loading functionality.
+This document outlines the implementation plan to fix game data persistence issues where player inventory, upgrades, credits, and progress reset upon game restart. The plan addresses both the immediate UUID format mismatch and the missing startup data loading functionality.
 
 ## Problem Statement
 
 ### Current Issues
-1. **Primary Issue**: Game never loads existing inventory from database during startup
+1. **Primary Issue**: Game never loads existing data from database during startup
+   - Inventory resets to empty (0/10 items)
+   - Upgrades reset to "No upgrades purchased"
+   - Credits reset to 0
+   - All progress is lost
 2. **Secondary Issue**: UUID format mismatch prevents database operations
-3. **Result**: Players lose all collected items when restarting the game
+3. **Result**: Players lose ALL progress when restarting the game
 
 ### Root Cause Analysis
-- **Missing Startup Loading**: Game initializes with `current_inventory.clear()` but never calls `load_inventory()`
+- **Missing Startup Loading**: Game initializes with defaults but never loads from database
+  - `current_inventory.clear()` but never calls `load_inventory()`
+  - `upgrades = {...}` hardcoded defaults, never calls `load_player_data()`
+  - `credits = 0` default, never restored from database
 - **UUID Mismatch**: Game uses `"player_001"` string, database expects UUID format
 - **No Error Recovery**: Failed database operations have no fallback mechanism
+- **No Loading Integration**: Zone initialization doesn't include data loading step
 
 ### Evidence
 ```
 ERROR: invalid input syntax for type uuid: "player_001"
 ```
+
+### What Currently Works
+✅ **Saving**: Upgrades and inventory ARE saved to database correctly  
+✅ **Purchase Flow**: All transactions work and persist to database  
+✅ **API Endpoints**: Backend correctly stores all player data  
+✅ **Immediate Effects**: Phase 4B upgrade effects apply instantly after purchase  
+✅ **Visual Feedback**: All upgrade visual effects work (speed particles, capacity indicators)  
+❌ **Loading**: Game never retrieves saved data on startup  
+❌ **Persistence**: All progress lost on game restart
+
+### Connection to Phase 4B Implementation
+**Phase 4B: Real-time Effect Application** is COMPLETE and working perfectly. The issue you're experiencing is the **missing next step**: Phase 4B+ (Upgrade Effect Persistence).
+
+The current situation:
+- ✅ **Within Session**: Upgrades work perfectly, effects apply immediately
+- ❌ **Between Sessions**: All progress is lost because game doesn't load from database
+
+This plan implements the missing persistence layer that makes Phase 4B effects survive game restarts.
 
 ## Implementation Plan
 
@@ -62,57 +88,137 @@ func _is_valid_uuid(id: String) -> bool:
 
 ---
 
-## **Phase 2: Startup Inventory Loading System**
+## **Phase 2: Complete Game Data Loading System**
 **Timeline**: 2-3 days  
 **Priority**: High - Core persistence functionality
 
 ### Features
 
 #### 2.1 Game Initialization Data Loading
-**Files**: `ZoneMain3D.gd`, `ZoneMain.gd`
+**Files**: `ZoneMain3D.gd`, `ZoneMain.gd`, `PlayerShip3D.gd`, `PlayerShip.gd`
 
 - **Add loading logic** to zone initialization
 - **Connect API signals** for data reception
 - **Implement loading state management**
+- **Load ALL player data**: inventory, upgrades, credits, position
 
 **Implementation Details**:
 ```gdscript
 func _initialize_3d_zone() -> void:
     # ... existing initialization ...
 
-    # NEW: Load existing player data
+    # NEW: Load existing player data BEFORE applying defaults
     if api_client and player_ship:
-        _load_player_data_from_backend()
+        _load_complete_player_data_from_backend()
 
-func _load_player_data_from_backend() -> void:
-    # Connect signals
+func _load_complete_player_data_from_backend() -> void:
+    _log_message("Loading player data from backend...")
+
+    # Connect signals for all data types
     api_client.player_data_loaded.connect(_on_player_data_loaded)
     api_client.inventory_updated.connect(_on_inventory_loaded)
 
-    # Load data
-    api_client.load_player_data()
-    api_client.load_inventory()
+    # Load all player data
+    api_client.load_player_data(player_ship.player_id)  # Credits, upgrades, position
+    api_client.load_inventory(player_ship.player_id)    # Inventory items
 ```
 
-#### 2.2 Data Reception and Application
+#### 2.2 Player Data Reception and Application
 - **Process player data** (credits, upgrades, position)
-- **Convert inventory format** from backend to game format
+- **Apply loaded upgrades** using existing upgrade system
+- **Restore upgrade effects** (speed boosts, inventory capacity, etc.)
 - **Update UI displays** with loaded data
+
+**Enhanced Implementation**:
+```gdscript
+func _on_player_data_loaded(data: Dictionary) -> void:
+    _log_message("Applying loaded player data: %s" % data)
+
+    if player_ship and data.has("credits"):
+        player_ship.credits = data.credits
+        _log_message("Restored credits: %d" % data.credits)
+
+    if player_ship and data.has("upgrades"):
+        # Apply each upgrade and its effects
+        for upgrade_type in data.upgrades:
+            var level = data.upgrades[upgrade_type]
+            player_ship.upgrades[upgrade_type] = level
+
+            # CRITICAL: Reapply upgrade effects
+            if level > 0:
+                player_ship._apply_upgrade_effects(upgrade_type, level)
+                _log_message("Restored %s upgrade level %d with effects" % [upgrade_type, level])
+
+    # Update UI immediately
+    _update_credits_display()
+    _populate_upgrade_catalog()  # Refresh to show loaded upgrades
+```
+
+#### 2.3 Inventory Data Reception and Application
+- **Convert inventory format** from backend to game format
+- **Restore inventory items** to player ship
+- **Update inventory UI** with correct counts
+
+**Implementation**:
+```gdscript
+func _on_inventory_loaded(inventory_data: Array) -> void:
+    _log_message("Applying loaded inventory: %d items" % inventory_data.size())
+
+    if player_ship:
+        player_ship.current_inventory.clear()
+        player_ship.current_inventory = inventory_data.duplicate()
+
+        _log_message("Restored inventory: %d/%d items" % [player_ship.current_inventory.size(), player_ship.inventory_capacity])
+
+        # Update UI immediately
+        _update_grouped_inventory_display(player_ship.current_inventory)
+```
+
+#### 2.4 Loading State Management
+- **Track loading progress** for all data types
+- **Handle loading completion** when all data is received
+- **Manage loading timeouts** and error states
+- **Show loading UI** during data retrieval
 
 **Data Flow**:
 ```
-Database → Backend API → APIClient → ZoneMain3D → PlayerShip3D → UI
+Database → Backend API → APIClient → ZoneMain3D → PlayerShip3D → UpgradeSystem → UI
 ```
 
-#### 2.3 Loading State Management
-- **Track loading progress** for both player data and inventory
-- **Handle loading completion** when all data is received
-- **Manage loading timeouts** and error states
+#### 2.5 PlayerShip Initialization Order Fix
+**Files**: `PlayerShip3D.gd`, `PlayerShip.gd`
+
+- **Modify `_initialize_player_state()`** to NOT clear data if loading
+- **Add loading flag** to prevent premature defaults
+- **Ensure upgrade effects apply** after loading
+
+**Critical Fix**:
+```gdscript
+func _initialize_player_state() -> void:
+    _log_message("PlayerShip3D: Initializing player state")
+
+    # Don't clear data if we're loading from backend
+    if not is_loading_from_backend:
+        current_inventory.clear()
+        credits = 0
+        upgrades = {
+            "speed_boost": 0,
+            "inventory_expansion": 0,
+            "collection_efficiency": 0,
+            "zone_access": 1
+        }
+        _log_message("PlayerShip3D: Initialized with default values")
+    else:
+        _log_message("PlayerShip3D: Waiting for backend data load...")
+```
 
 **Success Criteria**:
 - ✅ Game loads existing inventory from database on startup
-- ✅ Player credits and upgrades are restored
-- ✅ UI displays correct inventory counts immediately
+- ✅ Player credits are restored correctly
+- ✅ All purchased upgrades are restored with their effects active
+- ✅ Upgrade catalog shows correct levels ("Level 2/5" instead of "Level 0/5")
+- ✅ Ship speed, inventory capacity, and other upgrade effects work immediately
+- ✅ UI displays correct data immediately without requiring user action
 
 ---
 
@@ -225,11 +331,12 @@ func _handle_loading_failure() -> void:
 
 | File | Changes | Phase |
 |------|---------|-------|
-| `scripts/PlayerShip3D.gd` | Update player_id to UUID format | 1 |
-| `scripts/PlayerShip.gd` | Update player_id to UUID format | 1 |
+| `scripts/PlayerShip3D.gd` | Update player_id to UUID, fix initialization order, add loading flag | 1, 2 |
+| `scripts/PlayerShip.gd` | Update player_id to UUID, fix initialization order, add loading flag | 1, 2 |
 | `scripts/APIClient.gd` | Add UUID validation, error handling | 1, 3 |
-| `scripts/ZoneMain3D.gd` | Add loading logic, state management | 2, 4 |
-| `scripts/ZoneMain.gd` | Add loading logic (2D version) | 2 |
+| `scripts/ZoneMain3D.gd` | Add complete data loading logic, upgrade restoration, state management | 2, 4 |
+| `scripts/ZoneMain.gd` | Add complete data loading logic, upgrade restoration (2D version) | 2 |
+| `scripts/UpgradeSystem.gd` | Ensure upgrade effects apply correctly after loading | 2 |
 
 ### Database Schema Dependencies
 - **Current**: Uses UUID primary keys (correct)
@@ -251,10 +358,18 @@ func _handle_loading_failure() -> void:
 4. **Test all API endpoints** manually
 
 ### Phase 2 Testing
-1. **Add items to inventory**
-2. **Save game data**
-3. **Restart game completely**
-4. **Verify inventory persists**
+1. **Collect debris and earn credits**
+2. **Purchase multiple upgrades** (speed boost, inventory expansion)
+3. **Add items to inventory**
+4. **Note all current stats** (credits, upgrade levels, inventory count, ship speed)
+5. **Save game data** (should happen automatically)
+6. **Restart game completely**
+7. **Verify ALL data persists**:
+   - ✅ Credits match previous session
+   - ✅ Upgrades show correct levels in BUY tab
+   - ✅ Upgrade effects are active (ship speed boosted, inventory capacity expanded)
+   - ✅ Inventory items are restored
+   - ✅ UI shows correct data immediately
 
 ### Phase 3 Testing
 1. **Start game with backend down**
@@ -271,14 +386,19 @@ func _handle_loading_failure() -> void:
 ## Success Metrics
 
 ### Primary Goals
-- **Inventory Persistence**: 100% of items persist across restarts
+- **Complete Data Persistence**: 100% of progress persists across restarts
+  - Inventory items persist (0% data loss)
+  - Upgrade levels persist with effects active
+  - Credits persist accurately
+  - All UI displays correct data immediately
 - **Error Elimination**: 0 UUID format errors
 - **Load Success Rate**: >95% successful data loads
 
 ### Secondary Goals
-- **Load Time**: <2 seconds for data loading
+- **Load Time**: <2 seconds for complete data loading
 - **User Experience**: Clear feedback during all operations
 - **System Resilience**: Graceful handling of all error scenarios
+- **Upgrade Effect Integrity**: All upgrade effects (speed, capacity, etc.) work immediately after loading
 
 ## Risk Assessment
 
