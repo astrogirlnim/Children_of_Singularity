@@ -232,6 +232,8 @@ Cost: 225 credits
 - [ ] Test all 6 upgrade types for immediate effect application
 - [ ] Add upgrade effect persistence validation (effects survive scene changes)
 
+**Testing**: Run comprehensive persistence tests using `_docs/upgrade_persistence_test_plan.md`
+
 **Dependencies**: Phase 4A complete
 **Validation**: ✅ **IMPLEMENTED** - All upgrade effects apply immediately with visual feedback and comprehensive logging
 
