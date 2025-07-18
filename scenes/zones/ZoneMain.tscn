@@ -404,8 +404,8 @@ text = "X"
 
 [node name="ConfirmPurchaseDialog" type="AcceptDialog" parent="UILayer/HUD"]
 initial_position = 2
-size = Vector2i(400, 200)
-dialog_text = "Are you sure you want to purchase this upgrade?"
+size = Vector2i(500, 300)
+dialog_text = ""
 title = "Confirm Purchase"
 
 [node name="ConfirmDialogContent" type="VBoxContainer" parent="UILayer/HUD/ConfirmPurchaseDialog"]
@@ -413,37 +413,64 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = 31.0
-offset_right = -8.0
-offset_bottom = -49.0
+offset_left = 15.0
+offset_top = 40.0
+offset_right = -15.0
+offset_bottom = -60.0
+
+[node name="HeaderSpacer" type="Control" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
 
 [node name="UpgradeNameLabel" type="Label" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
 text = "Upgrade Name"
 horizontal_alignment = 1
 theme_type_variation = "HeaderLabel"
 
+[node name="NameSpacer" type="Control" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
+
 [node name="UpgradeInfoLabel" type="Label" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 60)
 text = "Upgrade details"
 horizontal_alignment = 1
+vertical_alignment = 1
 autowrap_mode = 2
+
+[node name="InfoSpacer" type="Control" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
 
 [node name="CostLabel" type="Label" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 25)
 text = "Cost: 0 credits"
 horizontal_alignment = 1
 
+[node name="CostSpacer" type="Control" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 15)
+
 [node name="ConfirmButtons" type="HBoxContainer" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
 
 [node name="ConfirmButton" type="Button" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons"]
 layout_mode = 2
 size_flags_horizontal = 3
+custom_minimum_size = Vector2(120, 35)
 text = "CONFIRM PURCHASE"
+
+[node name="ButtonSpacer" type="Control" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(10, 0)
 
 [node name="CancelButton" type="Button" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons"]
 layout_mode = 2
 size_flags_horizontal = 3
+custom_minimum_size = Vector2(120, 35)
 text = "CANCEL"
