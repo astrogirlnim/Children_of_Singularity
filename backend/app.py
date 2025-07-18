@@ -148,6 +148,7 @@ class UpgradePurchaseResponse(BaseModel):
     new_level: int
     cost: int
     remaining_credits: int
+    error_message: str = ""
 
 
 class CreditsUpdateRequest(BaseModel):
@@ -220,11 +221,11 @@ def calculate_upgrade_cost(upgrade_type: str, current_level: int) -> int:
         return -1
 
     upgrade_data = UPGRADE_DEFINITIONS[upgrade_type]
-    base_cost = upgrade_data["base_cost"]
-    cost_multiplier = upgrade_data["cost_multiplier"]
+    base_cost = upgrade_data["base_cost"]  # type: ignore
+    cost_multiplier = upgrade_data["cost_multiplier"]  # type: ignore
 
     # Cost increases exponentially with level
-    cost = int(base_cost * (cost_multiplier**current_level))
+    cost = int(base_cost * (cost_multiplier**current_level))  # type: ignore
     logger.info(
         f"Calculated upgrade cost for {upgrade_type} level {current_level}: {cost}"
     )
@@ -245,10 +246,10 @@ def validate_upgrade_purchase(
         return False, f"Unknown upgrade type: {upgrade_type}"
 
     upgrade_data = UPGRADE_DEFINITIONS[upgrade_type]
-    max_level = upgrade_data["max_level"]
+    max_level = upgrade_data["max_level"]  # type: ignore
 
     # Check if already at max level
-    if current_level >= max_level:
+    if current_level >= max_level:  # type: ignore
         return (
             False,
             f"Upgrade {upgrade_type} is already at maximum level ({max_level})",
@@ -260,7 +261,8 @@ def validate_upgrade_purchase(
     # Validate expected cost matches actual cost (client-side validation)
     if expected_cost != actual_cost:
         logger.warning(
-            f"Cost mismatch for {upgrade_type}: expected {expected_cost}, actual {actual_cost}"
+            f"Cost mismatch for {upgrade_type}: "
+            f"expected {expected_cost}, actual {actual_cost}"
         )
         # Still allow purchase but use actual cost
 
@@ -848,7 +850,8 @@ async def purchase_upgrade(player_id: str, upgrade_data: UpgradePurchaseRequest)
                 cursor.execute("BEGIN")
 
                 try:
-                    # Get current player data with row lock to prevent concurrent modifications
+                    # Get current player data with row lock to prevent
+                    # concurrent modifications
                     cursor.execute(
                         """
                         SELECT id, name, credits FROM players
@@ -911,8 +914,8 @@ async def purchase_upgrade(player_id: str, upgrade_data: UpgradePurchaseRequest)
                     new_credits = current_credits - actual_cost
 
                     logger.info(
-                        f"Processing upgrade: cost={actual_cost}, new_level={new_level}, "
-                        f"remaining_credits={new_credits}"
+                        f"Processing upgrade: cost={actual_cost}, "
+                        f"new_level={new_level}, remaining_credits={new_credits}"
                     )
 
                     # Update player credits
@@ -995,7 +998,8 @@ async def purchase_upgrade(player_id: str, upgrade_data: UpgradePurchaseRequest)
         player.upgrades[upgrade_data.upgrade_type] = new_level
 
         logger.info(
-            f"Upgrade purchased in fallback mode: {upgrade_data.upgrade_type} level {new_level}"
+            f"Upgrade purchased in fallback mode: "
+            f"{upgrade_data.upgrade_type} level {new_level}"
         )
 
         return UpgradePurchaseResponse(
