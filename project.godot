@@ -19,6 +19,8 @@ config/icon="res://icon.png"
 [autoload]
 
 AudioManager="*res://scripts/AudioManager.gd"
+LocalPlayerData="*res://scripts/LocalPlayerData.gd"
+TradingMarketplace="*res://scripts/TradingMarketplace.gd"
 
 [debug]
 

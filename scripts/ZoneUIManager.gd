@@ -48,6 +48,18 @@ signal ai_message_display_requested(message: String)
 @export var upgrade_details_label: Label
 @export var purchase_button: Button
 @export var purchase_result: Label
+
+# Player-to-Player Trading Marketplace UI elements
+@export var marketplace_tab: Control
+@export var marketplace_listings: ScrollContainer
+@export var marketplace_listings_grid: GridContainer
+@export var marketplace_status_label: Label
+@export var marketplace_refresh_button: Button
+@export var sell_item_button: Button
+@export var sell_item_dialog: AcceptDialog
+@export var sell_item_dropdown: OptionButton
+@export var sell_quantity_spinbox: SpinBox
+@export var sell_price_spinbox: SpinBox
 @export var confirm_purchase_dialog: AcceptDialog
 @export var confirm_upgrade_name: Label
 @export var confirm_upgrade_info: Label
@@ -117,6 +129,20 @@ func _setup_ui_connections() -> void:
 
 	if cancel_button:
 		cancel_button.pressed.connect(_on_cancel_purchase_pressed)
+
+	# Connect marketplace UI buttons
+	if marketplace_refresh_button:
+		marketplace_refresh_button.pressed.connect(refresh_marketplace_listings)
+
+	if sell_item_button:
+		sell_item_button.pressed.connect(show_sell_item_dialog)
+
+	# Connect TradingMarketplace signals
+	if TradingMarketplace:
+		TradingMarketplace.listings_received.connect(_on_marketplace_listings_received)
+		TradingMarketplace.item_purchased.connect(_on_item_purchased)
+		TradingMarketplace.listing_posted.connect(_on_listing_posted)
+		TradingMarketplace.api_error.connect(_show_marketplace_error)
 
 	print("ZoneUIManager: UI connections established")
 
@@ -589,6 +615,242 @@ func _update_trading_result(message: String, color: Color) -> void:
 func _on_trading_close_pressed() -> void:
 	##Handle trading close button press
 	hide_trading_interface()
+
+# PLAYER-TO-PLAYER TRADING MARKETPLACE FUNCTIONALITY
+
+func show_marketplace() -> void:
+	##Show the trading marketplace tab and load listings
+	print("[ZoneUIManager] Opening trading marketplace")
+
+	if marketplace_tab:
+		trading_tabs.current_tab = trading_tabs.get_tab_idx_from_control(marketplace_tab)
+
+	refresh_marketplace_listings()
+
+func refresh_marketplace_listings() -> void:
+	##Refresh marketplace listings from API
+	print("[ZoneUIManager] Refreshing marketplace listings")
+
+	if marketplace_status_label:
+		marketplace_status_label.text = "Loading listings..."
+
+	# Clear existing listings UI
+	_clear_marketplace_listings_ui()
+
+	# Request listings from TradingMarketplace singleton
+	if TradingMarketplace:
+		TradingMarketplace.get_listings()
+
+func _clear_marketplace_listings_ui() -> void:
+	##Clear all listing UI elements
+	if not marketplace_listings_grid:
+		return
+
+	for child in marketplace_listings_grid.get_children():
+		child.queue_free()
+
+func _on_marketplace_listings_received(listings: Array) -> void:
+	##Handle marketplace listings received from API
+	print("[ZoneUIManager] Received %d marketplace listings" % listings.size())
+
+	if marketplace_status_label:
+		marketplace_status_label.text = "Found %d listings" % listings.size()
+
+	_clear_marketplace_listings_ui()
+
+	if listings.is_empty():
+		_add_no_listings_message()
+		return
+
+	# Create UI elements for each listing
+	for listing in listings:
+		_create_listing_ui_element(listing)
+
+func _add_no_listings_message() -> void:
+	##Add a message when no listings are available
+	if not marketplace_listings_grid:
+		return
+
+	var no_listings_label = Label.new()
+	no_listings_label.text = "No items for sale. Be the first to post something!"
+	no_listings_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	no_listings_label.add_theme_color_override("font_color", Color.YELLOW)
+	marketplace_listings_grid.add_child(no_listings_label)
+
+func _create_listing_ui_element(listing: Dictionary) -> void:
+	##Create a UI element for a single marketplace listing
+	if not marketplace_listings_grid:
+		return
+
+	var listing_container = VBoxContainer.new()
+	listing_container.add_theme_constant_override("separation", 5)
+
+	# Listing info
+	var info_label = Label.new()
+	var item_name = listing.get("item_name", "Unknown")
+	var quantity = listing.get("quantity", 0)
+	var price_per_unit = listing.get("price_per_unit", 0)
+	var total_price = listing.get("total_price", 0)
+	var seller_name = listing.get("seller_name", "Unknown")
+
+	info_label.text = "%s x%d\n%d credits each (%d total)\nSeller: %s" % [item_name, quantity, price_per_unit, total_price, seller_name]
+	info_label.add_theme_color_override("font_color", Color.WHITE)
+	listing_container.add_child(info_label)
+
+	# Purchase button
+	var purchase_button = Button.new()
+	purchase_button.text = "Buy for %d credits" % total_price
+
+	# Check if player can afford it
+	var can_afford = TradingMarketplace.can_afford_listing(listing) if TradingMarketplace else false
+	var is_own_listing = listing.get("seller_id", "") == LocalPlayerData.get_player_id() if LocalPlayerData else false
+
+	if is_own_listing:
+		purchase_button.text = "Your Listing"
+		purchase_button.disabled = true
+		purchase_button.add_theme_color_override("font_color", Color.GRAY)
+	elif not can_afford:
+		purchase_button.disabled = true
+		purchase_button.add_theme_color_override("font_color", Color.RED)
+	else:
+		purchase_button.add_theme_color_override("font_color", Color.GREEN)
+
+	# Connect purchase button
+	if not is_own_listing and can_afford:
+		purchase_button.pressed.connect(_on_purchase_listing_pressed.bind(listing))
+
+	listing_container.add_child(purchase_button)
+
+	# Add separator
+	var separator = HSeparator.new()
+	listing_container.add_child(separator)
+
+	marketplace_listings_grid.add_child(listing_container)
+
+func _on_purchase_listing_pressed(listing: Dictionary) -> void:
+	##Handle purchase button press for a listing
+	var listing_id = listing.get("listing_id", "")
+	var seller_id = listing.get("seller_id", "")
+	var item_name = listing.get("item_name", "")
+	var quantity = listing.get("quantity", 0)
+	var total_price = listing.get("total_price", 0)
+
+	print("[ZoneUIManager] Purchasing listing: %s x%d for %d credits" % [item_name, quantity, total_price])
+
+	if marketplace_status_label:
+		marketplace_status_label.text = "Processing purchase..."
+
+	# Make purchase request through TradingMarketplace
+	if TradingMarketplace:
+		TradingMarketplace.purchase_item(listing_id, seller_id, item_name, quantity, total_price)
+
+func show_sell_item_dialog() -> void:
+	##Show dialog to sell an item
+	print("[ZoneUIManager] Opening sell item dialog")
+
+	if not sell_item_dialog:
+		return
+
+	# Populate dropdown with player's inventory
+	_populate_sell_item_dropdown()
+
+	# Reset form
+	if sell_quantity_spinbox:
+		sell_quantity_spinbox.value = 1
+	if sell_price_spinbox:
+		sell_price_spinbox.value = 10
+
+	sell_item_dialog.popup_centered()
+
+func _populate_sell_item_dropdown() -> void:
+	##Populate the sell item dropdown with player's inventory
+	if not sell_item_dropdown or not LocalPlayerData:
+		return
+
+	sell_item_dropdown.clear()
+
+	var inventory = LocalPlayerData.get_inventory()
+	var item_counts = {}
+
+	# Count quantities of each item type
+	for item in inventory:
+		var item_type = item.get("type", "")
+		if item_type != "":
+			item_counts[item_type] = item_counts.get(item_type, 0) + item.get("quantity", 0)
+
+	# Add to dropdown
+	for item_type in item_counts:
+		var count = item_counts[item_type]
+		sell_item_dropdown.add_item("%s (%d available)" % [item_type, count])
+		sell_item_dropdown.set_item_metadata(sell_item_dropdown.get_item_count() - 1, {"type": item_type, "available": count})
+
+func _on_sell_item_confirmed() -> void:
+	##Handle sell item dialog confirmation
+	if not sell_item_dropdown or not sell_quantity_spinbox or not sell_price_spinbox:
+		return
+
+	var selected_idx = sell_item_dropdown.selected
+	if selected_idx < 0:
+		print("[ZoneUIManager] No item selected for selling")
+		return
+
+	var item_data = sell_item_dropdown.get_item_metadata(selected_idx)
+	var item_type = item_data.get("type", "")
+	var available_quantity = item_data.get("available", 0)
+	var quantity_to_sell = int(sell_quantity_spinbox.value)
+	var price_per_unit = int(sell_price_spinbox.value)
+
+	print("[ZoneUIManager] Selling %d %s for %d credits each" % [quantity_to_sell, item_type, price_per_unit])
+
+	# Validate quantity
+	if quantity_to_sell > available_quantity:
+		_show_marketplace_error("Cannot sell %d %s, only have %d" % [quantity_to_sell, item_type, available_quantity])
+		return
+
+	if quantity_to_sell <= 0:
+		_show_marketplace_error("Quantity must be greater than 0")
+		return
+
+	if price_per_unit <= 0:
+		_show_marketplace_error("Price must be greater than 0")
+		return
+
+	# Post listing through TradingMarketplace
+	if TradingMarketplace:
+		TradingMarketplace.post_listing(item_type, quantity_to_sell, price_per_unit, "")
+
+	sell_item_dialog.hide()
+
+func _show_marketplace_error(message: String) -> void:
+	##Show marketplace error message
+	print("[ZoneUIManager] Marketplace error: %s" % message)
+	if marketplace_status_label:
+		marketplace_status_label.text = "Error: %s" % message
+		marketplace_status_label.add_theme_color_override("font_color", Color.RED)
+
+func _on_marketplace_success(message: String) -> void:
+	##Show marketplace success message
+	print("[ZoneUIManager] Marketplace success: %s" % message)
+	if marketplace_status_label:
+		marketplace_status_label.text = message
+		marketplace_status_label.add_theme_color_override("font_color", Color.GREEN)
+
+	# Refresh listings after successful action
+	refresh_marketplace_listings()
+
+func _on_item_purchased(success: bool, item_name: String) -> void:
+	##Handle item purchase completion
+	if success:
+		_on_marketplace_success("Successfully purchased %s!" % item_name)
+	else:
+		_show_marketplace_error("Failed to purchase %s" % item_name)
+
+func _on_listing_posted(success: bool, listing_id: String) -> void:
+	##Handle listing post completion
+	if success:
+		_on_marketplace_success("Item listed successfully!")
+	else:
+		_show_marketplace_error("Failed to list item")
 
 ## UI optimization methods
 
