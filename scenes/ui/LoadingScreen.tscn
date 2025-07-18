@@ -17,7 +17,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 texture = ExtResource("2_loading_texture")
 expand_mode = 1
-stretch_mode = 6
+stretch_mode = 4
 
 [node name="LoadingOverlay" type="ColorRect" parent="."]
 layout_mode = 1

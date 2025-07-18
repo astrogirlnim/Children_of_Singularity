@@ -98,7 +98,7 @@ func _setup_startup_screen() -> void:
 	if video_display:
 		print("StartupScreen: Configuring VideoDisplay...")
 		video_display.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-		video_display.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		video_display.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		video_display.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 
 		# Ensure it's visible and properly sized for full viewport
