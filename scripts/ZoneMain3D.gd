@@ -1075,7 +1075,7 @@ func _on_dump_inventory_pressed() -> void:
 	var dialog = ConfirmationDialog.new()
 	dialog.title = "Confirm Dump Inventory"
 	dialog.dialog_text = confirmation_text
-	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_ON_SCREEN
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_SCREEN_WITH_MOUSE_FOCUS
 
 	# Add to scene temporarily
 	add_child(dialog)
@@ -1141,7 +1141,7 @@ func _on_clear_upgrades_pressed() -> void:
 	var dialog = ConfirmationDialog.new()
 	dialog.title = "Confirm Clear All Upgrades"
 	dialog.dialog_text = confirmation_text
-	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_ON_SCREEN
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_SCREEN_WITH_MOUSE_FOCUS
 
 	# Add to scene temporarily
 	add_child(dialog)
