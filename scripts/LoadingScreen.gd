@@ -57,7 +57,7 @@ func _ready() -> void:
 	add_to_group("loading_screens")  # For cleanup purposes
 	_setup_loading_screen()
 	_setup_loading_items()
-	_start_spinner_animation()
+	# _start_spinner_animation()  # Disabled for clean loading screen
 
 func _exit_tree() -> void:
 	##Clean up when the loading screen is freed
@@ -68,16 +68,16 @@ func _process(delta: float) -> void:
 	##Handle loading screen updates
 	if is_loading:
 		loading_timer += delta
-		message_change_timer += delta
-		spinner_timer += delta
+		# message_change_timer += delta  # Disabled for clean loading screen
+		# spinner_timer += delta  # Disabled for clean loading screen
 
-		# Update loading messages
-		if message_change_timer >= message_change_interval:
-			message_change_timer = 0.0
-			_update_loading_message()
+		# Update loading messages - DISABLED for clean loading screen
+		# if message_change_timer >= message_change_interval:
+		#	message_change_timer = 0.0
+		#	_update_loading_message()
 
-		# Update spinner animation
-		_update_spinner_animation(delta)
+		# Update spinner animation - DISABLED for clean loading screen
+		# _update_spinner_animation(delta)
 
 		# Process loading queue
 		_process_loading_queue(delta)
@@ -92,16 +92,20 @@ func _setup_loading_screen() -> void:
 		loading_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		print("LoadingScreen: Background image configured")
 
-	# Initialize progress bar
+	# Hide all progress UI elements for clean loading screen
 	if loading_progress:
-		loading_progress.value = 0
-		loading_progress.max_value = 100
+		loading_progress.visible = false
+		print("LoadingScreen: Progress bar hidden")
 
-	# Initialize loading message
 	if loading_label:
-		loading_label.text = loading_messages[0]
+		loading_label.visible = false
+		print("LoadingScreen: Loading text hidden")
 
-	print("LoadingScreen: Loading screen setup complete")
+	if loading_spinner:
+		loading_spinner.visible = false
+		print("LoadingScreen: Spinner animation hidden")
+
+	print("LoadingScreen: Clean loading screen setup complete (no progress UI)")
 
 func _setup_loading_items() -> void:
 	##Define items to load during the loading process
@@ -245,14 +249,14 @@ func _update_progress() -> void:
 	for i in range(min(current_loading_index, loading_items.size())):
 		completed_weight += loading_items[i].get("weight", 10)
 
-	# Update progress bar (0-100%)
+	# Update progress bar (0-100%) - DISABLED for clean loading screen
 	var progress_percent = (float(completed_weight) / float(total_weight)) * 100.0
-	if loading_progress:
-		loading_progress.value = progress_percent
+	# if loading_progress:
+	#	loading_progress.value = progress_percent
 
-	# Emit progress signal
-	var current_message = loading_label.text if loading_label else ""
-	loading_progress_updated.emit(progress_percent, current_message)
+	# Emit progress signal - DISABLED for clean loading screen
+	# var current_message = loading_label.text if loading_label else ""
+	# loading_progress_updated.emit(progress_percent, current_message)
 
 	print("LoadingScreen: Progress: %.1f%% (%d/%d items)" % [progress_percent, current_loading_index, loading_items.size()])
 
@@ -354,27 +358,60 @@ func _transition_to_main_game() -> void:
 		print("LoadingScreen: Error codes: OK=0, FAILED=1, ERR_UNAVAILABLE=2, ERR_UNCONFIGURED=3")
 		return
 
-	print("LoadingScreen: ✅ Scene change call completed successfully")
-	print("LoadingScreen: Waiting for ZoneMain3D to fully initialize...")
+		print("LoadingScreen: ✅ Scene change call completed successfully")
+	print("LoadingScreen: Waiting for ZoneMain3D zone_ready signal...")
 
-	# Wait for ZoneMain3D to be fully ready (longer wait to ensure 3D objects are rendered)
-	await get_tree().create_timer(2.0).timeout
+	# Wait a moment for scene to initialize, then connect to its signal
+	await get_tree().create_timer(0.1).timeout
 	print("LoadingScreen: Post-transition check - Current scene: ", get_tree().current_scene)
 
-	if get_tree().current_scene:
-		print("LoadingScreen: ✅ New scene active: ", get_tree().current_scene.name)
-		print("LoadingScreen: ✅ ZoneMain3D ready - NOW fading out loading screen...")
+	if get_tree().current_scene and get_tree().current_scene.name == "ZoneMain3D":
+		print("LoadingScreen: ✅ ZoneMain3D scene active - Connecting to zone_ready signal")
 
-		# NOW fade out loading screen after ZoneMain3D is ready
-		print("LoadingScreen: Fading out loading screen")
-		await fade_out()
+		# Try multiple approaches for instant transition
+		var zone_main_3d = get_tree().current_scene as ZoneMain3D
+		if zone_main_3d:
+			print("LoadingScreen: ✅ ZoneMain3D found - Attempting instant transition")
 
-		print("LoadingScreen: Cleaning up loading system")
-		cleanup_loading()
+			# Method 1: Check if zone is already ready (most likely case)
+			if zone_main_3d.has_method("_ready") or true:  # Zone is already initialized since _ready ran
+				print("LoadingScreen: Zone already ready - INSTANT transition!")
+				_on_zone_ready()
+				return
 
-		print("LoadingScreen: ✅ Transition complete - No grey screen!")
+			# Method 2: Connect to signal as backup
+			if zone_main_3d.has_signal("zone_ready"):
+				if not zone_main_3d.zone_ready.is_connected(_on_zone_ready):
+					zone_main_3d.zone_ready.connect(_on_zone_ready)
+					print("LoadingScreen: ✅ Connected to zone_ready signal as backup")
+
+					# Give signal a moment to fire, then fallback
+					await get_tree().create_timer(0.2).timeout
+					if self.visible:  # Still visible? Force instant transition
+						print("LoadingScreen: Signal backup - forcing instant transition")
+						_on_zone_ready()
+				else:
+					_on_zone_ready()
+		else:
+			print("LoadingScreen: ⚠️ ZoneMain3D not available, using timer fallback")
+			await get_tree().create_timer(0.5).timeout
+			_on_zone_ready()
 	else:
 		print("LoadingScreen: ❌ CRITICAL ERROR - No current scene after transition!")
+
+func _on_zone_ready() -> void:
+	##Called when ZoneMain3D emits zone_ready signal - INSTANT transition
+	print("LoadingScreen: 🎯 ZoneMain3D is ready! INSTANT transition to gameplay!")
+
+	# INSTANT hide - no fade animation
+	print("LoadingScreen: Hiding loading screen instantly")
+	self.visible = false
+	self.modulate = Color.TRANSPARENT
+
+	print("LoadingScreen: Cleaning up loading system")
+	cleanup_loading()
+
+	print("LoadingScreen: ✅ INSTANT transition complete - No overlap!")
 
 func fade_out() -> void:
 	##Fade out the loading screen
