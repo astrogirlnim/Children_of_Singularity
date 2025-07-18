@@ -1195,8 +1195,6 @@ func _on_upgrades_cleared(cleared_data: Dictionary) -> void:
 		"speed_boost": 0,
 		"inventory_expansion": 0,
 		"collection_efficiency": 0,
-		"zone_access": 1,
-		"debris_scanner": 0,
 		"cargo_magnet": 0
 	}
 
@@ -2034,16 +2032,6 @@ func _on_upgrade_effects_applied(upgrade_type: String, level: int) -> void:
 					_update_purchase_result("COLLECTION ENHANCED!\nNew range: %.1f units" % new_range, Color.BLUE)
 				else:
 					_update_purchase_result("COLLECTION EFFICIENCY RESET\nRange reset to: %.1f units" % new_range, Color.GRAY)
-
-		"zone_access":
-			# Update zone access display
-			_update_purchase_result("ZONE ACCESS UPGRADED!\nLevel %d unlocked" % level, Color.PURPLE)
-
-		"debris_scanner":
-			if level > 0:
-				_update_purchase_result("DEBRIS SCANNER ACTIVATED!\nLevel %d scanner online" % level, Color.YELLOW)
-			else:
-				_update_purchase_result("DEBRIS SCANNER DEACTIVATED", Color.GRAY)
 
 		"cargo_magnet":
 			if level > 0:

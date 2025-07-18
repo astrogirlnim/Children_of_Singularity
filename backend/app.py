@@ -185,24 +185,6 @@ UPGRADE_DEFINITIONS = {
         "effect_per_level": 20.0,
         "category": "collection",
     },
-    "zone_access": {
-        "name": "Zone Access",
-        "description": "Unlocks access to deeper zones",
-        "max_level": 5,
-        "base_cost": 500,
-        "cost_multiplier": 2.0,
-        "effect_per_level": 1,
-        "category": "access",
-    },
-    "debris_scanner": {
-        "name": "Debris Scanner",
-        "description": "Highlights valuable debris on the map",
-        "max_level": 3,
-        "base_cost": 300,
-        "cost_multiplier": 1.6,
-        "effect_per_level": 1,
-        "category": "utility",
-    },
     "cargo_magnet": {
         "name": "Cargo Magnet",
         "description": "Automatically attracts nearby debris",
@@ -340,7 +322,7 @@ def _create_test_data():
                         (%s, 'speed_boost', 0),
                         (%s, 'inventory_expansion', 0),
                         (%s, 'collection_efficiency', 0),
-                        (%s, 'zone_access', 1)
+                        (%s, 'cargo_magnet', 0)
                         ON CONFLICT (player_id, upgrade_type) DO NOTHING
                     """,
                         (player_id, player_id, player_id, player_id),
@@ -361,7 +343,7 @@ def _create_test_data():
                 "speed_boost": 0,
                 "inventory_expansion": 0,
                 "collection_efficiency": 0,
-                "zone_access": 1,
+                "cargo_magnet": 0,
             },
         )
         players_db["550e8400-e29b-41d4-a716-446655440000"] = test_player
@@ -1038,18 +1020,9 @@ async def clear_player_upgrades(player_id: str):
                 for row in cursor.fetchall():
                     cleared_upgrades[row["upgrade_type"]] = row["level"]
 
-                # Reset all upgrades to level 0 (except zone_access which starts at 1)
+                # Reset all upgrades to level 0
                 cursor.execute(
                     "DELETE FROM upgrades WHERE player_id = %s", (player_id,)
-                )
-
-                # Re-add default zone_access level 1
-                cursor.execute(
-                    """
-                    INSERT INTO upgrades (player_id, upgrade_type, level)
-                    VALUES (%s, 'zone_access', 1)
-                """,
-                    (player_id,),
                 )
 
                 conn.commit()
@@ -1062,7 +1035,7 @@ async def clear_player_upgrades(player_id: str):
                     "message": "All upgrades cleared and reset to defaults",
                     "cleared_upgrades": cleared_upgrades,
                     "total_cleared": len(cleared_upgrades),
-                    "default_upgrades": {"zone_access": 1},
+                    "default_upgrades": {},
                 }
 
     except HTTPException:
@@ -1081,8 +1054,6 @@ async def clear_player_upgrades(player_id: str):
             "speed_boost": 0,
             "inventory_expansion": 0,
             "collection_efficiency": 0,
-            "zone_access": 1,
-            "debris_scanner": 0,
             "cargo_magnet": 0,
         }
 
@@ -1091,7 +1062,7 @@ async def clear_player_upgrades(player_id: str):
             "message": "All upgrades cleared and reset to defaults (fallback)",
             "cleared_upgrades": cleared_upgrades,
             "total_cleared": len(cleared_upgrades),
-            "default_upgrades": {"zone_access": 1},
+            "default_upgrades": {},
         }
 
 

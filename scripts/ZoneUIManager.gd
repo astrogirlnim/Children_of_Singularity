@@ -557,8 +557,6 @@ func handle_upgrades_cleared(cleared_data: Dictionary) -> void:
 		"speed_boost": 0,
 		"inventory_expansion": 0,
 		"collection_efficiency": 0,
-		"zone_access": 1,
-		"debris_scanner": 0,
 		"cargo_magnet": 0
 	}
 

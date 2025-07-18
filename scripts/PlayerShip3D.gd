@@ -282,7 +282,7 @@ func _initialize_player_state() -> void:
 			"speed_boost": 0,
 			"inventory_expansion": 0,
 			"collection_efficiency": 0,
-			"zone_access": 1
+			"cargo_magnet": 0
 		}
 		_log_message("PlayerShip3D: Initialized with default values - Credits: %d, Capacity: %d/%d" % [credits, current_inventory.size(), inventory_capacity])
 	else:
@@ -732,16 +732,6 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 				collection_indicator.mesh.radius = collection_range
 				_log_message("PlayerShip3D: Updated collection range indicator to %.1f units" % collection_range)
 			_log_message("PlayerShip3D: Collection efficiency applied - Range: %.1f, Cooldown: %.2fs" % [collection_range, collection_cooldown])
-		"zone_access":
-			# Set zone access level for future zone system integration
-			upgrades["zone_access"] = level
-			_log_message("PlayerShip3D: Zone access applied - Level: %d" % level)
-		"debris_scanner":
-			if level > 0:
-				enable_debris_scanner(level)
-			else:
-				disable_debris_scanner()
-			_log_message("PlayerShip3D: Debris scanner applied - Level: %d, Active: %s" % [level, level > 0])
 		"cargo_magnet":
 			if level > 0:
 				enable_cargo_magnet(level)
