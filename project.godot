@@ -111,7 +111,3 @@ textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_3d=2
 occlusion_culling/use_occlusion_culling=true
 anti_aliasing/quality/fxaa=true
-
-[audio]
-
-buses/default_bus_layout="res://default_bus_layout.tres"
