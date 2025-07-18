@@ -669,6 +669,9 @@ func handle_upgrade_purchased(result: Dictionary) -> void:
 	_populate_upgrade_catalog()  # Refresh catalog with new levels
 	_update_purchase_result("SUCCESS!\nPurchased %s level %d for %d credits" % [upgrade_type, new_level, cost], Color.GREEN)
 
+	# Update the upgrade status panel to show purchased upgrades
+	update_upgrade_status_display(player_ship.upgrades, upgrade_system)
+
 	# Clear selection to reset interface
 	current_selected_upgrade = ""
 	current_upgrade_cost = 0

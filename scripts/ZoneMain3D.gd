@@ -32,6 +32,7 @@ signal npc_hub_entered()
 @onready var inventory_grid: GridContainer = $UILayer/HUD/InventoryPanel/InventoryGrid
 @onready var credits_label: Label = $UILayer/HUD/StatsPanel/CreditsLabel
 @onready var debris_count_label: Label = $UILayer/HUD/StatsPanel/DebrisCountLabel
+@onready var upgrade_status_text: Label = $UILayer/HUD/UpgradeStatusPanel/UpgradeStatusText
 @onready var api_client: Node = $APIClient
 @onready var upgrade_system: Node = $UpgradeSystem
 @onready var ai_communicator: Node = $AICommunicator
@@ -1052,6 +1053,32 @@ func _update_credits_display() -> void:
 		credits_label.text = "Credits: %d" % player_ship.credits
 		_log_message("ZoneMain3D: Credits display updated - %d credits" % player_ship.credits)
 
+func _update_upgrade_status_display() -> void:
+	##Update the upgrade status display in the UpgradeStatusPanel
+	if not upgrade_status_text or not player_ship or not upgrade_system:
+		return
+
+	var status_text = ""
+	var upgrade_count = 0
+
+	if player_ship.upgrades.size() > 0:
+		for upgrade_type in player_ship.upgrades:
+			var level = player_ship.upgrades[upgrade_type]
+			if level > 0:
+				var upgrade_info = upgrade_system.get_upgrade_info(upgrade_type)
+				var upgrade_name = upgrade_info.get("name", upgrade_type)
+				status_text += "%s: L%d\n" % [upgrade_name, level]
+				upgrade_count += 1
+
+	if upgrade_count == 0:
+		upgrade_status_text.text = "No upgrades purchased"
+		upgrade_status_text.modulate = Color.GRAY
+	else:
+		upgrade_status_text.text = status_text
+		upgrade_status_text.modulate = Color.WHITE
+
+	_log_message("ZoneMain3D: Upgrade status display updated - %d upgrades shown" % upgrade_count)
+
 func _on_sell_selected_pressed() -> void:
 	##Handle sell selected button press - sell the currently selected items
 	_log_message("ZoneMain3D: Sell selected button pressed")
@@ -1387,6 +1414,9 @@ func _on_upgrade_purchased(result: Dictionary) -> void:
 	_update_credits_display()
 	_populate_upgrade_catalog()  # Refresh catalog with new levels
 	_update_purchase_result("SUCCESS!\nPurchased %s level %d for %d credits" % [upgrade_type, new_level, cost], Color.GREEN)
+
+	# Update the upgrade status panel to show purchased upgrades
+	_update_upgrade_status_display()
 
 	# Clear selection to reset the interface
 	current_selected_upgrade = ""
