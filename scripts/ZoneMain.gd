@@ -84,8 +84,10 @@ func _setup_components() -> void:
 		ui_manager.upgrade_status_text = $UILayer/HUD/UpgradeStatusPanel/UpgradeStatusText
 		ui_manager.trading_interface = $UILayer/HUD/TradingInterface
 		ui_manager.trading_title = $UILayer/HUD/TradingInterface/TradingTitle
-		ui_manager.sell_all_button = $UILayer/HUD/TradingInterface/TradingContent/SellAllButton
-		ui_manager.trading_result = $UILayer/HUD/TradingInterface/TradingContent/TradingResult
+		ui_manager.sell_all_button = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent/SellAllButton
+		ui_manager.dump_inventory_button = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent/DumpInventoryButton
+		ui_manager.clear_upgrades_button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer/ClearUpgradesButton
+		ui_manager.trading_result = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent/TradingResult
 		ui_manager.trading_close_button = $UILayer/HUD/TradingInterface/TradingCloseButton
 
 		# Setup upgrade interface UI elements (Phase 3B addition)
@@ -156,6 +158,8 @@ func _connect_signals() -> void:
 			api_client.upgrade_purchased.connect(_on_upgrade_purchased_api)
 		if api_client.has_signal("upgrade_purchase_failed"):
 			api_client.upgrade_purchase_failed.connect(_on_upgrade_purchase_failed_api)
+		if api_client.has_signal("upgrades_cleared"):
+			api_client.upgrades_cleared.connect(_on_upgrades_cleared)
 
 	# Upgrade system signals
 	if upgrade_system:
@@ -518,6 +522,12 @@ func _on_upgrade_purchase_failed_api(reason: String, upgrade_type: String) -> vo
 	_log_message("Upgrade purchase failed via API: %s - %s" % [upgrade_type, reason])
 	if ui_manager:
 		ui_manager.handle_upgrade_purchase_failed(reason, upgrade_type)
+
+func _on_upgrades_cleared(cleared_data: Dictionary) -> void:
+	##Handle upgrades cleared from API client
+	_log_message("All upgrades cleared via API: %s" % cleared_data)
+	if ui_manager:
+		ui_manager.handle_upgrades_cleared(cleared_data)
 
 ## Public API
 

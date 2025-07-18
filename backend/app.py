@@ -1011,6 +1011,90 @@ async def purchase_upgrade(player_id: str, upgrade_data: UpgradePurchaseRequest)
         )
 
 
+@app.delete("/api/v1/players/{player_id}/upgrades")
+async def clear_player_upgrades(player_id: str):
+    """Clear all player upgrades (reset to defaults)"""
+    logger.info(f"Clearing all upgrades for player: {player_id}")
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Check if player exists
+                cursor.execute("SELECT id FROM players WHERE id = %s", (player_id,))
+                if not cursor.fetchone():
+                    logger.warning(f"Player not found: {player_id}")
+                    raise HTTPException(status_code=404, detail="Player not found")
+
+                # Get current upgrades before clearing
+                cursor.execute(
+                    """
+                    SELECT upgrade_type, level
+                    FROM upgrades WHERE player_id = %s
+                """,
+                    (player_id,),
+                )
+
+                cleared_upgrades = {}
+                for row in cursor.fetchall():
+                    cleared_upgrades[row["upgrade_type"]] = row["level"]
+
+                # Reset all upgrades to level 0 (except zone_access which starts at 1)
+                cursor.execute(
+                    "DELETE FROM upgrades WHERE player_id = %s", (player_id,)
+                )
+
+                # Re-add default zone_access level 1
+                cursor.execute(
+                    """
+                    INSERT INTO upgrades (player_id, upgrade_type, level)
+                    VALUES (%s, 'zone_access', 1)
+                """,
+                    (player_id,),
+                )
+
+                conn.commit()
+
+                logger.info(
+                    f"Cleared {len(cleared_upgrades)} upgrades for "
+                    f"{player_id}, reset to defaults"
+                )
+                return {
+                    "message": "All upgrades cleared and reset to defaults",
+                    "cleared_upgrades": cleared_upgrades,
+                    "total_cleared": len(cleared_upgrades),
+                    "default_upgrades": {"zone_access": 1},
+                }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Database error clearing upgrades: {e}")
+        # Fall back to in-memory storage
+        if player_id not in players_db:
+            raise HTTPException(status_code=404, detail="Player not found")
+
+        player = players_db[player_id]
+        cleared_upgrades = player.upgrades.copy()
+
+        # Reset to defaults
+        player.upgrades = {
+            "speed_boost": 0,
+            "inventory_expansion": 0,
+            "collection_efficiency": 0,
+            "zone_access": 1,
+            "debris_scanner": 0,
+            "cargo_magnet": 0,
+        }
+
+        logger.info(f"Upgrades cleared in fallback mode for {player_id}")
+        return {
+            "message": "All upgrades cleared and reset to defaults (fallback)",
+            "cleared_upgrades": cleared_upgrades,
+            "total_cleared": len(cleared_upgrades),
+            "default_upgrades": {"zone_access": 1},
+        }
+
+
 @app.get("/api/v1/health")
 async def health_check():
     """Health check endpoint"""

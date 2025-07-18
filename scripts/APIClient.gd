@@ -23,6 +23,9 @@ signal upgrade_purchased(result: Dictionary)
 ## Signal emitted when upgrade purchase fails
 signal upgrade_purchase_failed(reason: String, upgrade_type: String)
 
+## Signal emitted when upgrades are cleared
+signal upgrades_cleared(cleared_data: Dictionary)
+
 # API configuration
 var base_url: String = "http://localhost:8000/api/v1"
 var player_id: String = "550e8400-e29b-41d4-a716-446655440000"
@@ -155,6 +158,22 @@ func clear_inventory() -> void:
 	var request_id = _make_request(url, HTTPClient.METHOD_DELETE, [], "clear_inventory")
 	if request_id == -1:
 		api_error.emit("Failed to initiate inventory clear request")
+
+## Clear all upgrades (reset to defaults)
+func clear_upgrades() -> void:
+	# Validate UUID format before making request
+	if not _is_valid_uuid(player_id):
+		var error_msg = "Invalid UUID format for player ID: %s" % player_id
+		_log_message("APIClient: %s" % error_msg)
+		api_error.emit(error_msg)
+		return
+
+	var url = "%s/players/%s/upgrades" % [base_url, player_id]
+	_log_message("APIClient: Clearing all upgrades at %s" % url)
+
+	var request_id = _make_request(url, HTTPClient.METHOD_DELETE, [], "clear_upgrades")
+	if request_id == -1:
+		api_error.emit("Failed to initiate upgrades clear request")
 
 ## Update credits
 func update_credits(credits_change: int) -> void:
@@ -325,6 +344,9 @@ func _handle_successful_response(response_data: Dictionary, request_context: Dic
 		_log_message("APIClient: Inventory data received")
 		var inventory_data = response_data.get("inventory", [])
 		inventory_updated.emit(inventory_data)
+	elif response_data is Dictionary and "cleared_upgrades" in response_data:
+		_log_message("APIClient: Upgrades cleared successfully")
+		upgrades_cleared.emit(response_data)
 	elif response_data is Dictionary and "credits" in response_data:
 		_log_message("APIClient: Credits updated")
 		credits_updated.emit(response_data.credits)

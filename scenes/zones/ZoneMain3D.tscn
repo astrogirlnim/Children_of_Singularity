@@ -328,6 +328,11 @@ autowrap_mode = 2
 layout_mode = 2
 text = "SELL ALL DEBRIS"
 
+[node name="DumpInventoryButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent"]
+layout_mode = 2
+text = "DUMP ALL INVENTORY"
+modulate = Color(1, 0.5, 0.5, 1)
+
 [node name="BUY" type="Control" parent="UILayer/HUD/TradingInterface/TradingTabs"]
 layout_mode = 2
 metadata/_tab_index = 1
@@ -376,6 +381,15 @@ layout_mode = 2
 text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
+
+[node name="ClearUpgradesContainer" type="HBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+
+[node name="ClearUpgradesButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CLEAR ALL UPGRADES"
+modulate = Color(1, 0.5, 0.5, 1)
 
 [node name="TradingCloseButton" type="Button" parent="UILayer/HUD/TradingInterface"]
 layout_mode = 0
