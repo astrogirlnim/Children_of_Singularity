@@ -16,6 +16,10 @@ run/main_scene="res://scenes/ui/StartupScreen.tscn"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.png"
 
+[autoload]
+
+AudioManager="*res://scripts/AudioManager.gd"
+
 [debug]
 
 settings/stdout/verbose_stdout=true
@@ -107,3 +111,7 @@ textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_3d=2
 occlusion_culling/use_occlusion_culling=true
 anti_aliasing/quality/fxaa=true
+
+[audio]
+
+buses/default_bus_layout="res://default_bus_layout.tres"

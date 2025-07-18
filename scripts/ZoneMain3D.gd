@@ -603,6 +603,12 @@ func _on_hub_created(hub: Node3D) -> void:
 func _on_player_entered_hub(hub_type: String, _hub: Node3D) -> void:
 	##Handle player entering trading hub
 	_log_message("ZoneMain3D: Player entered trading hub: %s" % hub_type)
+
+	# Play trading hub approach sound effect
+	if AudioManager:
+		AudioManager.play_sfx("approach_station")
+		_log_message("ZoneMain3D: Played trading hub approach sound effect")
+
 	npc_hub_entered.emit()
 
 func _on_player_exited_hub(hub_type: String, _hub: Node3D) -> void:

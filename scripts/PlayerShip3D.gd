@@ -530,6 +530,11 @@ func _collect_debris_object(debris_object: RigidBody3D) -> void:
 	# Emit signal
 	debris_collected.emit(debris_type, debris_value)
 
+	# Play debris collection sound effect
+	if AudioManager:
+		AudioManager.play_sfx("pickup_debris")
+		_log_message("PlayerShip3D: Played debris collection sound effect")
+
 	# Sync inventory item with backend API
 	if zone_main and zone_main.has_method("get_api_client"):
 		var api_client = zone_main.get_api_client()
