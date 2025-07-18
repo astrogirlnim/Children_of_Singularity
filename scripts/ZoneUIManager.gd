@@ -37,6 +37,22 @@ signal ai_message_display_requested(message: String)
 @export var trading_result: Label
 @export var trading_close_button: Button
 
+# Upgrade interface UI elements (Phase 3B addition)
+@export var trading_tabs: TabContainer
+@export var upgrade_content: VBoxContainer
+@export var upgrade_catalog: ScrollContainer
+@export var upgrade_grid: GridContainer
+@export var upgrade_details: Panel
+@export var upgrade_details_label: Label
+@export var purchase_button: Button
+@export var purchase_result: Label
+@export var confirm_purchase_dialog: AcceptDialog
+@export var confirm_upgrade_name: Label
+@export var confirm_upgrade_info: Label
+@export var confirm_cost_label: Label
+@export var confirm_button: Button
+@export var cancel_button: Button
+
 # UI state
 var inventory_items: Array[Control] = []
 var last_inventory_size: int = 0
@@ -44,6 +60,14 @@ var last_inventory_hash: String = ""
 var trading_open: bool = false
 var current_hub_type: String = ""
 var game_logs: Array[String] = []
+
+# Upgrade system UI state (Phase 3B addition)
+var current_selected_upgrade: String = ""
+var current_upgrade_cost: int = 0
+var upgrade_buttons: Dictionary = {}  # Store upgrade button references
+var player_ship: Node = null  # Reference to player ship
+var upgrade_system: Node = null  # Reference to upgrade system
+var api_client: Node = null  # Reference to API client
 
 # Update timers
 var ui_update_timer: float = 0.0
@@ -76,6 +100,16 @@ func _setup_ui_connections() -> void:
 	if trading_close_button:
 		trading_close_button.pressed.connect(_on_trading_close_pressed)
 
+	# Connect upgrade interface buttons (Phase 3B addition)
+	if purchase_button:
+		purchase_button.pressed.connect(_on_purchase_button_pressed)
+
+	if confirm_button:
+		confirm_button.pressed.connect(_on_confirm_purchase_pressed)
+
+	if cancel_button:
+		cancel_button.pressed.connect(_on_cancel_purchase_pressed)
+
 	print("ZoneUIManager: UI connections established")
 
 func _initialize_ui_components() -> void:
@@ -88,6 +122,13 @@ func _initialize_ui_components() -> void:
 
 	if upgrade_status_panel:
 		upgrade_status_panel.visible = true
+
+	# Initialize upgrade interface (Phase 3B addition)
+	if purchase_button:
+		purchase_button.disabled = true
+
+	if confirm_purchase_dialog:
+		confirm_purchase_dialog.visible = false
 
 	print("ZoneUIManager: UI components initialized")
 
@@ -386,3 +427,350 @@ func force_ui_update() -> void:
 	##Force immediate UI update
 	ui_update_timer = ui_update_interval
 	_update_ui_elements()
+
+## Upgrade Catalog Methods (Phase 3B implementation)
+
+func set_system_references(player: Node, upgrade_sys: Node, api: Node) -> void:
+	##Set references to game systems needed for upgrade functionality
+	player_ship = player
+	upgrade_system = upgrade_sys
+	api_client = api
+	print("ZoneUIManager: System references set for upgrade functionality")
+
+func _populate_upgrade_catalog() -> void:
+	##Populate the upgrade catalog with available upgrades (Phase 3B requirement)
+	if not upgrade_grid or not upgrade_system or not player_ship:
+		print("ZoneUIManager: ERROR - Missing components for upgrade catalog")
+		return
+
+	# Clear existing upgrade buttons
+	for child in upgrade_grid.get_children():
+		child.queue_free()
+	upgrade_buttons.clear()
+
+	print("ZoneUIManager: Populating upgrade catalog")
+
+	# Get all upgrade definitions from UpgradeSystem
+	var upgrade_definitions = upgrade_system.upgrade_definitions
+	var player_credits = player_ship.credits
+
+	for upgrade_type in upgrade_definitions:
+		var upgrade_data = upgrade_definitions[upgrade_type]
+		var current_level = player_ship.upgrades.get(upgrade_type, 0)
+		var max_level = upgrade_data.max_level
+		var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+		var can_afford = player_credits >= cost
+
+		print("ZoneUIManager: Creating upgrade button - %s: Level %d/%d, Cost %d, Credits %d, Affordable: %s" %
+			[upgrade_type, current_level, max_level, cost, player_credits, can_afford])
+
+		# Create upgrade button for this type
+		var upgrade_button = _create_upgrade_button(upgrade_type, upgrade_data, current_level, max_level, player_credits)
+		upgrade_grid.add_child(upgrade_button)
+		upgrade_buttons[upgrade_type] = upgrade_button
+
+	print("ZoneUIManager: Created %d upgrade buttons" % upgrade_buttons.size())
+
+func _create_upgrade_button(upgrade_type: String, upgrade_data: Dictionary, current_level: int, max_level: int, player_credits: int) -> Control:
+	##Create a button for a specific upgrade (Phase 3B requirement)
+	var upgrade_container = VBoxContainer.new()
+	upgrade_container.name = "Upgrade_%s" % upgrade_type
+
+	# Main upgrade button
+	var button = Button.new()
+	button.custom_minimum_size = Vector2(0, 80)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Calculate cost and availability
+	var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+	var can_afford = player_credits >= cost
+	var is_maxed = current_level >= max_level
+
+	# Set button text and styling
+	var button_text = ""
+	var button_color = Color.WHITE
+
+	if is_maxed:
+		button_text = "%s\nLevel %d/%d - MAXED OUT\nEffect: %s" % [
+			upgrade_data.name,
+			current_level,
+			max_level,
+			upgrade_data.description
+		]
+		button_color = Color.GOLD
+		button.disabled = true
+	else:
+		button_text = "%s\nLevel %d/%d - Cost: %d credits\nEffect: %s" % [
+			upgrade_data.name,
+			current_level,
+			max_level,
+			cost,
+			upgrade_data.description
+		]
+		if can_afford:
+			button_color = Color.GREEN
+			button.disabled = false
+		else:
+			button_color = Color.RED
+			button.disabled = false  # Allow selection to show details
+
+	button.text = button_text
+	button.modulate = button_color
+
+	# Connect button press to selection handler
+	button.pressed.connect(_on_upgrade_selected.bind(upgrade_type, upgrade_data, current_level, cost, can_afford, is_maxed))
+
+	upgrade_container.add_child(button)
+
+	# Add separator
+	var separator = HSeparator.new()
+	separator.custom_minimum_size = Vector2(0, 5)
+	upgrade_container.add_child(separator)
+
+	return upgrade_container
+
+func _on_upgrade_selected(upgrade_type: String, upgrade_data: Dictionary, current_level: int, cost: int, can_afford: bool, is_maxed: bool) -> void:
+	##Handle upgrade selection (Phase 3B requirement)
+	print("ZoneUIManager: Upgrade selected: %s (level %d, cost %d)" % [upgrade_type, current_level, cost])
+
+	current_selected_upgrade = upgrade_type
+	current_upgrade_cost = cost
+
+	# Update upgrade details panel
+	if upgrade_details_label:
+		var details_text = ""
+		if is_maxed:
+			details_text = "UPGRADE MAXED OUT\n\n%s\nCurrent Level: %d/%d\n\nThis upgrade has reached its maximum level." % [
+				upgrade_data.description,
+				current_level,
+				upgrade_data.max_level
+			]
+		else:
+			var next_level = current_level + 1
+			var effect_per_level = upgrade_data.effect_per_level
+			details_text = "%s\n\nCurrent Level: %d/%d\nNext Level: %d\nCost: %d credits\nEffect per level: %s\nCategory: %s" % [
+				upgrade_data.description,
+				current_level,
+				upgrade_data.max_level,
+				next_level,
+				cost,
+				str(effect_per_level),
+				upgrade_data.category
+			]
+
+		upgrade_details_label.text = details_text
+
+	# Update purchase button
+	if purchase_button:
+		if is_maxed:
+			purchase_button.text = "UPGRADE MAXED OUT"
+			purchase_button.disabled = true
+		elif can_afford:
+			purchase_button.text = "PURCHASE UPGRADE (%d credits)" % cost
+			purchase_button.disabled = false
+		else:
+			purchase_button.text = "INSUFFICIENT CREDITS (%d credits)" % cost
+			purchase_button.disabled = true
+
+	# Clear any previous purchase result
+	if purchase_result:
+		purchase_result.text = ""
+
+func refresh_upgrade_catalog() -> void:
+	##Refresh upgrade catalog with current player data (Phase 3B requirement for real-time updates)
+	if trading_interface and trading_interface.visible:
+		var current_credits = player_ship.credits if player_ship else 0
+		print("ZoneUIManager: Refreshing upgrade catalog - Trading interface visible, Player credits: %d" % current_credits)
+		_populate_upgrade_catalog()
+		print("ZoneUIManager: Upgrade catalog refreshed due to data change")
+	else:
+		var interface_status = "not visible" if trading_interface else "not found"
+		print("ZoneUIManager: Skipping upgrade catalog refresh - Trading interface %s" % interface_status)
+
+## Upgrade Purchase Handlers (Phase 3B implementation)
+
+func _on_purchase_button_pressed() -> void:
+	##Handle purchase button press - show confirmation dialog
+	if current_selected_upgrade.is_empty():
+		print("ZoneUIManager: No upgrade selected for purchase")
+		return
+
+	print("ZoneUIManager: Purchase button pressed for %s" % current_selected_upgrade)
+
+	# Get upgrade data
+	var upgrade_data = upgrade_system.upgrade_definitions.get(current_selected_upgrade, {})
+	if upgrade_data.is_empty():
+		print("ZoneUIManager: ERROR - Invalid upgrade data for %s" % current_selected_upgrade)
+		return
+
+	# Update confirmation dialog
+	if confirm_upgrade_name:
+		confirm_upgrade_name.text = upgrade_data.name
+
+	if confirm_upgrade_info:
+		confirm_upgrade_info.text = upgrade_data.description
+
+	if confirm_cost_label:
+		confirm_cost_label.text = "Cost: %d credits" % current_upgrade_cost
+
+	# Show confirmation dialog
+	if confirm_purchase_dialog:
+		confirm_purchase_dialog.popup_centered()
+
+func _on_confirm_purchase_pressed() -> void:
+	##Handle confirmed purchase
+	print("ZoneUIManager: Purchase confirmed by user")
+
+	# Perform the purchase using the shared method
+	_perform_upgrade_purchase()
+
+	# Close confirmation dialog
+	if confirm_purchase_dialog:
+		confirm_purchase_dialog.hide()
+
+func _on_cancel_purchase_pressed() -> void:
+	##Handle cancelled purchase
+	print("ZoneUIManager: Purchase cancelled")
+
+	# Close confirmation dialog
+	if confirm_purchase_dialog:
+		confirm_purchase_dialog.hide()
+
+func handle_upgrade_purchased(result: Dictionary) -> void:
+	##Handle successful upgrade purchase from API
+	print("ZoneUIManager: Upgrade purchase successful: %s" % result)
+
+	var upgrade_type = result.get("upgrade_type", "")
+	var new_level = result.get("new_level", 0)
+	var cost = result.get("cost", 0)
+	var remaining_credits = result.get("remaining_credits", 0)
+
+	# Update player data
+	if player_ship:
+		player_ship.upgrades[upgrade_type] = new_level
+		player_ship.credits = remaining_credits  # Use remaining credits from API response
+
+		# Apply upgrade effects immediately
+		if upgrade_system:
+			upgrade_system.apply_upgrade_effects(upgrade_type, new_level, player_ship)
+
+		print("ZoneUIManager: Applied %s level %d effects to player, credits now: %d" % [upgrade_type, new_level, remaining_credits])
+
+	# Update UI immediately
+	update_credits_display(remaining_credits)
+	_populate_upgrade_catalog()  # Refresh catalog with new levels
+	_update_purchase_result("SUCCESS!\nPurchased %s level %d for %d credits" % [upgrade_type, new_level, cost], Color.GREEN)
+
+	# Update the upgrade status panel to show purchased upgrades
+	update_upgrade_status_display(player_ship.upgrades, upgrade_system)
+
+	# Clear selection to reset interface
+	current_selected_upgrade = ""
+	current_upgrade_cost = 0
+
+	# Clear upgrade details panel to show updated state
+	if upgrade_details_label:
+		upgrade_details_label.text = "Select an upgrade above to see details"
+
+	# Reset purchase button
+	if purchase_button:
+		purchase_button.text = "PURCHASE UPGRADE"
+		purchase_button.disabled = true
+
+	# Force UI refresh to ensure immediate update
+	print("ZoneUIManager: Forcing UI refresh after successful upgrade purchase")
+
+func handle_upgrade_purchase_failed(reason: String, upgrade_type: String) -> void:
+	##Handle failed upgrade purchase from API
+	print("ZoneUIManager: Upgrade purchase failed: %s - %s" % [upgrade_type, reason])
+
+	# Update UI with error
+	_update_purchase_result("PURCHASE FAILED\n%s\nReason: %s" % [upgrade_type, reason], Color.RED)
+
+func _update_purchase_result(message: String, color: Color = Color.WHITE) -> void:
+	##Update the purchase result display
+	if purchase_result:
+		purchase_result.text = message
+		purchase_result.modulate = color
+		print("ZoneUIManager: Purchase result updated: %s" % message)
+
+## Phase 4A: Purchase Processing Integration for ZoneMain.gd (2D version)
+
+func _on_upgrade_purchase_requested(upgrade_type: String) -> void:
+	##Handle upgrade purchase request (Phase 4A requirement)
+	##Direct entry point for purchasing upgrades with full validation
+	print("ZoneUIManager: Upgrade purchase requested for type: %s" % upgrade_type)
+
+	if not upgrade_system or not player_ship:
+		print("ZoneUIManager: ERROR - Missing upgrade system or player ship for purchase")
+		return
+
+	# Get upgrade data and validate
+	var upgrade_definitions = upgrade_system.upgrade_definitions
+	var upgrade_data = upgrade_definitions.get(upgrade_type, {})
+
+	if upgrade_data.is_empty():
+		print("ZoneUIManager: ERROR - Invalid upgrade type: %s" % upgrade_type)
+		return
+
+	# Get current state
+	var current_level = player_ship.upgrades.get(upgrade_type, 0)
+	var max_level = upgrade_data.max_level
+	var player_credits = player_ship.credits
+	var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+
+	# Client-side validation
+	if current_level >= max_level:
+		print("ZoneUIManager: Purchase failed - %s already at max level (%d)" % [upgrade_type, max_level])
+		_update_purchase_result("PURCHASE FAILED\n%s is already at maximum level" % upgrade_data.name, Color.RED)
+		return
+
+	if player_credits < cost:
+		print("ZoneUIManager: Purchase failed - Insufficient credits (need %d, have %d)" % [cost, player_credits])
+		_update_purchase_result("PURCHASE FAILED\nInsufficient credits for %s\nNeed: %d, Have: %d" % [upgrade_data.name, cost, player_credits], Color.RED)
+		return
+
+	# Set current selection for confirmation dialog
+	current_selected_upgrade = upgrade_type
+	current_upgrade_cost = cost
+
+	# Show confirmation dialog with upgrade details
+	if confirm_upgrade_name:
+		confirm_upgrade_name.text = upgrade_data.name
+
+	if confirm_upgrade_info:
+		var next_level = current_level + 1
+		confirm_upgrade_info.text = "%s\nUpgrade from Level %d to Level %d\nEffect: %s" % [
+			upgrade_data.description,
+			current_level,
+			next_level,
+			upgrade_data.description
+		]
+
+	if confirm_cost_label:
+		confirm_cost_label.text = "Cost: %d credits" % cost
+
+	# Show confirmation dialog
+	if confirm_purchase_dialog:
+		confirm_purchase_dialog.popup_centered()
+		print("ZoneUIManager: Showing purchase confirmation for %s (cost: %d)" % [upgrade_type, cost])
+	else:
+		# If no confirmation dialog, proceed directly (for automated/programmatic purchases)
+		print("ZoneUIManager: No confirmation dialog - proceeding with direct purchase")
+		_perform_upgrade_purchase()
+
+func _perform_upgrade_purchase() -> void:
+	##Perform the actual upgrade purchase (extracted for reuse)
+	if current_selected_upgrade.is_empty():
+		print("ZoneUIManager: ERROR - No upgrade selected for purchase")
+		return
+
+	print("ZoneUIManager: Performing upgrade purchase: %s for %d credits" % [current_selected_upgrade, current_upgrade_cost])
+
+	# Call APIClient to purchase upgrade (Phase 2A integration)
+	if api_client and api_client.has_method("purchase_upgrade"):
+		api_client.purchase_upgrade(player_ship.player_id, current_selected_upgrade, current_upgrade_cost)
+		print("ZoneUIManager: Purchase request sent to API")
+	else:
+		print("ZoneUIManager: ERROR - API client does not support upgrade purchases")
+		_update_purchase_result("PURCHASE FAILED\nAPI client error", Color.RED)

@@ -300,23 +300,82 @@ anchor_bottom = 0.1
 text = "TRADING TERMINAL"
 horizontal_alignment = 1
 
-[node name="TradingContent" type="VBoxContainer" parent="UILayer/HUD/TradingInterface"]
+[node name="TradingTabs" type="TabContainer" parent="UILayer/HUD/TradingInterface"]
 layout_mode = 0
 anchor_left = 0.05
 anchor_top = 0.1
 anchor_right = 0.95
 anchor_bottom = 0.85
 
-[node name="TradingResult" type="Label" parent="UILayer/HUD/TradingInterface/TradingContent"]
+[node name="SELL" type="Control" parent="UILayer/HUD/TradingInterface/TradingTabs"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="TradingContent" type="VBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="TradingResult" type="Label" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent"]
 layout_mode = 2
 text = "Trading information will appear here"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="SellAllButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingContent"]
+[node name="SellAllButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent"]
 layout_mode = 2
 text = "SELL ALL DEBRIS"
+
+[node name="BUY" type="Control" parent="UILayer/HUD/TradingInterface/TradingTabs"]
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="UpgradeContent" type="VBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="UpgradeCatalog" type="ScrollContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="UpgradeGrid" type="GridContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 1
+
+[node name="UpgradeDetails" type="Panel" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+
+[node name="UpgradeDetailsLabel" type="Label" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "Select an upgrade above to see details"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="PurchaseControls" type="HBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+
+[node name="PurchaseButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "PURCHASE UPGRADE"
+disabled = true
+
+[node name="PurchaseResult" type="Label" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="TradingCloseButton" type="Button" parent="UILayer/HUD/TradingInterface"]
 layout_mode = 0
@@ -325,3 +384,76 @@ anchor_top = 0.05
 anchor_right = 0.95
 anchor_bottom = 0.1
 text = "X"
+
+[node name="ConfirmPurchaseDialog" type="AcceptDialog" parent="UILayer/HUD"]
+initial_position = 2
+size = Vector2i(500, 300)
+dialog_text = ""
+title = "Confirm Purchase"
+
+[node name="ConfirmDialogContent" type="VBoxContainer" parent="UILayer/HUD/ConfirmPurchaseDialog"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 15.0
+offset_top = 40.0
+offset_right = -15.0
+offset_bottom = -60.0
+
+[node name="HeaderSpacer" type="Control" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
+
+[node name="UpgradeNameLabel" type="Label" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
+text = "Upgrade Name"
+horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
+
+[node name="NameSpacer" type="Control" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
+
+[node name="UpgradeInfoLabel" type="Label" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 60)
+text = "Upgrade details"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="InfoSpacer" type="Control" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
+
+[node name="CostLabel" type="Label" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 25)
+text = "Cost: 0 credits"
+horizontal_alignment = 1
+
+[node name="CostSpacer" type="Control" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 15)
+
+[node name="ConfirmButtons" type="HBoxContainer" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+
+[node name="ConfirmButton" type="Button" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(120, 35)
+text = "CONFIRM PURCHASE"
+
+[node name="ButtonSpacer" type="Control" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(10, 0)
+
+[node name="CancelButton" type="Button" parent="UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(120, 35)
+text = "CANCEL"

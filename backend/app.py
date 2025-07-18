@@ -138,6 +138,141 @@ class ZoneData(BaseModel):
     last_visited: float
 
 
+class UpgradePurchaseRequest(BaseModel):
+    upgrade_type: str
+    expected_cost: int
+
+
+class UpgradePurchaseResponse(BaseModel):
+    success: bool
+    new_level: int
+    cost: int
+    remaining_credits: int
+    error_message: str = ""
+
+
+class CreditsUpdateRequest(BaseModel):
+    credits_change: int
+    error_message: str = ""
+
+
+# Upgrade definitions matching the client-side UpgradeSystem.gd
+UPGRADE_DEFINITIONS = {
+    "speed_boost": {
+        "name": "Speed Boost",
+        "description": "Increases ship movement speed",
+        "max_level": 5,
+        "base_cost": 100,
+        "cost_multiplier": 1.5,
+        "effect_per_level": 50.0,
+        "category": "movement",
+    },
+    "inventory_expansion": {
+        "name": "Inventory Expansion",
+        "description": "Increases inventory capacity",
+        "max_level": 10,
+        "base_cost": 200,
+        "cost_multiplier": 1.3,
+        "effect_per_level": 5,
+        "category": "inventory",
+    },
+    "collection_efficiency": {
+        "name": "Collection Efficiency",
+        "description": "Increases collection range and speed",
+        "max_level": 5,
+        "base_cost": 150,
+        "cost_multiplier": 1.4,
+        "effect_per_level": 20.0,
+        "category": "collection",
+    },
+    "zone_access": {
+        "name": "Zone Access",
+        "description": "Unlocks access to deeper zones",
+        "max_level": 5,
+        "base_cost": 500,
+        "cost_multiplier": 2.0,
+        "effect_per_level": 1,
+        "category": "access",
+    },
+    "debris_scanner": {
+        "name": "Debris Scanner",
+        "description": "Highlights valuable debris on the map",
+        "max_level": 3,
+        "base_cost": 300,
+        "cost_multiplier": 1.6,
+        "effect_per_level": 1,
+        "category": "utility",
+    },
+    "cargo_magnet": {
+        "name": "Cargo Magnet",
+        "description": "Automatically attracts nearby debris",
+        "max_level": 3,
+        "base_cost": 400,
+        "cost_multiplier": 1.7,
+        "effect_per_level": 1,
+        "category": "collection",
+    },
+}
+
+
+def calculate_upgrade_cost(upgrade_type: str, current_level: int) -> int:
+    """Calculate the cost to upgrade to the next level"""
+    if upgrade_type not in UPGRADE_DEFINITIONS:
+        return -1
+
+    upgrade_data = UPGRADE_DEFINITIONS[upgrade_type]
+    base_cost = upgrade_data["base_cost"]  # type: ignore
+    cost_multiplier = upgrade_data["cost_multiplier"]  # type: ignore
+
+    # Cost increases exponentially with level
+    cost = int(base_cost * (cost_multiplier**current_level))  # type: ignore
+    logger.info(
+        f"Calculated upgrade cost for {upgrade_type} level {current_level}: {cost}"
+    )
+    return cost
+
+
+def validate_upgrade_purchase(
+    upgrade_type: str, current_level: int, player_credits: int, expected_cost: int
+) -> tuple[bool, str]:
+    """Validate if upgrade purchase is possible"""
+    logger.info(
+        f"Validating upgrade purchase: {upgrade_type}, level {current_level}, "
+        f"credits {player_credits}, expected cost {expected_cost}"
+    )
+
+    # Check if upgrade type exists
+    if upgrade_type not in UPGRADE_DEFINITIONS:
+        return False, f"Unknown upgrade type: {upgrade_type}"
+
+    upgrade_data = UPGRADE_DEFINITIONS[upgrade_type]
+    max_level = upgrade_data["max_level"]  # type: ignore
+
+    # Check if already at max level
+    if current_level >= max_level:  # type: ignore
+        return (
+            False,
+            f"Upgrade {upgrade_type} is already at maximum level ({max_level})",
+        )
+
+    # Calculate actual cost
+    actual_cost = calculate_upgrade_cost(upgrade_type, current_level)
+
+    # Validate expected cost matches actual cost (client-side validation)
+    if expected_cost != actual_cost:
+        logger.warning(
+            f"Cost mismatch for {upgrade_type}: "
+            f"expected {expected_cost}, actual {actual_cost}"
+        )
+        # Still allow purchase but use actual cost
+
+    # Check if player has enough credits
+    if player_credits < actual_cost:
+        return False, f"Insufficient credits. Need {actual_cost}, have {player_credits}"
+
+    return True, ""
+
+
 # In-memory storage for fallback when database is unavailable
 players_db: Dict[str, PlayerData] = {}
 inventory_db: Dict[str, List[dict[str, Any]]] = {}
@@ -580,8 +715,9 @@ async def clear_player_inventory(player_id: str):
 
 
 @app.post("/api/v1/players/{player_id}/credits")
-async def update_player_credits(player_id: str, credits_change: int):
+async def update_player_credits(player_id: str, credits_data: CreditsUpdateRequest):
     """Update player credits (positive to add, negative to subtract)"""
+    credits_change = credits_data.credits_change
     logger.info(f"Updating credits for player: {player_id}, change: {credits_change}")
 
     try:
@@ -697,6 +833,182 @@ async def get_player_zones(player_id: str):
             "zones": zones,
             "total_zones": len(zones),
         }
+
+
+@app.post("/api/v1/players/{player_id}/upgrades/purchase")
+async def purchase_upgrade(player_id: str, upgrade_data: UpgradePurchaseRequest):
+    """Purchase an upgrade for a player"""
+    logger.info(
+        f"Processing upgrade purchase for player {player_id}: "
+        f"{upgrade_data.upgrade_type} (expected cost: {upgrade_data.expected_cost})"
+    )
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                # Begin transaction for atomic upgrade purchase
+                cursor.execute("BEGIN")
+
+                try:
+                    # Get current player data with row lock to prevent
+                    # concurrent modifications
+                    cursor.execute(
+                        """
+                        SELECT id, name, credits FROM players
+                        WHERE id = %s FOR UPDATE
+                        """,
+                        (player_id,),
+                    )
+
+                    player_row = cursor.fetchone()
+                    if not player_row:
+                        logger.warning(f"Player not found: {player_id}")
+                        raise HTTPException(status_code=404, detail="Player not found")
+
+                    current_credits = player_row["credits"]
+                    logger.info(
+                        f"Player {player_row['name']} has {current_credits} credits"
+                    )
+
+                    # Get current upgrade level
+                    cursor.execute(
+                        """
+                        SELECT level FROM upgrades
+                        WHERE player_id = %s AND upgrade_type = %s
+                        """,
+                        (player_id, upgrade_data.upgrade_type),
+                    )
+
+                    upgrade_row = cursor.fetchone()
+                    current_level = upgrade_row["level"] if upgrade_row else 0
+                    logger.info(
+                        f"Current {upgrade_data.upgrade_type} level: {current_level}"
+                    )
+
+                    # Validate the purchase
+                    is_valid, error_message = validate_upgrade_purchase(
+                        upgrade_data.upgrade_type,
+                        current_level,
+                        current_credits,
+                        upgrade_data.expected_cost,
+                    )
+
+                    if not is_valid:
+                        logger.warning(
+                            f"Upgrade purchase validation failed: {error_message}"
+                        )
+                        cursor.execute("ROLLBACK")
+                        return UpgradePurchaseResponse(
+                            success=False,
+                            new_level=current_level,
+                            cost=0,
+                            remaining_credits=current_credits,
+                            error_message=error_message,
+                        )
+
+                    # Calculate actual cost (use actual cost, not expected cost)
+                    actual_cost = calculate_upgrade_cost(
+                        upgrade_data.upgrade_type, current_level
+                    )
+                    new_level = current_level + 1
+                    new_credits = current_credits - actual_cost
+
+                    logger.info(
+                        f"Processing upgrade: cost={actual_cost}, "
+                        f"new_level={new_level}, remaining_credits={new_credits}"
+                    )
+
+                    # Update player credits
+                    cursor.execute(
+                        """
+                        UPDATE players
+                        SET credits = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                        """,
+                        (new_credits, player_id),
+                    )
+
+                    # Update or insert upgrade level
+                    cursor.execute(
+                        """
+                        INSERT INTO upgrades (player_id, upgrade_type, level)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (player_id, upgrade_type)
+                        DO UPDATE SET
+                            level = EXCLUDED.level,
+                            updated_at = CURRENT_TIMESTAMP
+                        """,
+                        (player_id, upgrade_data.upgrade_type, new_level),
+                    )
+
+                    # Commit transaction
+                    cursor.execute("COMMIT")
+
+                    logger.info(
+                        f"Upgrade purchased successfully: {upgrade_data.upgrade_type} "
+                        f"level {new_level} for {actual_cost} credits"
+                    )
+
+                    return UpgradePurchaseResponse(
+                        success=True,
+                        new_level=new_level,
+                        cost=actual_cost,
+                        remaining_credits=new_credits,
+                        error_message="",
+                    )
+
+                except Exception as e:
+                    cursor.execute("ROLLBACK")
+                    logger.error(f"Transaction error during upgrade purchase: {e}")
+                    raise e
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Database error during upgrade purchase: {e}")
+
+        # Fall back to in-memory storage
+        if player_id not in players_db:
+            raise HTTPException(status_code=404, detail="Player not found")
+
+        player = players_db[player_id]
+        current_level = player.upgrades.get(upgrade_data.upgrade_type, 0)
+
+        # Validate the purchase using fallback data
+        is_valid, error_message = validate_upgrade_purchase(
+            upgrade_data.upgrade_type,
+            current_level,
+            player.credits,
+            upgrade_data.expected_cost,
+        )
+
+        if not is_valid:
+            return UpgradePurchaseResponse(
+                success=False,
+                new_level=current_level,
+                cost=0,
+                remaining_credits=player.credits,
+                error_message=error_message,
+            )
+
+        # Process purchase in memory
+        actual_cost = calculate_upgrade_cost(upgrade_data.upgrade_type, current_level)
+        new_level = current_level + 1
+        player.credits -= actual_cost
+        player.upgrades[upgrade_data.upgrade_type] = new_level
+
+        logger.info(
+            f"Upgrade purchased in fallback mode: "
+            f"{upgrade_data.upgrade_type} level {new_level}"
+        )
+
+        return UpgradePurchaseResponse(
+            success=True,
+            new_level=new_level,
+            cost=actual_cost,
+            remaining_credits=player.credits,
+            error_message="",
+        )
 
 
 @app.get("/api/v1/health")

@@ -23,6 +23,9 @@ signal npc_hub_entered(hub_type: String)
 ## Signal emitted when player exits NPC hub area
 signal npc_hub_exited()
 
+## Signal emitted when inventory capacity is expanded
+signal inventory_expanded(old_capacity: int, new_capacity: int)
+
 @onready var sprite_2d: Sprite2D = $Sprite2D
 @onready var collision_shape_2d: CollisionShape2D = $CollisionShape2D
 @onready var collection_area: Area2D = $CollectionArea
@@ -41,7 +44,7 @@ var friction: float = 600.0
 var max_speed: float = 300.0
 
 # Player state
-var player_id: String = "player_001"
+var player_id: String = "550e8400-e29b-41d4-a716-446655440000"
 var current_inventory: Array[Dictionary] = []
 var inventory_capacity: int = 10
 var credits: int = 0
@@ -405,17 +408,36 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 	match upgrade_type:
 		"speed_boost":
 			speed = 200.0 + (level * 50.0)
+			max_speed = speed * 1.5  # Allow burst speed above base speed
+			_log_message("PlayerShip: Speed boost applied - Speed: %.1f, Max Speed: %.1f" % [speed, max_speed])
 		"inventory_expansion":
+			var old_capacity = inventory_capacity
 			inventory_capacity = 10 + (level * 5)
+			_log_message("PlayerShip: Inventory expansion applied - Old Capacity: %d, New Capacity: %d" % [old_capacity, inventory_capacity])
+			inventory_expanded.emit(old_capacity, inventory_capacity)
 		"collection_efficiency":
 			collection_range = 80.0 + (level * 20.0)
 			collection_cooldown = max(0.1, 0.5 - (level * 0.05))
 			# Update collection area size
 			if collection_collision and collection_collision.shape:
 				collection_collision.shape.radius = collection_range
+			_log_message("PlayerShip: Collection efficiency applied - Range: %.1f, Cooldown: %.2fs" % [collection_range, collection_cooldown])
 		"zone_access":
-			# This will be handled by the zone system
-			pass
+			# Set zone access level for future zone system integration
+			upgrades["zone_access"] = level
+			_log_message("PlayerShip: Zone access applied - Level: %d" % level)
+		"debris_scanner":
+			if level > 0:
+				enable_debris_scanner(level)
+			else:
+				disable_debris_scanner()
+			_log_message("PlayerShip: Debris scanner applied - Level: %d, Active: %s" % [level, level > 0])
+		"cargo_magnet":
+			if level > 0:
+				enable_cargo_magnet(level)
+			else:
+				disable_cargo_magnet()
+			_log_message("PlayerShip: Cargo magnet applied - Level: %d, Active: %s" % [level, level > 0])
 
 	_log_message("PlayerShip: Upgrade effects applied - Speed: %.1f, Capacity: %d, Collection Range: %.1f" % [speed, inventory_capacity, collection_range])
 
@@ -423,47 +445,419 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 func set_speed(new_speed: float) -> void:
 	##Set the player ship speed
 	speed = new_speed
+	max_speed = new_speed * 1.5  # Allow burst speed above base speed
+
+	# Add visual feedback for speed changes
+	_update_speed_visual_feedback()
+
 	_log_message("PlayerShip: Speed set to %.1f" % speed)
+
+func _update_speed_visual_feedback() -> void:
+	##Update visual feedback based on current speed upgrades for 2D
+	var speed_level = int((speed - 200.0) / 50.0)  # Calculate upgrade level based on speed
+
+	if speed_level > 0:
+		_create_speed_boost_effects_2d(speed_level)
+	else:
+		_remove_speed_boost_effects_2d()
+
+func _create_speed_boost_effects_2d(level: int) -> void:
+	##Create 2D visual effects for speed boost upgrades
+	_log_message("PlayerShip: Creating 2D speed boost visual effects at level %d" % level)
+
+	# Remove existing speed effects
+	_remove_speed_boost_effects_2d()
+
+	# Create thrust particle effects for 2D
+	_create_thrust_particles_2d(level)
+
+	# Create speed indicator for 2D
+	_create_speed_indicator_2d(level)
+
+	# Add ship trail effect for 2D
+	_create_ship_trail_2d(level)
+
+func _remove_speed_boost_effects_2d() -> void:
+	##Remove all 2D speed boost visual effects
+	var thrust_particles = get_node_or_null("ThrustParticles2D")
+	if thrust_particles:
+		thrust_particles.queue_free()
+
+	var speed_indicator = get_node_or_null("SpeedIndicator2D")
+	if speed_indicator:
+		speed_indicator.queue_free()
+
+	var ship_trail = get_node_or_null("ShipTrail2D")
+	if ship_trail:
+		ship_trail.queue_free()
+
+func _create_thrust_particles_2d(level: int) -> void:
+	##Create 2D particle effects for ship thrust based on speed level
+	var particles = GPUParticles2D.new()
+	particles.name = "ThrustParticles2D"
+	particles.emitting = true
+
+	# Create particle material for 2D
+	var material = ParticleProcessMaterial.new()
+	material.direction = Vector3(0, 1, 0)  # Thrust backwards in 2D
+	material.initial_velocity_min = 20.0 + (level * 15.0)
+	material.initial_velocity_max = 40.0 + (level * 25.0)
+	material.gravity = Vector3.ZERO
+	material.scale_min = 0.3
+	material.scale_max = 0.8 + (level * 0.2)
+
+	# Color variation based on speed level
+	var base_color = Color(0.2, 0.5, 1.0, 0.8)  # Blue thrust
+	var boost_color = Color(1.0, 0.3, 0.0, 0.9)  # Orange/red for higher speeds
+	var blend_factor = min(level / 5.0, 1.0)
+	material.color = base_color.lerp(boost_color, blend_factor)
+
+	material.emission = 30 + (level * 15)  # More particles at higher levels
+	particles.process_material = material
+	particles.lifetime = 1.2
+
+	# Position behind the ship in 2D
+	particles.position = Vector2(0, 25)
+	add_child(particles)
+
+	_log_message("PlayerShip: 2D thrust particles created for speed level %d" % level)
+
+func _create_speed_indicator_2d(level: int) -> void:
+	##Create 2D visual speed indicator around the ship
+	var indicator = Node2D.new()
+	indicator.name = "SpeedIndicator2D"
+
+	# Create multiple ring polygons for layered effect
+	for ring in range(2):
+		var ring_polygon = Polygon2D.new()
+		ring_polygon.name = "SpeedRing%d" % ring
+
+		var ring_points = PackedVector2Array()
+		var radius = 25.0 + (ring * 8.0) + (level * 5.0)
+		for i in range(16):  # 16 points for speed ring
+			var angle = (i / 16.0) * 2 * PI
+			ring_points.append(Vector2(cos(angle) * radius, sin(angle) * radius))
+
+		ring_polygon.polygon = ring_points
+
+		# Color intensity based on speed level and ring
+		var intensity = (0.2 + (level * 0.1)) * (1.0 - ring * 0.4)
+		var speed_color = Color(0.0, 1.0, 0.5, intensity)  # Green speed indicator
+		ring_polygon.color = speed_color
+
+		indicator.add_child(ring_polygon)
+
+	add_child(indicator)
+
+	# Animate the speed indicator
+	var tween = create_tween()
+	tween.set_loops()
+	var rotation_speed = 1.0 + (level * 0.5)  # Faster rotation for higher speeds
+	tween.tween_property(indicator, "rotation", 2 * PI, 3.0 / rotation_speed)
+
+	_log_message("PlayerShip: 2D speed indicator created for level %d" % level)
+
+func _create_ship_trail_2d(level: int) -> void:
+	##Create 2D trailing effect behind the ship when moving fast
+	var trail = Node2D.new()
+	trail.name = "ShipTrail2D"
+
+	# Create trail using line2D for smooth trail effect
+	var trail_line = Line2D.new()
+	trail_line.name = "TrailLine"
+
+	# Configure trail appearance
+	trail_line.width = 3.0 + (level * 1.5)
+	trail_line.default_color = Color(0.3, 0.7, 1.0, 0.6 + level * 0.1)
+	trail_line.texture_mode = Line2D.LINE_TEXTURE_STRETCH
+
+	# Add gradient for fading effect
+	var gradient = Gradient.new()
+	gradient.add_point(0.0, Color(0.3, 0.7, 1.0, 0.8 + level * 0.1))
+	gradient.add_point(1.0, Color(0.1, 0.3, 0.5, 0.0))
+
+	var gradient_texture = GradientTexture2D.new()
+	gradient_texture.gradient = gradient
+	trail_line.texture = gradient_texture
+
+	trail.add_child(trail_line)
+	add_child(trail)
+
+	# Start with empty trail
+	trail_line.clear_points()
+	trail.visible = false
+
+	_log_message("PlayerShip: 2D ship trail created for level %d" % level)
 
 func set_inventory_capacity(new_capacity: int) -> void:
 	##Set the inventory capacity
+	var old_capacity = inventory_capacity
 	inventory_capacity = new_capacity
+
+	# Add visual feedback for inventory expansion
+	if new_capacity > old_capacity:
+		_show_inventory_expansion_effects_2d(old_capacity, new_capacity)
+
 	_log_message("PlayerShip: Inventory capacity set to %d" % inventory_capacity)
+
+func _show_inventory_expansion_effects_2d(old_capacity: int, new_capacity: int) -> void:
+	##Show 2D visual effects when inventory capacity increases
+	_log_message("PlayerShip: Showing 2D inventory expansion effects from %d to %d" % [old_capacity, new_capacity])
+
+	# Create expansion visual effect
+	_create_inventory_expansion_visual_2d(new_capacity)
+
+	# Emit signal for UI updates
+	inventory_expanded.emit(old_capacity, new_capacity)
+
+	# Create capacity indicator
+	_update_inventory_capacity_indicator_2d(new_capacity)
+
+func _create_inventory_expansion_visual_2d(capacity: int) -> void:
+	##Create 2D visual effect for inventory expansion
+	var expansion_effect = Node2D.new()
+	expansion_effect.name = "InventoryExpansionEffect2D"
+
+	# Create expanding circle effect using Polygon2D
+	var expansion_circle = Polygon2D.new()
+	expansion_circle.name = "ExpansionCircle"
+
+	# Create circle points for expansion
+	var circle_points = PackedVector2Array()
+	var radius = 30.0
+	for i in range(32):
+		var angle = (i / 32.0) * 2 * PI
+		circle_points.append(Vector2(cos(angle) * radius, sin(angle) * radius))
+
+	expansion_circle.polygon = circle_points
+	expansion_circle.color = Color(0.8, 0.4, 1.0, 0.5)  # Purple expansion effect
+
+	expansion_effect.add_child(expansion_circle)
+	add_child(expansion_effect)
+
+	# Animate expansion effect
+	var tween = create_tween()
+	tween.parallel().tween_property(expansion_effect, "scale", Vector2(4.0, 4.0), 1.5)
+	tween.parallel().tween_property(expansion_circle, "color:a", 0.0, 1.5)
+	tween.tween_callback(expansion_effect.queue_free)
+
+	_log_message("PlayerShip: 2D inventory expansion visual effect created")
+
+func _update_inventory_capacity_indicator_2d(capacity: int) -> void:
+	##Update or create 2D inventory capacity indicator
+	# Remove existing indicator
+	var existing_indicator = get_node_or_null("InventoryIndicator2D")
+	if existing_indicator:
+		existing_indicator.queue_free()
+
+	# Create new capacity indicator
+	var indicator = Node2D.new()
+	indicator.name = "InventoryIndicator2D"
+
+	# Create capacity level visualization (stacked rectangles)
+	var capacity_level = int((capacity - 10) / 5)  # Calculate upgrade level
+	for level in range(capacity_level + 1):
+		var rect = Polygon2D.new()
+		rect.name = "CapacityRect%d" % level
+
+		# Create rectangle points
+		var rect_size = Vector2(8, 6)
+		var rect_points = PackedVector2Array([
+			Vector2(-rect_size.x/2, -rect_size.y/2),
+			Vector2(rect_size.x/2, -rect_size.y/2),
+			Vector2(rect_size.x/2, rect_size.y/2),
+			Vector2(-rect_size.x/2, rect_size.y/2)
+		])
+		rect.polygon = rect_points
+
+		# Color based on level
+		var intensity = 0.5 + (level * 0.2)
+		rect.color = Color(0.3, 0.8, 0.3, intensity)  # Green capacity indicator
+
+		# Stack rectangles horizontally on the right side of ship
+		rect.position = Vector2(25 + (level * 10), 0)
+		indicator.add_child(rect)
+
+	add_child(indicator)
+	_log_message("PlayerShip: 2D inventory capacity indicator updated for capacity %d" % capacity)
 
 func set_collection_range(new_range: float) -> void:
 	##Set the collection range
+	var old_range = collection_range
 	collection_range = new_range
+
 	# Update collection area size
 	if collection_collision and collection_collision.shape:
 		collection_collision.shape.radius = collection_range
+
+	# Add visual feedback for collection efficiency improvements
+	if new_range > old_range:
+		_show_collection_efficiency_effects_2d(old_range, new_range)
+
+	# Update collection range indicator
+	_update_collection_range_indicator_2d()
+
 	_log_message("PlayerShip: Collection range set to %.1f" % collection_range)
+
+func _show_collection_efficiency_effects_2d(old_range: float, new_range: float) -> void:
+	##Show 2D visual effects when collection efficiency increases
+	_log_message("PlayerShip: Showing 2D collection efficiency effects from %.1f to %.1f" % [old_range, new_range])
+
+	# Create efficiency boost visual effect
+	_create_collection_efficiency_visual_2d()
+
+	# Create collection pulse effect
+	_create_collection_pulse_effect_2d()
+
+func _create_collection_efficiency_visual_2d() -> void:
+	##Create 2D visual effect for collection efficiency upgrade
+	var efficiency_effect = Node2D.new()
+	efficiency_effect.name = "CollectionEfficiencyEffect2D"
+
+	# Create expanding ring effect
+	var efficiency_ring = Polygon2D.new()
+	efficiency_ring.name = "EfficiencyRing"
+
+	# Create ring points for efficiency visualization
+	var ring_points = PackedVector2Array()
+	var ring_radius = collection_range * 0.9
+	for i in range(32):
+		var angle = (i / 32.0) * 2 * PI
+		ring_points.append(Vector2(cos(angle) * ring_radius, sin(angle) * ring_radius))
+
+	efficiency_ring.polygon = ring_points
+	efficiency_ring.color = Color(0.2, 0.8, 1.0, 0.4)  # Cyan collection efficiency effect
+
+	efficiency_effect.add_child(efficiency_ring)
+	add_child(efficiency_effect)
+
+	# Animate efficiency effect
+	var tween = create_tween()
+	tween.parallel().tween_property(efficiency_effect, "scale", Vector2(1.5, 1.5), 2.0)
+	tween.parallel().tween_property(efficiency_ring, "color:a", 0.0, 2.0)
+	tween.tween_callback(efficiency_effect.queue_free)
+
+	_log_message("PlayerShip: 2D collection efficiency visual effect created")
+
+func _create_collection_pulse_effect_2d() -> void:
+	##Create 2D pulsing effect showing collection range
+	var pulse_effect = Node2D.new()
+	pulse_effect.name = "CollectionPulseEffect2D"
+
+	# Create circle for pulse
+	var pulse_circle = Polygon2D.new()
+	pulse_circle.name = "PulseCircle"
+
+	var circle_points = PackedVector2Array()
+	for i in range(24):
+		var angle = (i / 24.0) * 2 * PI
+		circle_points.append(Vector2(cos(angle) * collection_range, sin(angle) * collection_range))
+
+	pulse_circle.polygon = circle_points
+	pulse_circle.color = Color(0.0, 1.0, 0.5, 0.3)  # Green pulse effect
+
+	pulse_effect.add_child(pulse_circle)
+	add_child(pulse_effect)
+
+	# Animate pulse effect (3 pulses)
+	var tween = create_tween()
+	for i in range(3):
+		tween.parallel().tween_property(pulse_effect, "scale", Vector2(1.3, 1.3), 0.5)
+		tween.parallel().tween_property(pulse_effect, "scale", Vector2(0.7, 0.7), 0.5)
+
+	tween.tween_callback(pulse_effect.queue_free)
+
+	_log_message("PlayerShip: 2D collection pulse effect created")
+
+func _update_collection_range_indicator_2d() -> void:
+	##Update the 2D collection range indicator based on current range
+	# Remove existing collection range indicator
+	var existing_range_indicator = get_node_or_null("CollectionRangeIndicator2D")
+	if existing_range_indicator:
+		existing_range_indicator.queue_free()
+
+	# Create new range indicator
+	var range_indicator = Node2D.new()
+	range_indicator.name = "CollectionRangeIndicator2D"
+
+	# Create range circle
+	var range_circle = Polygon2D.new()
+	range_circle.name = "RangeCircle"
+
+	var circle_points = PackedVector2Array()
+	for i in range(32):
+		var angle = (i / 32.0) * 2 * PI
+		circle_points.append(Vector2(cos(angle) * collection_range, sin(angle) * collection_range))
+
+	range_circle.polygon = circle_points
+
+	# Color intensity based on collection efficiency level
+	var efficiency_level = int((collection_range - 80.0) / 20.0)  # Calculate efficiency level for 2D
+	var base_intensity = 0.1
+	var level_bonus = max(0, efficiency_level) * 0.03
+	range_circle.color = Color(0.0, 0.8, 0.4, base_intensity + level_bonus)  # Green range indicator
+
+	range_indicator.add_child(range_circle)
+	add_child(range_indicator)
+
+	# Only show when there's debris nearby or efficiency is upgraded
+	range_indicator.visible = (nearby_debris.size() > 0) or (efficiency_level > 0)
+
+	_log_message("PlayerShip: 2D collection range indicator updated for range %.1f (level %d)" % [collection_range, efficiency_level])
 
 func set_zone_access(access_level: int) -> void:
 	##Set the zone access level
 	upgrades["zone_access"] = access_level
 	_log_message("PlayerShip: Zone access level set to %d" % access_level)
 
-func enable_debris_scanner() -> void:
-	##Enable debris scanner with visual effects
+func enable_debris_scanner(level: int = 1) -> void:
+	##Enable debris scanner with visual effects (level-based activation for 2D)
 	is_scanner_active = true
-	_log_message("PlayerShip: Debris scanner activated")
+	_log_message("PlayerShip: Debris scanner activated at level %d" % level)
+
+	# Remove existing scanner effect if it exists
+	var existing_scanner = get_node_or_null("ScannerEffect2D")
+	if existing_scanner:
+		existing_scanner.queue_free()
 
 	# Implement debris scanner visual effects for 2D
-	_create_scanner_visual_effects_2d()
+	_create_scanner_visual_effects_2d(level)
 
-	# Start scanning for debris periodically
-	if not get_tree().get_nodes_in_group("scanner_timer_2d"):
+	# Start scanning for debris periodically (or update existing timer)
+	var scanner_timers = get_tree().get_nodes_in_group("scanner_timer_2d")
+	if scanner_timers.is_empty():
 		var scanner_timer = Timer.new()
 		scanner_timer.name = "ScannerTimer2D"
-		scanner_timer.wait_time = 2.0  # Scan every 2 seconds
+		scanner_timer.wait_time = max(0.5, 2.0 - (level * 0.3))  # Faster scanning at higher levels
 		scanner_timer.timeout.connect(_perform_debris_scan_2d)
 		scanner_timer.add_to_group("scanner_timer_2d")
 		add_child(scanner_timer)
 		scanner_timer.start()
+		_log_message("PlayerShip: Scanner timer created with %.1fs interval" % scanner_timer.wait_time)
+	else:
+		# Update existing timer for improved frequency
+		var scanner_timer = scanner_timers[0] as Timer
+		scanner_timer.wait_time = max(0.5, 2.0 - (level * 0.3))
+		_log_message("PlayerShip: Scanner timer updated to %.1fs interval" % scanner_timer.wait_time)
 
-func _create_scanner_visual_effects_2d() -> void:
-	##Create 2D visual effects for debris scanner
-	_log_message("PlayerShip: Creating 2D scanner visual effects")
+func disable_debris_scanner() -> void:
+	##Disable debris scanner and remove visual effects for 2D
+	is_scanner_active = false
+	_log_message("PlayerShip: Debris scanner deactivated")
+
+	# Remove scanner visual effects
+	var scanner_effect = get_node_or_null("ScannerEffect2D")
+	if scanner_effect:
+		scanner_effect.queue_free()
+
+	# Remove scanner timer
+	var scanner_timers = get_tree().get_nodes_in_group("scanner_timer_2d")
+	for timer in scanner_timers:
+		timer.queue_free()
+
+func _create_scanner_visual_effects_2d(level: int = 1) -> void:
+	##Create 2D visual effects for debris scanner (level-based intensity)
+	_log_message("PlayerShip: Creating 2D scanner visual effects at level %d" % level)
 
 	# Create scanner pulse effect using Node2D and Polygon2D
 	var scanner_effect = Node2D.new()
@@ -472,24 +866,110 @@ func _create_scanner_visual_effects_2d() -> void:
 	var circle_polygon = Polygon2D.new()
 	circle_polygon.name = "ScannerCircle"
 
-	# Create circle points for scanner range
+	# Create circle points for scanner range (larger at higher levels)
 	var circle_points = PackedVector2Array()
-	var radius = 25.0  # Scanner range in 2D
+	var radius = 20.0 + (level * 15.0)  # Scanner range in 2D scales with level
 	for i in range(32):  # 32 points for smooth circle
 		var angle = (i / 32.0) * 2 * PI
 		circle_points.append(Vector2(cos(angle) * radius, sin(angle) * radius))
 
 	circle_polygon.polygon = circle_points
-	circle_polygon.color = Color(0.0, 1.0, 1.0, 0.2)  # Cyan with transparency
+	var intensity = 0.1 + (level * 0.05)  # Brighter at higher levels
+	circle_polygon.color = Color(0.0, 1.0, 1.0, intensity)  # Cyan with level-based transparency
 
 	scanner_effect.add_child(circle_polygon)
 	add_child(scanner_effect)
 
-	# Animate scanner pulse
+	# Animate scanner pulse (faster at higher levels)
+	var pulse_duration = max(0.5, 1.2 - (level * 0.2))
 	var tween = create_tween()
 	tween.set_loops()
-	tween.tween_property(scanner_effect, "scale", Vector2(1.2, 1.2), 1.0)
-	tween.tween_property(scanner_effect, "scale", Vector2(0.8, 0.8), 1.0)
+	tween.tween_property(scanner_effect, "scale", Vector2(1.3, 1.3), pulse_duration)
+	tween.tween_property(scanner_effect, "scale", Vector2(0.7, 0.7), pulse_duration)
+
+func enable_cargo_magnet(level: int = 1) -> void:
+	##Enable cargo magnet for auto-collection (level-based effectiveness for 2D)
+	is_magnet_active = true
+	magnet_range = 10.0 + (level * 8.0)  # Increased range based on level (different scaling for 2D)
+	_log_message("PlayerShip: Cargo magnet activated at level %d with range %.1f" % [level, magnet_range])
+
+	# Remove existing magnet timer if it exists
+	var magnet_timers = get_tree().get_nodes_in_group("magnet_timer_2d")
+	for timer in magnet_timers:
+		timer.queue_free()
+
+	# Implement cargo magnet auto-collection for 2D
+	_start_magnet_auto_collection_2d(level)
+
+	# Create visual effect for magnet
+	_create_magnet_visual_effects_2d(level)
+
+func disable_cargo_magnet() -> void:
+	##Disable cargo magnet and remove visual effects for 2D
+	is_magnet_active = false
+	magnet_range = 0.0
+	_log_message("PlayerShip: Cargo magnet deactivated")
+
+	# Remove magnet visual effects
+	var magnet_effect = get_node_or_null("MagnetEffect2D")
+	if magnet_effect:
+		magnet_effect.queue_free()
+
+	# Remove magnet timer
+	var magnet_timers = get_tree().get_nodes_in_group("magnet_timer_2d")
+	for timer in magnet_timers:
+		timer.queue_free()
+
+func _create_magnet_visual_effects_2d(level: int = 1) -> void:
+	##Create 2D visual effects for cargo magnet
+	_log_message("PlayerShip: Creating 2D magnet visual effects at level %d" % level)
+
+	# Remove existing magnet effect if it exists
+	var existing_magnet = get_node_or_null("MagnetEffect2D")
+	if existing_magnet:
+		existing_magnet.queue_free()
+
+	# Create magnet field visualization using multiple circles
+	var magnet_effect = Node2D.new()
+	magnet_effect.name = "MagnetEffect2D"
+
+	# Create concentric circles for magnetic field effect
+	for ring in range(3):
+		var ring_polygon = Polygon2D.new()
+		ring_polygon.name = "MagnetRing%d" % ring
+
+		var ring_points = PackedVector2Array()
+		var ring_radius = magnet_range * (0.4 + ring * 0.3)
+		for i in range(24):  # 24 points for each ring
+			var angle = (i / 24.0) * 2 * PI
+			ring_points.append(Vector2(cos(angle) * ring_radius, sin(angle) * ring_radius))
+
+		ring_polygon.polygon = ring_points
+		var ring_intensity = (0.08 + (level * 0.02)) * (1.0 - ring * 0.3)  # Fade outer rings
+		ring_polygon.color = Color(1.0, 0.5, 0.0, ring_intensity)  # Orange magnetic field
+
+		magnet_effect.add_child(ring_polygon)
+
+	add_child(magnet_effect)
+
+	# Animate magnet field rotation
+	var tween = create_tween()
+	tween.set_loops()
+	tween.tween_property(magnet_effect, "rotation", 2 * PI, 4.0)
+
+func _start_magnet_auto_collection_2d(level: int = 1) -> void:
+	##Start automatic debris collection when magnet is active in 2D (level-based frequency)
+	var collection_frequency = max(0.2, 0.5 - (level * 0.1))  # Faster collection at higher levels
+
+	var magnet_timer = Timer.new()
+	magnet_timer.name = "MagnetTimer2D"
+	magnet_timer.wait_time = collection_frequency
+	magnet_timer.timeout.connect(_auto_collect_debris_2d)
+	magnet_timer.add_to_group("magnet_timer_2d")
+	add_child(magnet_timer)
+	magnet_timer.start()
+
+	_log_message("PlayerShip: Magnet auto-collection started with %.2fs frequency" % collection_frequency)
 
 func _perform_debris_scan_2d() -> void:
 	##Perform 2D debris scan and highlight detected objects
@@ -523,34 +1003,15 @@ func _highlight_debris_object_2d(debris: Node2D) -> void:
 		var tween = create_tween()
 		tween.tween_property(sprite, "modulate", original_modulate, 2.0)
 
-func enable_cargo_magnet() -> void:
-	##Enable cargo magnet for auto-collection
-	is_magnet_active = true
-	magnet_range = 15.0  # Increased collection range
-	_log_message("PlayerShip: Cargo magnet activated with range %.1f" % magnet_range)
-
-	# Implement cargo magnet auto-collection for 2D
-	_start_magnet_auto_collection_2d()
-
-func _start_magnet_auto_collection_2d() -> void:
-	##Start automatic debris collection when magnet is active in 2D
-	if not get_tree().get_nodes_in_group("magnet_timer_2d"):
-		var magnet_timer = Timer.new()
-		magnet_timer.name = "MagnetTimer2D"
-		magnet_timer.wait_time = 0.5  # Check for auto-collection every 0.5 seconds
-		magnet_timer.timeout.connect(_auto_collect_debris_2d)
-		magnet_timer.add_to_group("magnet_timer_2d")
-		add_child(magnet_timer)
-		magnet_timer.start()
-
 func _auto_collect_debris_2d() -> void:
 	##Automatically collect debris within magnet range in 2D
 	if not is_magnet_active:
 		return
 
 	var debris_collected = 0
+	var max_per_cycle = 2 + (int(magnet_range / 20.0))  # More collection at higher levels (2D scaling)
 	for body in collection_area.get_overlapping_bodies():
-		if body.is_in_group("debris") and debris_collected < 3:  # Limit to 3 per cycle
+		if body.is_in_group("debris") and debris_collected < max_per_cycle:
 			var distance = global_position.distance_to(body.global_position)
 			if distance <= magnet_range:
 				_collect_debris_object(body)

@@ -87,7 +87,27 @@ func _setup_components() -> void:
 		ui_manager.sell_all_button = $UILayer/HUD/TradingInterface/TradingContent/SellAllButton
 		ui_manager.trading_result = $UILayer/HUD/TradingInterface/TradingContent/TradingResult
 		ui_manager.trading_close_button = $UILayer/HUD/TradingInterface/TradingCloseButton
-		print("ZoneMainRefactored: UI manager configured")
+
+		# Setup upgrade interface UI elements (Phase 3B addition)
+		ui_manager.trading_tabs = $UILayer/HUD/TradingInterface/TradingTabs
+		ui_manager.upgrade_content = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent
+		ui_manager.upgrade_catalog = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog
+		ui_manager.upgrade_grid = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog/UpgradeGrid
+		ui_manager.upgrade_details = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails
+		ui_manager.upgrade_details_label = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails/UpgradeDetailsLabel
+		ui_manager.purchase_button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls/PurchaseButton
+		ui_manager.purchase_result = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseResult
+		ui_manager.confirm_purchase_dialog = $UILayer/HUD/ConfirmPurchaseDialog
+		ui_manager.confirm_upgrade_name = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/UpgradeNameLabel
+		ui_manager.confirm_upgrade_info = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/UpgradeInfoLabel
+		ui_manager.confirm_cost_label = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/CostLabel
+		ui_manager.confirm_button = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons/ConfirmButton
+		ui_manager.cancel_button = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons/CancelButton
+
+		# Set system references for upgrade functionality (Phase 3B)
+		ui_manager.set_system_references(player_ship, upgrade_system, api_client)
+
+		print("ZoneMainRefactored: UI manager configured with upgrade interface")
 
 	# Setup debris manager
 	if debris_manager:
@@ -116,6 +136,11 @@ func _connect_signals() -> void:
 		if player_ship.has_signal("npc_hub_exited"):
 			player_ship.npc_hub_exited.connect(_on_npc_hub_exited)
 
+		# Connect upgrade effect signals for immediate UI updates
+		if player_ship.has_signal("inventory_expanded"):
+			player_ship.inventory_expanded.connect(_on_inventory_expanded)
+			print("ZoneMain: Connected to inventory_expanded signal")
+
 	# API client signals
 	if api_client:
 		if api_client.has_signal("player_data_loaded"):
@@ -126,12 +151,22 @@ func _connect_signals() -> void:
 			api_client.inventory_updated.connect(_on_inventory_updated)
 		if api_client.has_signal("api_error"):
 			api_client.api_error.connect(_on_api_error)
+		# Connect upgrade purchase signals (Phase 3B addition)
+		if api_client.has_signal("upgrade_purchased"):
+			api_client.upgrade_purchased.connect(_on_upgrade_purchased_api)
+		if api_client.has_signal("upgrade_purchase_failed"):
+			api_client.upgrade_purchase_failed.connect(_on_upgrade_purchase_failed_api)
 
 	# Upgrade system signals
 	if upgrade_system:
 		upgrade_system.upgrade_purchased.connect(_on_upgrade_purchased)
 		upgrade_system.upgrade_purchase_failed.connect(_on_upgrade_purchase_failed)
 		upgrade_system.upgrade_effects_applied.connect(_on_upgrade_effects_applied)
+
+		# Connect upgrade effect signals for immediate UI feedback
+		if upgrade_system.has_signal("upgrade_effects_applied"):
+			upgrade_system.upgrade_effects_applied.connect(_on_upgrade_effects_applied_ui_update)
+			print("ZoneMain: Connected to upgrade_effects_applied signal")
 
 	# Network manager signals
 	if network_manager:
@@ -298,6 +333,9 @@ func _on_npc_hub_entered() -> void:
 	##Handle entering NPC hub
 	if ui_manager:
 		ui_manager.show_trading_interface("Trading Hub")
+		# Populate upgrade catalog when trading interface opens (Phase 3B requirement)
+		if ui_manager.has_method("_populate_upgrade_catalog"):
+			ui_manager._populate_upgrade_catalog()
 
 func _on_npc_hub_exited() -> void:
 	##Handle exiting NPC hub
@@ -320,10 +358,66 @@ func _on_upgrade_effects_applied(effects: Dictionary) -> void:
 	##Handle upgrade effects being applied
 	_log_message("Upgrade effects applied: %s" % effects)
 
+func _on_inventory_expanded(old_capacity: int, new_capacity: int) -> void:
+	##Handle inventory capacity expansion - update UI immediately for 2D
+	_log_message("ZoneMain: Inventory expanded from %d to %d - updating UI" % [old_capacity, new_capacity])
+
+	# Update UI manager with new inventory status
+	if ui_manager and player_ship:
+		var current_size = player_ship.current_inventory.size()
+		ui_manager.update_inventory_status(current_size, new_capacity)
+
+		# Update upgrade status display
+		ui_manager.update_upgrade_status_display(player_ship.upgrades, upgrade_system)
+
+		# Log the UI update
+		_log_message("ZoneMain: UI updated for inventory expansion to %d items" % new_capacity)
+
+func _on_upgrade_effects_applied_ui_update(upgrade_type: String, level: int) -> void:
+	##Handle when upgrade effects are applied - update relevant UI panels for 2D
+	_log_message("ZoneMain: Upgrade effects applied: %s level %d - updating UI" % [upgrade_type, level])
+
+	# Update UI manager with current player state
+	if ui_manager and player_ship:
+		# Update credits display
+		ui_manager.update_credits_display(player_ship.credits)
+
+		# Update inventory status (capacity might have changed)
+		ui_manager.update_inventory_status(player_ship.current_inventory.size(), player_ship.inventory_capacity)
+
+		# Update collection range display (might have changed)
+		var upgrade_bonus = player_ship.upgrades.get("collection_efficiency", 0) * 20  # 2D uses different scaling
+		ui_manager.update_collection_range(player_ship.collection_range, upgrade_bonus)
+
+		# Update upgrade status display
+		ui_manager.update_upgrade_status_display(player_ship.upgrades, upgrade_system)
+
+		# Force inventory display update if needed
+		if ui_manager.has_method("update_inventory_display"):
+			ui_manager.update_inventory_display(player_ship.current_inventory)
+
+		_log_message("ZoneMain: UI updated for %s upgrade level %d" % [upgrade_type, level])
+
 func _on_sell_all_requested() -> void:
 	##Handle sell all request
 	if api_client and api_client.has_method("sell_all_inventory"):
 		api_client.sell_all_inventory()
+		# Note: upgrade catalog refresh will be triggered by credits_updated signal from API
+	else:
+		# Fallback: if API client not available, handle locally and refresh catalog
+		_log_message("API client not available, handling sell all locally")
+		if player_ship and player_ship.current_inventory.size() > 0:
+			var total_value = 0
+			for item in player_ship.current_inventory:
+				total_value += item.get("value", 0)
+			var sold_items = player_ship.clear_inventory()
+			player_ship.add_credits(total_value)
+
+			# Update UI and refresh upgrade catalog
+			if ui_manager:
+				ui_manager.update_credits_display(player_ship.credits)
+				ui_manager.refresh_upgrade_catalog()  # CRITICAL FIX: Manual refresh for local updates
+			_log_message("Sold %d items for %d credits locally with catalog refresh" % [sold_items.size(), total_value])
 
 func _on_ai_message_received(message: String, priority: int) -> void:
 	##Handle AI message received
@@ -376,6 +470,13 @@ func _on_player_data_loaded(data: Dictionary) -> void:
 
 func _on_credits_updated(credits: int) -> void:
 	_log_message("Credits updated: %d" % credits)
+	if player_ship:
+		player_ship.credits = credits
+	if ui_manager:
+		ui_manager.update_credits_display(credits)
+		# Real-time upgrade catalog refresh when credits change (Phase 3B requirement)
+		ui_manager.refresh_upgrade_catalog()
+		_log_message("Credits updated from API with upgrade catalog refresh: %d" % credits)
 
 func _on_inventory_updated(inventory: Array) -> void:
 	_log_message("Inventory updated: %d items" % inventory.size())
@@ -403,6 +504,20 @@ func _on_network_debris_collected(player_id: String, debris_type: String, value:
 
 func _on_network_server_state_updated(state: Dictionary) -> void:
 	_log_message("Server state updated")
+
+## Upgrade Purchase Signal Handlers (Phase 3B addition)
+
+func _on_upgrade_purchased_api(result: Dictionary) -> void:
+	##Handle upgrade purchase success from API client
+	_log_message("Upgrade purchased via API: %s" % result)
+	if ui_manager:
+		ui_manager.handle_upgrade_purchased(result)
+
+func _on_upgrade_purchase_failed_api(reason: String, upgrade_type: String) -> void:
+	##Handle upgrade purchase failure from API client
+	_log_message("Upgrade purchase failed via API: %s - %s" % [upgrade_type, reason])
+	if ui_manager:
+		ui_manager.handle_upgrade_purchase_failed(reason, upgrade_type)
 
 ## Public API
 
@@ -433,8 +548,20 @@ func request_ai_analysis() -> void:
 func get_debris_stats() -> Dictionary:
 	##Get debris statistics
 	if debris_manager:
-		return debris_manager.get_debris_stats()
+		return debris_manager.get_stats()
 	return {}
+
+## Phase 4A: Purchase Processing Integration
+
+func _on_upgrade_purchase_requested(upgrade_type: String) -> void:
+	##Handle upgrade purchase request (Phase 4A requirement)
+	##Delegates to UIManager for 2D version functionality
+	_log_message("ZoneMain: Upgrade purchase requested for type: %s" % upgrade_type)
+
+	if ui_manager and ui_manager.has_method("_on_upgrade_purchase_requested"):
+		ui_manager._on_upgrade_purchase_requested(upgrade_type)
+	else:
+		_log_message("ZoneMain: ERROR - UIManager does not support upgrade purchase requests")
 
 func reset_zone() -> void:
 	##Reset zone to initial state

@@ -37,6 +37,7 @@ signal interaction_available(interaction_type: String)
 signal interaction_unavailable()
 signal npc_hub_entered(hub_type: String)
 signal npc_hub_exited()
+signal inventory_expanded(old_capacity: int, new_capacity: int)
 
 ## Node references
 @onready var sprite_3d: Sprite3D = $Sprite3D
@@ -76,7 +77,7 @@ var current_velocity: float = 0.0            # Forward/backward velocity
 var current_direction: Vector3 = Vector3.FORWARD  # Ship's facing direction
 
 ## Player state (same as 2D version)
-var player_id: String = "player_001"
+var player_id: String = "550e8400-e29b-41d4-a716-446655440000"
 var current_inventory: Array[Dictionary] = []
 var inventory_capacity: int = 10
 var credits: int = 0
@@ -700,8 +701,13 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 	match upgrade_type:
 		"speed_boost":
 			speed = 200.0 + (level * 50.0)
+			# Update movement parameters for 3D (Mario Kart style)
+			max_forward_speed = speed
+			max_reverse_speed = speed * 0.6  # Reverse is 60% of forward speed
+			_log_message("PlayerShip3D: Speed boost applied - Speed: %.1f, Max Forward: %.1f, Max Reverse: %.1f" % [speed, max_forward_speed, max_reverse_speed])
 		"inventory_expansion":
-			inventory_capacity = 10 + (level * 5)
+			set_inventory_capacity(10 + (level * 5))
+			_log_message("PlayerShip3D: Inventory expansion applied - Capacity: %d" % inventory_capacity)
 		"collection_efficiency":
 			collection_range = 3.0 + (level * 2.0)  # Base 3.0, small upgrades to maintain close collection
 			collection_cooldown = max(0.1, 0.5 - (level * 0.05))
@@ -712,9 +718,23 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 			if collection_indicator and collection_indicator.mesh:
 				collection_indicator.mesh.radius = collection_range
 				_log_message("PlayerShip3D: Updated collection range indicator to %.1f units" % collection_range)
+			_log_message("PlayerShip3D: Collection efficiency applied - Range: %.1f, Cooldown: %.2fs" % [collection_range, collection_cooldown])
 		"zone_access":
-			# This will be handled by the zone system
-			pass
+			# Set zone access level for future zone system integration
+			upgrades["zone_access"] = level
+			_log_message("PlayerShip3D: Zone access applied - Level: %d" % level)
+		"debris_scanner":
+			if level > 0:
+				enable_debris_scanner(level)
+			else:
+				disable_debris_scanner()
+			_log_message("PlayerShip3D: Debris scanner applied - Level: %d, Active: %s" % [level, level > 0])
+		"cargo_magnet":
+			if level > 0:
+				enable_cargo_magnet(level)
+			else:
+				disable_cargo_magnet()
+			_log_message("PlayerShip3D: Cargo magnet applied - Level: %d, Active: %s" % [level, level > 0])
 
 	_log_message("PlayerShip3D: Upgrade effects applied - Speed: %.1f, Capacity: %d, Collection Range: %.1f" % [speed, inventory_capacity, collection_range])
 
@@ -722,72 +742,502 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 func set_speed(new_speed: float) -> void:
 	##Set the player ship speed
 	speed = new_speed
+	max_forward_speed = new_speed
+	max_reverse_speed = new_speed * 0.6
+
+	# Add visual feedback for speed changes
+	_update_speed_visual_feedback()
+
 	_log_message("PlayerShip3D: Speed set to %.1f" % speed)
+
+func _update_speed_visual_feedback() -> void:
+	##Update visual feedback based on current speed upgrades
+	var speed_level = int((speed - 200.0) / 50.0)  # Calculate upgrade level based on speed
+
+	if speed_level > 0:
+		_create_speed_boost_effects(speed_level)
+	else:
+		_remove_speed_boost_effects()
+
+func _create_speed_boost_effects(level: int) -> void:
+	##Create visual effects for speed boost upgrades
+	_log_message("PlayerShip3D: Creating speed boost visual effects at level %d" % level)
+
+	# Remove existing speed effects
+	_remove_speed_boost_effects()
+
+	# Create thrust particle effects
+	_create_thrust_particles(level)
+
+	# Create speed indicator
+	_create_speed_indicator(level)
+
+	# Add ship trail effect
+	_create_ship_trail(level)
+
+func _remove_speed_boost_effects() -> void:
+	##Remove all speed boost visual effects
+	var thrust_particles = get_node_or_null("ThrustParticles")
+	if thrust_particles:
+		thrust_particles.queue_free()
+
+	var speed_indicator = get_node_or_null("SpeedIndicator")
+	if speed_indicator:
+		speed_indicator.queue_free()
+
+	var ship_trail = get_node_or_null("ShipTrail")
+	if ship_trail:
+		ship_trail.queue_free()
+
+func _create_thrust_particles(level: int) -> void:
+	##Create particle effects for ship thrust based on speed level
+	var particles = GPUParticles3D.new()
+	particles.name = "ThrustParticles"
+	particles.emitting = true
+
+	# Create particle material
+	var material = ParticleProcessMaterial.new()
+	material.direction = Vector3(0, 0, 1)  # Thrust backwards
+	material.initial_velocity_min = 5.0 + (level * 3.0)
+	material.initial_velocity_max = 10.0 + (level * 5.0)
+	material.gravity = Vector3.ZERO
+	material.scale_min = 0.1
+	material.scale_max = 0.3 + (level * 0.1)
+
+	# Color variation based on speed level
+	var base_color = Color(0.2, 0.5, 1.0, 0.8)  # Blue thrust
+	var boost_color = Color(1.0, 0.3, 0.0, 0.9)  # Orange/red for higher speeds
+	var blend_factor = min(level / 5.0, 1.0)
+	material.color = base_color.lerp(boost_color, blend_factor)
+
+	material.emission = 50 + (level * 20)  # More particles at higher levels
+	particles.process_material = material
+	particles.lifetime = 1.0
+
+	# Position behind the ship
+	particles.position = Vector3(0, 0, 2)
+	add_child(particles)
+
+	_log_message("PlayerShip3D: Thrust particles created for speed level %d" % level)
+
+func _create_speed_indicator(level: int) -> void:
+	##Create visual speed indicator around the ship
+	var indicator = MeshInstance3D.new()
+	indicator.name = "SpeedIndicator"
+
+	# Create ring mesh for speed indicator
+	var torus_mesh = TorusMesh.new()
+	torus_mesh.inner_radius = 2.5
+	torus_mesh.outer_radius = 3.0
+	indicator.mesh = torus_mesh
+
+	# Create glowing material
+	var material = StandardMaterial3D.new()
+	material.flags_transparent = true
+	material.emission_enabled = true
+
+	# Color intensity based on speed level
+	var intensity = 0.3 + (level * 0.2)
+	var speed_color = Color(0.0, 1.0, 0.5, intensity)  # Green speed indicator
+	material.emission = speed_color
+	material.albedo_color = Color(0.0, 0.8, 0.4, 0.1)
+
+	indicator.material_override = material
+	add_child(indicator)
+
+	# Animate the speed indicator
+	var tween = create_tween()
+	tween.set_loops()
+	var rotation_speed = 1.0 + (level * 0.5)  # Faster rotation for higher speeds
+	tween.tween_property(indicator, "rotation_degrees:y", 360.0, 2.0 / rotation_speed)
+
+	_log_message("PlayerShip3D: Speed indicator created for level %d" % level)
+
+func _create_ship_trail(level: int) -> void:
+	##Create trailing effect behind the ship when moving fast
+	var trail = MeshInstance3D.new()
+	trail.name = "ShipTrail"
+
+	# Create trail mesh using a stretched box
+	var box_mesh = BoxMesh.new()
+	box_mesh.size = Vector3(0.5, 0.2, 4.0 + (level * 1.0))  # Longer trail at higher speeds
+	trail.mesh = box_mesh
+
+	# Create trail material
+	var material = StandardMaterial3D.new()
+	material.flags_transparent = true
+	material.emission_enabled = true
+	material.emission = Color(0.3, 0.7, 1.0) * (0.3 + level * 0.1)
+	material.albedo_color = Color(0.2, 0.5, 0.8, 0.2 + level * 0.05)
+
+	trail.material_override = material
+	trail.position = Vector3(0, 0, 3)  # Position behind ship
+	add_child(trail)
+
+	# Only show trail when moving
+	trail.visible = false
+
+	_log_message("PlayerShip3D: Ship trail created for level %d" % level)
 
 func set_inventory_capacity(new_capacity: int) -> void:
 	##Set the inventory capacity
+	var old_capacity = inventory_capacity
 	inventory_capacity = new_capacity
+
+	# Add visual feedback for inventory expansion
+	if new_capacity > old_capacity:
+		_show_inventory_expansion_effects(old_capacity, new_capacity)
+
 	_log_message("PlayerShip3D: Inventory capacity set to %d" % inventory_capacity)
+
+func _show_inventory_expansion_effects(old_capacity: int, new_capacity: int) -> void:
+	##Show visual effects when inventory capacity increases
+	_log_message("PlayerShip3D: Showing inventory expansion effects from %d to %d" % [old_capacity, new_capacity])
+
+	# Create expansion visual effect
+	_create_inventory_expansion_visual(new_capacity)
+
+	# Emit signal for UI updates
+	inventory_expanded.emit(old_capacity, new_capacity)
+
+	# Create capacity indicator
+	_update_inventory_capacity_indicator(new_capacity)
+
+func _create_inventory_expansion_visual(capacity: int) -> void:
+	##Create visual effect for inventory expansion
+	var expansion_effect = MeshInstance3D.new()
+	expansion_effect.name = "InventoryExpansionEffect"
+
+	# Create expanding sphere mesh
+	var sphere_mesh = SphereMesh.new()
+	sphere_mesh.radius = 2.0
+	sphere_mesh.height = 4.0
+	expansion_effect.mesh = sphere_mesh
+
+	# Create expansion material
+	var material = StandardMaterial3D.new()
+	material.flags_transparent = true
+	material.emission_enabled = true
+	material.emission = Color(0.8, 0.4, 1.0)  # Purple expansion effect
+	material.albedo_color = Color(0.6, 0.3, 0.8, 0.3)
+	expansion_effect.material_override = material
+
+	add_child(expansion_effect)
+
+	# Animate expansion effect
+	var tween = create_tween()
+	tween.parallel().tween_property(expansion_effect, "scale", Vector3(3.0, 3.0, 3.0), 1.5)
+	tween.parallel().tween_property(material, "albedo_color:a", 0.0, 1.5)
+	tween.tween_callback(expansion_effect.queue_free)
+
+	_log_message("PlayerShip3D: Inventory expansion visual effect created")
+
+func _update_inventory_capacity_indicator(capacity: int) -> void:
+	##Update or create inventory capacity indicator
+	# Remove existing indicator
+	var existing_indicator = get_node_or_null("InventoryIndicator")
+	if existing_indicator:
+		existing_indicator.queue_free()
+
+	# Create new capacity indicator
+	var indicator = Node3D.new()
+	indicator.name = "InventoryIndicator"
+
+	# Create capacity level visualization (stacked boxes)
+	var capacity_level = int((capacity - 10) / 5)  # Calculate upgrade level
+	for level in range(capacity_level + 1):
+		var box = MeshInstance3D.new()
+		box.name = "CapacityBox%d" % level
+
+		var box_mesh = BoxMesh.new()
+		box_mesh.size = Vector3(0.5, 0.3, 0.5)
+		box.mesh = box_mesh
+
+		# Create capacity material
+		var material = StandardMaterial3D.new()
+		material.emission_enabled = true
+		var intensity = 0.3 + (level * 0.1)
+		material.emission = Color(0.3, 0.8, 0.3, intensity)  # Green capacity indicator
+		material.albedo_color = Color(0.2, 0.6, 0.2, 0.7)
+		box.material_override = material
+
+		# Stack boxes vertically
+		box.position = Vector3(3, -1 + (level * 0.4), 0)
+		indicator.add_child(box)
+
+	add_child(indicator)
+	_log_message("PlayerShip3D: Inventory capacity indicator updated for capacity %d" % capacity)
 
 func set_collection_range(new_range: float) -> void:
 	##Set the collection range
+	var old_range = collection_range
 	collection_range = new_range
+
 	# Update collection area size
 	if collection_collision and collection_collision.shape:
 		collection_collision.shape.radius = collection_range
+
+	# Add visual feedback for collection efficiency improvements
+	if new_range > old_range:
+		_show_collection_efficiency_effects(old_range, new_range)
+
+	# Update collection range indicator
+	_update_collection_range_indicator()
+
 	_log_message("PlayerShip3D: Collection range set to %.1f" % collection_range)
+
+func _show_collection_efficiency_effects(old_range: float, new_range: float) -> void:
+	##Show visual effects when collection efficiency increases
+	_log_message("PlayerShip3D: Showing collection efficiency effects from %.1f to %.1f" % [old_range, new_range])
+
+	# Create efficiency boost visual effect
+	_create_collection_efficiency_visual()
+
+	# Create collection pulse effect
+	_create_collection_pulse_effect()
+
+func _create_collection_efficiency_visual() -> void:
+	##Create visual effect for collection efficiency upgrade
+	var efficiency_effect = MeshInstance3D.new()
+	efficiency_effect.name = "CollectionEfficiencyEffect"
+
+	# Create expanding torus mesh for efficiency visualization
+	var torus_mesh = TorusMesh.new()
+	torus_mesh.inner_radius = collection_range * 0.8
+	torus_mesh.outer_radius = collection_range
+	efficiency_effect.mesh = torus_mesh
+
+	# Create efficiency material
+	var material = StandardMaterial3D.new()
+	material.flags_transparent = true
+	material.emission_enabled = true
+	material.emission = Color(0.2, 0.8, 1.0)  # Cyan collection efficiency effect
+	material.albedo_color = Color(0.1, 0.6, 0.8, 0.4)
+	efficiency_effect.material_override = material
+
+	add_child(efficiency_effect)
+
+	# Animate efficiency effect
+	var tween = create_tween()
+	tween.parallel().tween_property(efficiency_effect, "scale", Vector3(1.5, 1.5, 1.5), 2.0)
+	tween.parallel().tween_property(material, "albedo_color:a", 0.0, 2.0)
+	tween.tween_callback(efficiency_effect.queue_free)
+
+	_log_message("PlayerShip3D: Collection efficiency visual effect created")
+
+func _create_collection_pulse_effect() -> void:
+	##Create pulsing effect showing collection range
+	var pulse_effect = MeshInstance3D.new()
+	pulse_effect.name = "CollectionPulseEffect"
+
+	# Create sphere mesh for pulse
+	var sphere_mesh = SphereMesh.new()
+	sphere_mesh.radius = collection_range
+	sphere_mesh.height = collection_range * 2
+	pulse_effect.mesh = sphere_mesh
+
+	# Create pulse material
+	var material = StandardMaterial3D.new()
+	material.flags_transparent = true
+	material.emission_enabled = true
+	material.emission = Color(0.0, 1.0, 0.5, 0.3)  # Green pulse effect
+	material.albedo_color = Color(0.0, 0.8, 0.4, 0.1)
+	pulse_effect.material_override = material
+
+	add_child(pulse_effect)
+
+	# Animate pulse effect (3 pulses)
+	var tween = create_tween()
+	for i in range(3):
+		tween.parallel().tween_property(pulse_effect, "scale", Vector3(1.3, 1.3, 1.3), 0.5)
+		tween.parallel().tween_property(pulse_effect, "scale", Vector3(0.7, 0.7, 0.7), 0.5)
+
+	tween.tween_callback(pulse_effect.queue_free)
+
+	_log_message("PlayerShip3D: Collection pulse effect created")
+
+func _update_collection_range_indicator() -> void:
+	##Update the collection range indicator based on current range
+	if not collection_indicator:
+		return
+
+	# Update indicator size to match current collection range
+	if collection_indicator.mesh:
+		collection_indicator.mesh.radius = collection_range
+		_log_message("PlayerShip3D: Updated collection range indicator to %.1f units" % collection_range)
+
+	# Update indicator visibility and intensity based on nearby debris
+	_update_collection_indicator_visibility()
+
+	# Update material intensity based on collection efficiency level
+	var efficiency_level = int((collection_range - 3.0) / 2.0)  # Calculate efficiency level
+	if collection_material and efficiency_level > 0:
+		var base_intensity = 0.15
+		var level_bonus = efficiency_level * 0.05
+		collection_material.albedo_color.a = base_intensity + level_bonus
+		collection_material.emission_energy = 0.5 + (efficiency_level * 0.2)
+		_log_message("PlayerShip3D: Collection indicator intensity updated for level %d" % efficiency_level)
 
 func set_zone_access(access_level: int) -> void:
 	##Set the zone access level
 	upgrades["zone_access"] = access_level
 	_log_message("PlayerShip3D: Zone access level set to %d" % access_level)
 
-func enable_debris_scanner() -> void:
-	##Enable debris scanner with visual effects
+func enable_debris_scanner(level: int = 1) -> void:
+	##Enable debris scanner with visual effects (level-based activation)
 	is_scanner_active = true
-	_log_message("PlayerShip3D: Debris scanner activated")
+	_log_message("PlayerShip3D: Debris scanner activated at level %d" % level)
+
+	# Remove existing scanner effect if it exists
+	var existing_scanner = get_node_or_null("ScannerEffect")
+	if existing_scanner:
+		existing_scanner.queue_free()
 
 	# Implement debris scanner visual effects
-	_create_scanner_visual_effects()
+	_create_scanner_visual_effects(level)
 
-	# Start scanning for debris periodically
-	if not get_tree().get_nodes_in_group("scanner_timer"):
+	# Start scanning for debris periodically (or update existing timer)
+	var scanner_timers = get_tree().get_nodes_in_group("scanner_timer")
+	if scanner_timers.is_empty():
 		var scanner_timer = Timer.new()
 		scanner_timer.name = "ScannerTimer"
-		scanner_timer.wait_time = 2.0  # Scan every 2 seconds
+		scanner_timer.wait_time = max(0.5, 2.0 - (level * 0.3))  # Faster scanning at higher levels
 		scanner_timer.timeout.connect(_perform_debris_scan)
 		scanner_timer.add_to_group("scanner_timer")
 		add_child(scanner_timer)
 		scanner_timer.start()
+		_log_message("PlayerShip3D: Scanner timer created with %.1fs interval" % scanner_timer.wait_time)
+	else:
+		# Update existing timer for improved frequency
+		var scanner_timer = scanner_timers[0] as Timer
+		scanner_timer.wait_time = max(0.5, 2.0 - (level * 0.3))
+		_log_message("PlayerShip3D: Scanner timer updated to %.1fs interval" % scanner_timer.wait_time)
 
-func _create_scanner_visual_effects() -> void:
-	##Create visual effects for debris scanner
-	_log_message("PlayerShip3D: Creating scanner visual effects")
+func disable_debris_scanner() -> void:
+	##Disable debris scanner and remove visual effects
+	is_scanner_active = false
+	_log_message("PlayerShip3D: Debris scanner deactivated")
+
+	# Remove scanner visual effects
+	var scanner_effect = get_node_or_null("ScannerEffect")
+	if scanner_effect:
+		scanner_effect.queue_free()
+
+	# Remove scanner timer
+	var scanner_timers = get_tree().get_nodes_in_group("scanner_timer")
+	for timer in scanner_timers:
+		timer.queue_free()
+
+func _create_scanner_visual_effects(level: int = 1) -> void:
+	##Create visual effects for debris scanner (level-based intensity)
+	_log_message("PlayerShip3D: Creating scanner visual effects at level %d" % level)
 
 	# Create scanner pulse effect
 	var scanner_effect = MeshInstance3D.new()
 	scanner_effect.name = "ScannerEffect"
 	var sphere_mesh = SphereMesh.new()
-	sphere_mesh.radius = 25.0  # Scanner range
-	sphere_mesh.height = 50.0
+	sphere_mesh.radius = 15.0 + (level * 10.0)  # Larger range at higher levels
+	sphere_mesh.height = sphere_mesh.radius * 2.0
 	scanner_effect.mesh = sphere_mesh
 
 	# Create scanner material with transparency and animation
 	var scanner_material = StandardMaterial3D.new()
-	scanner_material.albedo_color = Color(0.0, 1.0, 1.0, 0.2)  # Cyan with transparency
+	var intensity = 0.1 + (level * 0.05)  # Brighter at higher levels
+	scanner_material.albedo_color = Color(0.0, 1.0, 1.0, intensity)  # Cyan with level-based transparency
 	scanner_material.flags_transparent = true
 	scanner_material.grow = true
 	scanner_material.emission_enabled = true
-	scanner_material.emission = Color(0.0, 0.8, 0.8)
+	scanner_material.emission = Color(0.0, 0.6 + (level * 0.1), 0.6 + (level * 0.1))  # Brighter emission at higher levels
 	scanner_effect.material_override = scanner_material
 
 	add_child(scanner_effect)
 
-	# Animate scanner pulse
+	# Animate scanner pulse (faster at higher levels)
+	var pulse_duration = max(0.5, 1.2 - (level * 0.2))
 	var tween = create_tween()
 	tween.set_loops()
-	tween.tween_property(scanner_effect, "scale", Vector3(1.2, 1.2, 1.2), 1.0)
-	tween.tween_property(scanner_effect, "scale", Vector3(0.8, 0.8, 0.8), 1.0)
+	tween.tween_property(scanner_effect, "scale", Vector3(1.3, 1.3, 1.3), pulse_duration)
+	tween.tween_property(scanner_effect, "scale", Vector3(0.7, 0.7, 0.7), pulse_duration)
+
+func enable_cargo_magnet(level: int = 1) -> void:
+	##Enable cargo magnet for auto-collection (level-based effectiveness)
+	is_magnet_active = true
+	magnet_range = 10.0 + (level * 5.0)  # Increased range based on level
+	_log_message("PlayerShip3D: Cargo magnet activated at level %d with range %.1f" % [level, magnet_range])
+
+	# Remove existing magnet timer if it exists
+	var magnet_timers = get_tree().get_nodes_in_group("magnet_timer")
+	for timer in magnet_timers:
+		timer.queue_free()
+
+	# Implement cargo magnet auto-collection
+	_start_magnet_auto_collection(level)
+
+	# Create visual effect for magnet
+	_create_magnet_visual_effects(level)
+
+func disable_cargo_magnet() -> void:
+	##Disable cargo magnet and remove visual effects
+	is_magnet_active = false
+	magnet_range = 0.0
+	_log_message("PlayerShip3D: Cargo magnet deactivated")
+
+	# Remove magnet visual effects
+	var magnet_effect = get_node_or_null("MagnetEffect")
+	if magnet_effect:
+		magnet_effect.queue_free()
+
+	# Remove magnet timer
+	var magnet_timers = get_tree().get_nodes_in_group("magnet_timer")
+	for timer in magnet_timers:
+		timer.queue_free()
+
+func _create_magnet_visual_effects(level: int = 1) -> void:
+	##Create visual effects for cargo magnet
+	_log_message("PlayerShip3D: Creating magnet visual effects at level %d" % level)
+
+	# Remove existing magnet effect if it exists
+	var existing_magnet = get_node_or_null("MagnetEffect")
+	if existing_magnet:
+		existing_magnet.queue_free()
+
+	# Create magnet field visualization
+	var magnet_effect = MeshInstance3D.new()
+	magnet_effect.name = "MagnetEffect"
+	var torus_mesh = TorusMesh.new()
+	torus_mesh.inner_radius = magnet_range * 0.8
+	torus_mesh.outer_radius = magnet_range
+	magnet_effect.mesh = torus_mesh
+
+	# Create magnet material
+	var magnet_material = StandardMaterial3D.new()
+	var intensity = 0.1 + (level * 0.03)
+	magnet_material.albedo_color = Color(1.0, 0.5, 0.0, intensity)  # Orange magnetic field
+	magnet_material.flags_transparent = true
+	magnet_material.emission_enabled = true
+	magnet_material.emission = Color(1.0, 0.3, 0.0)
+	magnet_effect.material_override = magnet_material
+
+	add_child(magnet_effect)
+
+	# Animate magnet field rotation
+	var tween = create_tween()
+	tween.set_loops()
+	tween.tween_property(magnet_effect, "rotation_degrees:y", 360.0, 3.0)
+
+func _start_magnet_auto_collection(level: int = 1) -> void:
+	##Start automatic debris collection when magnet is active (level-based frequency)
+	var collection_frequency = max(0.2, 0.5 - (level * 0.1))  # Faster collection at higher levels
+
+	var magnet_timer = Timer.new()
+	magnet_timer.name = "MagnetTimer"
+	magnet_timer.wait_time = collection_frequency
+	magnet_timer.timeout.connect(_auto_collect_debris)
+	magnet_timer.add_to_group("magnet_timer")
+	add_child(magnet_timer)
+	magnet_timer.start()
+
+	_log_message("PlayerShip3D: Magnet auto-collection started with %.2fs frequency" % collection_frequency)
 
 func _perform_debris_scan() -> void:
 	##Perform debris scan and highlight detected objects
@@ -821,34 +1271,15 @@ func _highlight_debris_object(debris: Node3D) -> void:
 		var tween = create_tween()
 		tween.tween_property(sprite, "modulate", original_modulate, 2.0)
 
-func enable_cargo_magnet() -> void:
-	##Enable cargo magnet for auto-collection
-	is_magnet_active = true
-	magnet_range = 15.0  # Increased collection range
-	_log_message("PlayerShip3D: Cargo magnet activated with range %.1f" % magnet_range)
-
-	# Implement cargo magnet auto-collection
-	_start_magnet_auto_collection()
-
-func _start_magnet_auto_collection() -> void:
-	##Start automatic debris collection when magnet is active
-	if not get_tree().get_nodes_in_group("magnet_timer"):
-		var magnet_timer = Timer.new()
-		magnet_timer.name = "MagnetTimer"
-		magnet_timer.wait_time = 0.5  # Check for auto-collection every 0.5 seconds
-		magnet_timer.timeout.connect(_auto_collect_debris)
-		magnet_timer.add_to_group("magnet_timer")
-		add_child(magnet_timer)
-		magnet_timer.start()
-
 func _auto_collect_debris() -> void:
 	##Automatically collect debris within magnet range
 	if not is_magnet_active:
 		return
 
 	var debris_collected = 0
+	var max_per_cycle = 2 + (int(magnet_range / 15.0))  # More collection at higher levels
 	for body in collection_area.get_overlapping_bodies():
-		if body.is_in_group("debris_3d") and debris_collected < 3:  # Limit to 3 per cycle
+		if body.is_in_group("debris_3d") and debris_collected < max_per_cycle:
 			var distance = global_position.distance_to(body.global_position)
 			if distance <= magnet_range:
 				_collect_debris_object(body)

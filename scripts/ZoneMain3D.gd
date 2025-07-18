@@ -32,6 +32,7 @@ signal npc_hub_entered()
 @onready var inventory_grid: GridContainer = $UILayer/HUD/InventoryPanel/InventoryGrid
 @onready var credits_label: Label = $UILayer/HUD/StatsPanel/CreditsLabel
 @onready var debris_count_label: Label = $UILayer/HUD/StatsPanel/DebrisCountLabel
+@onready var upgrade_status_text: Label = $UILayer/HUD/UpgradeStatusPanel/UpgradeStatusText
 @onready var api_client: Node = $APIClient
 @onready var upgrade_system: Node = $UpgradeSystem
 @onready var ai_communicator: Node = $AICommunicator
@@ -40,10 +41,28 @@ signal npc_hub_entered()
 # Trading interface UI elements
 @onready var trading_interface: Panel = $UILayer/HUD/TradingInterface
 @onready var trading_title: Label = $UILayer/HUD/TradingInterface/TradingTitle
-@onready var trading_content: VBoxContainer = $UILayer/HUD/TradingInterface/TradingContent
-@onready var trading_result: Label = $UILayer/HUD/TradingInterface/TradingContent/TradingResult
-@onready var sell_all_button: Button = $UILayer/HUD/TradingInterface/TradingContent/SellAllButton
+@onready var trading_tabs: TabContainer = $UILayer/HUD/TradingInterface/TradingTabs
+@onready var trading_content: VBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent
+@onready var trading_result: Label = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent/TradingResult
+@onready var sell_all_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent/SellAllButton
 @onready var trading_close_button: Button = $UILayer/HUD/TradingInterface/TradingCloseButton
+
+# Upgrade interface UI elements
+@onready var upgrade_content: VBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent
+@onready var upgrade_catalog: ScrollContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog
+@onready var upgrade_grid: GridContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog/UpgradeGrid
+@onready var upgrade_details: Panel = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails
+@onready var upgrade_details_label: Label = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails/UpgradeDetailsLabel
+@onready var purchase_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls/PurchaseButton
+@onready var purchase_result: Label = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseResult
+
+# Confirmation dialog elements
+@onready var confirm_purchase_dialog: AcceptDialog = $UILayer/HUD/ConfirmPurchaseDialog
+@onready var confirm_upgrade_name: Label = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/UpgradeNameLabel
+@onready var confirm_upgrade_info: Label = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/UpgradeInfoLabel
+@onready var confirm_cost_label: Label = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/CostLabel
+@onready var confirm_button: Button = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons/ConfirmButton
+@onready var cancel_button: Button = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons/CancelButton
 
 # Selective trading UI elements (will be created dynamically)
 var debris_selection_container: ScrollContainer
@@ -51,6 +70,11 @@ var debris_selection_list: VBoxContainer
 var selection_summary_label: Label
 var sell_selected_button: Button
 var selected_debris: Dictionary = {}  # Store selected quantities per debris type
+
+# Upgrade system UI state
+var current_selected_upgrade: String = ""
+var current_upgrade_cost: int = 0
+var upgrade_buttons: Dictionary = {}  # Store upgrade button references
 
 # Preloaded scripts for 3D systems
 const SpaceStationModule3DScript = preload("res://scripts/SpaceStationModule3D.gd")
@@ -89,11 +113,17 @@ var last_inventory_size: int = 0
 var last_inventory_hash: String = ""
 
 func _ready() -> void:
+	print("🔴 ZoneMain3D._ready() CALLED - Scene is initializing!")
+	print("🔴 ZoneMain3D: Current scene tree node count: ", get_tree().get_node_count())
+	print("🔴 ZoneMain3D: Starting initialization...")
+
 	_log_message("ZoneMain3D: Initializing 3D zone controller")
 	_initialize_3d_zone()
 	_update_debug_display()
 	_log_message("ZoneMain3D: 3D Zone ready for gameplay")
 	zone_ready.emit()
+
+	print("🔴 ZoneMain3D._ready() COMPLETED - Scene fully initialized!")
 
 func _process(delta: float) -> void:
 	##Handle periodic updates including position sync
@@ -126,7 +156,28 @@ func _initialize_3d_zone() -> void:
 		player_ship.debris_collected.connect(_on_debris_collected)
 		player_ship.npc_hub_entered.connect(_on_npc_hub_entered)
 		player_ship.npc_hub_exited.connect(_on_npc_hub_exited)
+
+		# Connect upgrade effect signals for immediate UI updates
+		if player_ship.has_signal("inventory_expanded"):
+			player_ship.inventory_expanded.connect(_on_inventory_expanded)
+
 		_log_message("ZoneMain3D: Player ship signals connected")
+
+	# Connect API client signals
+	if api_client:
+		if api_client.has_signal("upgrade_purchased"):
+			api_client.upgrade_purchased.connect(_on_upgrade_purchased)
+		if api_client.has_signal("upgrade_purchase_failed"):
+			api_client.upgrade_purchase_failed.connect(_on_upgrade_purchase_failed)
+		if api_client.has_signal("credits_updated"):
+			api_client.credits_updated.connect(_on_credits_updated)
+		_log_message("ZoneMain3D: API client signals connected")
+
+	# Connect upgrade system signals for immediate effect feedback
+	if upgrade_system:
+		if upgrade_system.has_signal("upgrade_effects_applied"):
+			upgrade_system.upgrade_effects_applied.connect(_on_upgrade_effects_applied)
+		_log_message("ZoneMain3D: Upgrade system signals connected")
 
 	# Initialize trading interface UI connections
 	_initialize_trading_interface()
@@ -372,6 +423,31 @@ func _input(event):
 				skybox_manager_3d.toggle_skybox_visibility(not current_visible)
 				var state_text = "HIDDEN" if current_visible else "VISIBLE"
 				_log_message("ZoneMain3D: Skybox toggled - Now %s (F9 to toggle)" % state_text)
+
+		# Clean up stuck loading screens with F12 key
+		elif event.keycode == KEY_F12:
+			_cleanup_stuck_loading_screens()
+			_log_message("ZoneMain3D: Manually cleaned up stuck loading screens (F12)")
+
+func _cleanup_stuck_loading_screens() -> void:
+	##Remove any stuck LoadingScreen instances from the scene tree
+	_log_message("ZoneMain3D: Searching for stuck loading screens...")
+
+	# Manually search and remove any LoadingScreen nodes
+	var tree = get_tree()
+	if tree and tree.current_scene:
+		var all_nodes = tree.current_scene.find_children("*", "LoadingScreen", true, false)
+		for node in all_nodes:
+			if node and is_instance_valid(node):
+				_log_message("ZoneMain3D: Removing stuck LoadingScreen node: %s" % node.name)
+				node.queue_free()
+
+		# Also check for any Control nodes that might be loading screens
+		var control_nodes = tree.current_scene.find_children("*", "Control", true, false)
+		for node in control_nodes:
+			if node and is_instance_valid(node) and node.name.to_lower().contains("loading"):
+				_log_message("ZoneMain3D: Removing potential stuck loading node: %s" % node.name)
+				node.queue_free()
 
 func _log_message(message: String) -> void:
 	##Add a message to the game log and display it
@@ -808,6 +884,9 @@ func _initialize_trading_interface() -> void:
 		trading_close_button.pressed.connect(_on_trading_close_pressed)
 		_log_message("ZoneMain3D: Trading close button connected")
 
+	# Initialize upgrade interface
+	_initialize_upgrade_interface()
+
 func _create_selective_trading_ui() -> void:
 	##Create the enhanced selective trading UI elements
 	_log_message("ZoneMain3D: Creating selective trading UI elements")
@@ -891,6 +970,9 @@ func open_trading_interface(hub_type: String) -> void:
 	# Update selection summary
 	_update_selection_summary()
 
+	# Populate upgrade catalog
+	_populate_upgrade_catalog()
+
 	_log_message("ZoneMain3D: Enhanced trading interface opened successfully")
 
 func close_trading_interface() -> void:
@@ -937,6 +1019,11 @@ func _on_sell_all_pressed() -> void:
 	_populate_debris_selection_ui()
 	_update_selection_summary()
 
+	# CRITICAL FIX: Refresh upgrade catalog after credit update (Phase 3B real-time update)
+	if trading_interface and trading_interface.visible:
+		_populate_upgrade_catalog()
+		_log_message("ZoneMain3D: Upgrade catalog refreshed after selling items")
+
 	# Show success message
 	var success_message = "SUCCESS!\nSold %d items for %d credits\nTotal Credits: %d" % [item_count, total_value, player_ship.credits]
 	_update_trading_result(success_message, Color.GREEN)
@@ -975,24 +1062,12 @@ func _sync_sale_with_backend(sold_items: Array, total_value: int) -> void:
 		_log_message("ZoneMain3D: Warning - No API client available for backend sync")
 		return
 
-	# Create transaction data
-	var transaction_data = {
-		"player_id": player_ship.player_id,
-		"transaction_type": "sell_all",
-		"items_sold": sold_items,
-		"credits_earned": total_value,
-		"timestamp": Time.get_unix_time_from_system()
-	}
-
-	# Send to backend if method exists
-	if api_client.has_method("record_transaction"):
-		api_client.record_transaction(transaction_data)
-		_log_message("ZoneMain3D: Transaction synced with backend API")
-	elif api_client.has_method("sell_all_inventory"):
-		api_client.sell_all_inventory()
-		_log_message("ZoneMain3D: Sell all request sent to backend API")
+	# Sync credits to backend using the existing update_credits method
+	if api_client.has_method("update_credits"):
+		api_client.update_credits(total_value)  # Add the credits earned from sale
+		_log_message("ZoneMain3D: Credits synced with backend API - Added %d credits" % total_value)
 	else:
-		_log_message("ZoneMain3D: Warning - Backend API does not support transaction recording")
+		_log_message("ZoneMain3D: Warning - Backend API does not support credit updates")
 
 func _update_inventory_displays() -> void:
 	##Update all inventory-related UI displays
@@ -1019,6 +1094,32 @@ func _update_credits_display() -> void:
 	if player_ship and credits_label:
 		credits_label.text = "Credits: %d" % player_ship.credits
 		_log_message("ZoneMain3D: Credits display updated - %d credits" % player_ship.credits)
+
+func _update_upgrade_status_display() -> void:
+	##Update the upgrade status display in the UpgradeStatusPanel
+	if not upgrade_status_text or not player_ship or not upgrade_system:
+		return
+
+	var status_text = ""
+	var upgrade_count = 0
+
+	if player_ship.upgrades.size() > 0:
+		for upgrade_type in player_ship.upgrades:
+			var level = player_ship.upgrades[upgrade_type]
+			if level > 0:
+				var upgrade_info = upgrade_system.get_upgrade_info(upgrade_type)
+				var upgrade_name = upgrade_info.get("name", upgrade_type)
+				status_text += "%s: L%d\n" % [upgrade_name, level]
+				upgrade_count += 1
+
+	if upgrade_count == 0:
+		upgrade_status_text.text = "No upgrades purchased"
+		upgrade_status_text.modulate = Color.GRAY
+	else:
+		upgrade_status_text.text = status_text
+		upgrade_status_text.modulate = Color.WHITE
+
+	_log_message("ZoneMain3D: Upgrade status display updated - %d upgrades shown" % upgrade_count)
 
 func _on_sell_selected_pressed() -> void:
 	##Handle sell selected button press - sell the currently selected items
@@ -1081,6 +1182,11 @@ func _on_sell_selected_pressed() -> void:
 	_populate_debris_selection_ui()
 	_update_selection_summary()
 
+	# CRITICAL FIX: Refresh upgrade catalog after credit update (Phase 3B real-time update)
+	if trading_interface and trading_interface.visible:
+		_populate_upgrade_catalog()
+		_log_message("ZoneMain3D: Upgrade catalog refreshed after selling selected items")
+
 	# Show success message
 	var success_message = "SUCCESS!\nSold %d selected items for %d credits\nTotal Credits: %d" % [sold_items.size(), total_value, player_ship.credits]
 	_update_trading_result(success_message, Color.GREEN)
@@ -1110,6 +1216,283 @@ func _populate_debris_selection_ui() -> void:
 		debris_selection_list.add_child(selection_row)
 
 	_log_message("ZoneMain3D: Created %d debris selection rows" % grouped_inventory.size())
+
+## Upgrade Interface Methods
+
+func _initialize_upgrade_interface() -> void:
+	##Initialize upgrade interface UI connections and functionality
+	_log_message("ZoneMain3D: Initializing upgrade interface")
+
+	# Connect confirmation dialog buttons
+	if confirm_button:
+		confirm_button.pressed.connect(_on_confirm_purchase_pressed)
+		_log_message("ZoneMain3D: Confirm purchase button connected")
+
+	if cancel_button:
+		cancel_button.pressed.connect(_on_cancel_purchase_pressed)
+		_log_message("ZoneMain3D: Cancel purchase button connected")
+
+	# Connect main purchase button
+	if purchase_button:
+		purchase_button.pressed.connect(_on_purchase_button_pressed)
+		_log_message("ZoneMain3D: Main purchase button connected")
+
+	# Initially disable purchase button
+	if purchase_button:
+		purchase_button.disabled = true
+
+	_log_message("ZoneMain3D: Upgrade interface initialized")
+
+func _populate_upgrade_catalog() -> void:
+	##Populate the upgrade catalog with available upgrades
+	if not upgrade_grid or not upgrade_system or not player_ship:
+		_log_message("ZoneMain3D: ERROR - Missing components for upgrade catalog")
+		return
+
+	# Clear existing upgrade buttons
+	for child in upgrade_grid.get_children():
+		child.queue_free()
+	upgrade_buttons.clear()
+
+	_log_message("ZoneMain3D: Populating upgrade catalog")
+
+	# Get all upgrade definitions from UpgradeSystem
+	var upgrade_definitions = upgrade_system.upgrade_definitions
+	var player_credits = player_ship.credits
+
+	for upgrade_type in upgrade_definitions:
+		var upgrade_data = upgrade_definitions[upgrade_type]
+		var current_level = player_ship.upgrades.get(upgrade_type, 0)
+		var max_level = upgrade_data.max_level
+
+		# Create upgrade button for this type
+		var upgrade_button = _create_upgrade_button(upgrade_type, upgrade_data, current_level, max_level, player_credits)
+		upgrade_grid.add_child(upgrade_button)
+		upgrade_buttons[upgrade_type] = upgrade_button
+
+	_log_message("ZoneMain3D: Created %d upgrade buttons" % upgrade_buttons.size())
+
+func _create_upgrade_button(upgrade_type: String, upgrade_data: Dictionary, current_level: int, max_level: int, player_credits: int) -> Control:
+	##Create a button for a specific upgrade
+	var upgrade_container = VBoxContainer.new()
+	upgrade_container.name = "Upgrade_%s" % upgrade_type
+
+	# Main upgrade button
+	var button = Button.new()
+	button.custom_minimum_size = Vector2(0, 80)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Calculate cost and availability
+	var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+	var can_afford = player_credits >= cost
+	var is_maxed = current_level >= max_level
+
+	# Set button text and styling
+	var button_text = ""
+	var button_color = Color.WHITE
+
+	if is_maxed:
+		button_text = "%s\nLevel %d/%d - MAXED OUT\nEffect: %s" % [
+			upgrade_data.name,
+			current_level,
+			max_level,
+			upgrade_data.description
+		]
+		button_color = Color.GOLD
+		button.disabled = true
+	else:
+		button_text = "%s\nLevel %d/%d - Cost: %d credits\nEffect: %s" % [
+			upgrade_data.name,
+			current_level,
+			max_level,
+			cost,
+			upgrade_data.description
+		]
+		if can_afford:
+			button_color = Color.GREEN
+			button.disabled = false
+		else:
+			button_color = Color.RED
+			button.disabled = false  # Allow selection to show details
+
+	button.text = button_text
+	button.modulate = button_color
+
+	# Connect button press to selection handler
+	button.pressed.connect(_on_upgrade_selected.bind(upgrade_type, upgrade_data, current_level, cost, can_afford, is_maxed))
+
+	upgrade_container.add_child(button)
+
+	# Add separator
+	var separator = HSeparator.new()
+	separator.custom_minimum_size = Vector2(0, 5)
+	upgrade_container.add_child(separator)
+
+	return upgrade_container
+
+func _on_upgrade_selected(upgrade_type: String, upgrade_data: Dictionary, current_level: int, cost: int, can_afford: bool, is_maxed: bool) -> void:
+	##Handle upgrade selection
+	_log_message("ZoneMain3D: Upgrade selected: %s (level %d, cost %d)" % [upgrade_type, current_level, cost])
+
+	current_selected_upgrade = upgrade_type
+	current_upgrade_cost = cost
+
+	# Update upgrade details panel
+	if upgrade_details_label:
+		var details_text = ""
+		if is_maxed:
+			details_text = "UPGRADE MAXED OUT\n\n%s\nCurrent Level: %d/%d\n\nThis upgrade has reached its maximum level." % [
+				upgrade_data.description,
+				current_level,
+				upgrade_data.max_level
+			]
+		else:
+			var next_level = current_level + 1
+			var effect_per_level = upgrade_data.effect_per_level
+			details_text = "%s\n\nCurrent Level: %d/%d\nNext Level: %d\nCost: %d credits\nEffect per level: %s\nCategory: %s" % [
+				upgrade_data.description,
+				current_level,
+				upgrade_data.max_level,
+				next_level,
+				cost,
+				str(effect_per_level),
+				upgrade_data.category
+			]
+
+		upgrade_details_label.text = details_text
+
+	# Update purchase button
+	if purchase_button:
+		if is_maxed:
+			purchase_button.text = "UPGRADE MAXED OUT"
+			purchase_button.disabled = true
+		elif can_afford:
+			purchase_button.text = "PURCHASE UPGRADE (%d credits)" % cost
+			purchase_button.disabled = false
+		else:
+			purchase_button.text = "INSUFFICIENT CREDITS (%d credits)" % cost
+			purchase_button.disabled = true
+
+	# Clear any previous purchase result
+	if purchase_result:
+		purchase_result.text = ""
+
+func _on_purchase_button_pressed() -> void:
+	##Handle purchase button press - show confirmation dialog
+	if current_selected_upgrade.is_empty():
+		_log_message("ZoneMain3D: No upgrade selected for purchase")
+		return
+
+	_log_message("ZoneMain3D: Purchase button pressed for %s" % current_selected_upgrade)
+
+	# Get upgrade data
+	var upgrade_data = upgrade_system.upgrade_definitions.get(current_selected_upgrade, {})
+	if upgrade_data.is_empty():
+		_log_message("ZoneMain3D: ERROR - Invalid upgrade data for %s" % current_selected_upgrade)
+		return
+
+	# Update confirmation dialog
+	if confirm_upgrade_name:
+		confirm_upgrade_name.text = upgrade_data.name
+
+	if confirm_upgrade_info:
+		confirm_upgrade_info.text = upgrade_data.description
+
+	if confirm_cost_label:
+		confirm_cost_label.text = "Cost: %d credits" % current_upgrade_cost
+
+	# Show confirmation dialog
+	if confirm_purchase_dialog:
+		confirm_purchase_dialog.popup_centered()
+
+func _on_confirm_purchase_pressed() -> void:
+	##Handle confirmed purchase
+	_log_message("ZoneMain3D: Purchase confirmed by user")
+
+	# Perform the purchase using the shared method
+	_perform_upgrade_purchase()
+
+	# Close confirmation dialog
+	if confirm_purchase_dialog:
+		confirm_purchase_dialog.hide()
+
+func _on_cancel_purchase_pressed() -> void:
+	##Handle cancelled purchase
+	_log_message("ZoneMain3D: Purchase cancelled")
+
+	# Close confirmation dialog
+	if confirm_purchase_dialog:
+		confirm_purchase_dialog.hide()
+
+func _on_upgrade_purchased(result: Dictionary) -> void:
+	##Handle successful upgrade purchase from API
+	_log_message("ZoneMain3D: Upgrade purchase successful: %s" % result)
+
+	var upgrade_type = result.get("upgrade_type", "")
+	var new_level = result.get("new_level", 0)
+	var cost = result.get("cost", 0)
+	var remaining_credits = result.get("remaining_credits", 0)
+
+	# Update player data
+	if player_ship:
+		player_ship.upgrades[upgrade_type] = new_level
+		player_ship.credits = remaining_credits  # Use remaining credits from API response
+
+		# Apply upgrade effects immediately
+		if upgrade_system:
+			upgrade_system.apply_upgrade_effects(upgrade_type, new_level, player_ship)
+
+		_log_message("ZoneMain3D: Applied %s level %d effects to player, credits now: %d" % [upgrade_type, new_level, remaining_credits])
+
+	# Update UI immediately
+	_update_credits_display()
+	_populate_upgrade_catalog()  # Refresh catalog with new levels
+	_update_purchase_result("SUCCESS!\nPurchased %s level %d for %d credits" % [upgrade_type, new_level, cost], Color.GREEN)
+
+	# Update the upgrade status panel to show purchased upgrades
+	_update_upgrade_status_display()
+
+	# Clear selection to reset the interface
+	current_selected_upgrade = ""
+	current_upgrade_cost = 0
+
+	# Clear upgrade details panel to show updated state
+	if upgrade_details_label:
+		upgrade_details_label.text = "Select an upgrade above to see details"
+
+	# Reset purchase button
+	if purchase_button:
+		purchase_button.text = "PURCHASE UPGRADE"
+		purchase_button.disabled = true
+
+	# Force UI refresh to ensure immediate update
+	_log_message("ZoneMain3D: Forcing UI refresh after successful upgrade purchase")
+
+func _on_upgrade_purchase_failed(reason: String, upgrade_type: String) -> void:
+	##Handle failed upgrade purchase from API
+	_log_message("ZoneMain3D: Upgrade purchase failed: %s - %s" % [upgrade_type, reason])
+
+	# Update UI with error
+	_update_purchase_result("PURCHASE FAILED\n%s\nReason: %s" % [upgrade_type, reason], Color.RED)
+
+func _update_purchase_result(message: String, color: Color = Color.WHITE) -> void:
+	##Update the purchase result display
+	if purchase_result:
+		purchase_result.text = message
+		purchase_result.modulate = color
+		_log_message("ZoneMain3D: Purchase result updated: %s" % message)
+
+func _on_credits_updated(credits: int) -> void:
+	##Handle credits update from API client
+	_log_message("ZoneMain3D: Credits updated from API: %d" % credits)
+	if player_ship:
+		player_ship.credits = credits
+	_update_credits_display()
+
+	# Real-time upgrade catalog refresh when credits change (Phase 3B requirement)
+	if trading_interface and trading_interface.visible:
+		_populate_upgrade_catalog()
+		_log_message("ZoneMain3D: Upgrade catalog refreshed due to credits change")
 
 func _create_debris_selection_row(debris_type: String, group_data: Dictionary) -> Control:
 	##Create a selection row for a specific debris type
@@ -1326,3 +1709,153 @@ func _update_selection_summary() -> void:
 
 	_log_message("ZoneMain3D: Selection summary updated - %d items, %d credits, button enabled: %s" %
 		[total_selected_items, total_selected_value, not sell_selected_button.disabled if sell_selected_button else false])
+
+## Phase 4A: Purchase Processing Integration
+
+func _on_upgrade_purchase_requested(upgrade_type: String) -> void:
+	##Handle upgrade purchase request (Phase 4A requirement)
+	##Direct entry point for purchasing upgrades with full validation
+	_log_message("ZoneMain3D: Upgrade purchase requested for type: %s" % upgrade_type)
+
+	if not upgrade_system or not player_ship:
+		_log_message("ZoneMain3D: ERROR - Missing upgrade system or player ship for purchase")
+		return
+
+	# Get upgrade data and validate
+	var upgrade_definitions = upgrade_system.upgrade_definitions
+	var upgrade_data = upgrade_definitions.get(upgrade_type, {})
+
+	if upgrade_data.is_empty():
+		_log_message("ZoneMain3D: ERROR - Invalid upgrade type: %s" % upgrade_type)
+		return
+
+	# Get current state
+	var current_level = player_ship.upgrades.get(upgrade_type, 0)
+	var max_level = upgrade_data.max_level
+	var player_credits = player_ship.credits
+	var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+
+	# Client-side validation
+	if current_level >= max_level:
+		_log_message("ZoneMain3D: Purchase failed - %s already at max level (%d)" % [upgrade_type, max_level])
+		_update_purchase_result("PURCHASE FAILED\n%s is already at maximum level" % upgrade_data.name, Color.RED)
+		return
+
+	if player_credits < cost:
+		_log_message("ZoneMain3D: Purchase failed - Insufficient credits (need %d, have %d)" % [cost, player_credits])
+		_update_purchase_result("PURCHASE FAILED\nInsufficient credits for %s\nNeed: %d, Have: %d" % [upgrade_data.name, cost, player_credits], Color.RED)
+		return
+
+	# Set current selection for confirmation dialog
+	current_selected_upgrade = upgrade_type
+	current_upgrade_cost = cost
+
+	# Show confirmation dialog with upgrade details
+	if confirm_upgrade_name:
+		confirm_upgrade_name.text = upgrade_data.name
+
+	if confirm_upgrade_info:
+		var next_level = current_level + 1
+		confirm_upgrade_info.text = "%s\nUpgrade from Level %d to Level %d\nEffect: %s" % [
+			upgrade_data.description,
+			current_level,
+			next_level,
+			upgrade_data.description
+		]
+
+	if confirm_cost_label:
+		confirm_cost_label.text = "Cost: %d credits" % cost
+
+	# Show confirmation dialog
+	if confirm_purchase_dialog:
+		confirm_purchase_dialog.popup_centered()
+		_log_message("ZoneMain3D: Showing purchase confirmation for %s (cost: %d)" % [upgrade_type, cost])
+	else:
+		# If no confirmation dialog, proceed directly (for automated/programmatic purchases)
+		_log_message("ZoneMain3D: No confirmation dialog - proceeding with direct purchase")
+		_perform_upgrade_purchase()
+
+func _perform_upgrade_purchase() -> void:
+	##Perform the actual upgrade purchase (extracted for reuse)
+	if current_selected_upgrade.is_empty():
+		_log_message("ZoneMain3D: ERROR - No upgrade selected for purchase")
+		return
+
+	_log_message("ZoneMain3D: Performing upgrade purchase: %s for %d credits" % [current_selected_upgrade, current_upgrade_cost])
+
+	# Call APIClient to purchase upgrade (Phase 2A integration)
+	if api_client and api_client.has_method("purchase_upgrade"):
+		api_client.purchase_upgrade(player_ship.player_id, current_selected_upgrade, current_upgrade_cost)
+		_log_message("ZoneMain3D: Purchase request sent to API")
+	else:
+		_log_message("ZoneMain3D: ERROR - API client does not support upgrade purchases")
+		_update_purchase_result("PURCHASE FAILED\nAPI client error", Color.RED)
+
+func _on_inventory_expanded(old_capacity: int, new_capacity: int) -> void:
+	##Handle inventory capacity expansion - update UI immediately
+	_log_message("ZoneMain3D: Inventory expanded from %d to %d - updating UI" % [old_capacity, new_capacity])
+
+	# Update inventory status display immediately
+	if inventory_status and player_ship:
+		var current_size = player_ship.current_inventory.size()
+		inventory_status.text = "%d/%d Items" % [current_size, new_capacity]
+
+		# Update color coding based on new capacity
+		if current_size >= new_capacity:
+			inventory_status.modulate = Color.RED
+		elif current_size >= new_capacity * 0.8:
+			inventory_status.modulate = Color.YELLOW
+		else:
+			inventory_status.modulate = Color.GREEN  # Green when expansion gives more room
+
+	# Update upgrade status display to reflect new inventory level
+	_update_upgrade_status_display()
+
+	# Show visual feedback message
+	_update_purchase_result("INVENTORY EXPANDED!\nCapacity increased to %d items" % new_capacity, Color.GREEN)
+
+func _on_upgrade_effects_applied(upgrade_type: String, level: int) -> void:
+	##Handle when upgrade effects are applied - update relevant UI panels
+	_log_message("ZoneMain3D: Upgrade effects applied: %s level %d - updating UI" % [upgrade_type, level])
+
+	# Update different UI elements based on upgrade type
+	match upgrade_type:
+		"speed_boost":
+			# Show speed boost feedback
+			if player_ship:
+				var new_speed = player_ship.speed
+				_update_purchase_result("SPEED BOOST ACTIVE!\nNew speed: %.0f" % new_speed, Color.CYAN)
+
+		"inventory_expansion":
+			# Inventory expansion is handled by _on_inventory_expanded signal
+			pass
+
+		"collection_efficiency":
+			# Update collection range display
+			if player_ship:
+				var new_range = player_ship.collection_range
+				_update_purchase_result("COLLECTION ENHANCED!\nNew range: %.1f units" % new_range, Color.BLUE)
+
+		"zone_access":
+			# Update zone access display
+			_update_purchase_result("ZONE ACCESS UPGRADED!\nLevel %d unlocked" % level, Color.PURPLE)
+
+		"debris_scanner":
+			if level > 0:
+				_update_purchase_result("DEBRIS SCANNER ACTIVATED!\nLevel %d scanner online" % level, Color.YELLOW)
+			else:
+				_update_purchase_result("DEBRIS SCANNER DEACTIVATED", Color.GRAY)
+
+		"cargo_magnet":
+			if level > 0:
+				_update_purchase_result("CARGO MAGNET ACTIVE!\nLevel %d auto-collection enabled" % level, Color.ORANGE)
+			else:
+				_update_purchase_result("CARGO MAGNET DEACTIVATED", Color.GRAY)
+
+	# Always update the upgrade status display
+	_update_upgrade_status_display()
+
+	# Update any relevant stats displays
+	if player_ship:
+		_update_credits_display()  # Credits might have changed
+		_update_inventory_displays()  # Inventory status might need updating
