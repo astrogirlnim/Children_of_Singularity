@@ -1363,6 +1363,57 @@ func _on_purchase_button_pressed() -> void:
 	if confirm_purchase_dialog:
 		confirm_purchase_dialog.popup_centered()
 
+func _on_upgrade_purchase_requested(upgrade_type: String) -> void:
+	##Handle upgrade purchase request - main entry point for Phase 4A purchase flow
+	_log_message("ZoneMain3D: Upgrade purchase requested for %s" % upgrade_type)
+
+	if not upgrade_system or not player_ship:
+		_log_message("ZoneMain3D: ERROR - Missing upgrade system or player ship")
+		return
+
+	# Get upgrade data
+	var upgrade_definitions = upgrade_system.upgrade_definitions
+	if upgrade_type not in upgrade_definitions:
+		_log_message("ZoneMain3D: ERROR - Invalid upgrade type: %s" % upgrade_type)
+		return
+
+	var upgrade_data = upgrade_definitions[upgrade_type]
+	var current_level = player_ship.upgrades.get(upgrade_type, 0)
+	var max_level = upgrade_data.max_level
+	var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+	var player_credits = player_ship.credits
+
+	# Client-side validation
+	if current_level >= max_level:
+		_update_purchase_result("UPGRADE MAXED OUT\n%s is already at maximum level (%d)" % [upgrade_data.name, max_level], Color.GOLD)
+		_log_message("ZoneMain3D: Upgrade purchase failed - %s already at max level" % upgrade_type)
+		return
+
+	if player_credits < cost:
+		_update_purchase_result("INSUFFICIENT CREDITS\nNeed %d credits, have %d" % [cost, player_credits], Color.RED)
+		_log_message("ZoneMain3D: Upgrade purchase failed - insufficient credits (%d needed, %d available)" % [cost, player_credits])
+		return
+
+	# Set current selection for confirmation dialog
+	current_selected_upgrade = upgrade_type
+	current_upgrade_cost = cost
+
+	# Update confirmation dialog
+	if confirm_upgrade_name:
+		confirm_upgrade_name.text = upgrade_data.name
+
+	if confirm_upgrade_info:
+		confirm_upgrade_info.text = upgrade_data.description
+
+	if confirm_cost_label:
+		confirm_cost_label.text = "Cost: %d credits" % cost
+
+	# Show confirmation dialog
+	if confirm_purchase_dialog:
+		confirm_purchase_dialog.popup_centered()
+
+	_log_message("ZoneMain3D: Showing confirmation dialog for %s purchase (cost: %d)" % [upgrade_type, cost])
+
 func _on_confirm_purchase_pressed() -> void:
 	##Handle confirmed purchase
 	if current_selected_upgrade.is_empty():
