@@ -407,7 +407,9 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 	##Apply the effects of an upgrade
 	match upgrade_type:
 		"speed_boost":
-			speed = 200.0 + (level * 50.0)
+			# FIXED: Much more reasonable speed progression
+			# Level 0: 120 (comfortable base), Level 5: 220 (+83% vs old +125%)
+			speed = 120.0 + (level * 20.0)  # Base 120, +20 per level (was +50!)
 			max_speed = speed * 1.5  # Allow burst speed above base speed
 			# CRITICAL FIX: Update visual feedback when speed changes (including removal at level 0)
 			_update_speed_visual_feedback()
@@ -456,7 +458,7 @@ func set_speed(new_speed: float) -> void:
 
 func _update_speed_visual_feedback() -> void:
 	##Update visual feedback based on current speed upgrades for 2D
-	var speed_level = int((speed - 200.0) / 50.0)  # Calculate upgrade level based on speed
+	var speed_level = int((speed - 120.0) / 20.0)  # FIXED: Calculate upgrade level with new values (was 200.0/50.0)
 
 	if speed_level > 0:
 		_create_speed_boost_effects_2d(speed_level)
