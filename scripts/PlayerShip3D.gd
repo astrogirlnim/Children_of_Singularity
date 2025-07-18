@@ -713,6 +713,8 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 			# Update movement parameters for 3D (Mario Kart style)
 			max_forward_speed = speed
 			max_reverse_speed = speed * 0.6  # Reverse is 60% of forward speed
+			# CRITICAL FIX: Update visual feedback when speed changes (including removal at level 0)
+			_update_speed_visual_feedback()
 			_log_message("PlayerShip3D: Speed boost applied - Speed: %.1f, Max Forward: %.1f, Max Reverse: %.1f" % [speed, max_forward_speed, max_reverse_speed])
 		"inventory_expansion":
 			set_inventory_capacity(10 + (level * 5))

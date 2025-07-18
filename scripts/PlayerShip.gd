@@ -409,6 +409,8 @@ func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
 		"speed_boost":
 			speed = 200.0 + (level * 50.0)
 			max_speed = speed * 1.5  # Allow burst speed above base speed
+			# CRITICAL FIX: Update visual feedback when speed changes (including removal at level 0)
+			_update_speed_visual_feedback()
 			_log_message("PlayerShip: Speed boost applied - Speed: %.1f, Max Speed: %.1f" % [speed, max_speed])
 		"inventory_expansion":
 			var old_capacity = inventory_capacity

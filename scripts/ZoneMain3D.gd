@@ -2017,7 +2017,10 @@ func _on_upgrade_effects_applied(upgrade_type: String, level: int) -> void:
 			# Show speed boost feedback
 			if player_ship:
 				var new_speed = player_ship.speed
-				_update_purchase_result("SPEED BOOST ACTIVE!\nNew speed: %.0f" % new_speed, Color.CYAN)
+				if level > 0:
+					_update_purchase_result("SPEED BOOST ACTIVE!\nNew speed: %.0f" % new_speed, Color.CYAN)
+				else:
+					_update_purchase_result("SPEED BOOST DEACTIVATED\nSpeed reset to: %.0f" % new_speed, Color.GRAY)
 
 		"inventory_expansion":
 			# Inventory expansion is handled by _on_inventory_expanded signal
@@ -2027,7 +2030,10 @@ func _on_upgrade_effects_applied(upgrade_type: String, level: int) -> void:
 			# Update collection range display
 			if player_ship:
 				var new_range = player_ship.collection_range
-				_update_purchase_result("COLLECTION ENHANCED!\nNew range: %.1f units" % new_range, Color.BLUE)
+				if level > 0:
+					_update_purchase_result("COLLECTION ENHANCED!\nNew range: %.1f units" % new_range, Color.BLUE)
+				else:
+					_update_purchase_result("COLLECTION EFFICIENCY RESET\nRange reset to: %.1f units" % new_range, Color.GRAY)
 
 		"zone_access":
 			# Update zone access display
