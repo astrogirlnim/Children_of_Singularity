@@ -87,7 +87,27 @@ func _setup_components() -> void:
 		ui_manager.sell_all_button = $UILayer/HUD/TradingInterface/TradingContent/SellAllButton
 		ui_manager.trading_result = $UILayer/HUD/TradingInterface/TradingContent/TradingResult
 		ui_manager.trading_close_button = $UILayer/HUD/TradingInterface/TradingCloseButton
-		print("ZoneMainRefactored: UI manager configured")
+
+		# Setup upgrade interface UI elements (Phase 3B addition)
+		ui_manager.trading_tabs = $UILayer/HUD/TradingInterface/TradingTabs
+		ui_manager.upgrade_content = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent
+		ui_manager.upgrade_catalog = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog
+		ui_manager.upgrade_grid = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog/UpgradeGrid
+		ui_manager.upgrade_details = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails
+		ui_manager.upgrade_details_label = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails/UpgradeDetailsLabel
+		ui_manager.purchase_button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls/PurchaseButton
+		ui_manager.purchase_result = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseResult
+		ui_manager.confirm_purchase_dialog = $UILayer/HUD/ConfirmPurchaseDialog
+		ui_manager.confirm_upgrade_name = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/UpgradeNameLabel
+		ui_manager.confirm_upgrade_info = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/UpgradeInfoLabel
+		ui_manager.confirm_cost_label = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/CostLabel
+		ui_manager.confirm_button = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons/ConfirmButton
+		ui_manager.cancel_button = $UILayer/HUD/ConfirmPurchaseDialog/ConfirmDialogContent/ConfirmButtons/CancelButton
+
+		# Set system references for upgrade functionality (Phase 3B)
+		ui_manager.set_system_references(player_ship, upgrade_system, api_client)
+
+		print("ZoneMainRefactored: UI manager configured with upgrade interface")
 
 	# Setup debris manager
 	if debris_manager:
@@ -126,6 +146,11 @@ func _connect_signals() -> void:
 			api_client.inventory_updated.connect(_on_inventory_updated)
 		if api_client.has_signal("api_error"):
 			api_client.api_error.connect(_on_api_error)
+		# Connect upgrade purchase signals (Phase 3B addition)
+		if api_client.has_signal("upgrade_purchased"):
+			api_client.upgrade_purchased.connect(_on_upgrade_purchased_api)
+		if api_client.has_signal("upgrade_purchase_failed"):
+			api_client.upgrade_purchase_failed.connect(_on_upgrade_purchase_failed_api)
 
 	# Upgrade system signals
 	if upgrade_system:
@@ -298,6 +323,9 @@ func _on_npc_hub_entered() -> void:
 	##Handle entering NPC hub
 	if ui_manager:
 		ui_manager.show_trading_interface("Trading Hub")
+		# Populate upgrade catalog when trading interface opens (Phase 3B requirement)
+		if ui_manager.has_method("_populate_upgrade_catalog"):
+			ui_manager._populate_upgrade_catalog()
 
 func _on_npc_hub_exited() -> void:
 	##Handle exiting NPC hub
@@ -376,6 +404,12 @@ func _on_player_data_loaded(data: Dictionary) -> void:
 
 func _on_credits_updated(credits: int) -> void:
 	_log_message("Credits updated: %d" % credits)
+	if player_ship:
+		player_ship.credits = credits
+	if ui_manager:
+		ui_manager.update_credits_display(credits)
+		# Real-time upgrade catalog refresh when credits change (Phase 3B requirement)
+		ui_manager.refresh_upgrade_catalog()
 
 func _on_inventory_updated(inventory: Array) -> void:
 	_log_message("Inventory updated: %d items" % inventory.size())
@@ -403,6 +437,20 @@ func _on_network_debris_collected(player_id: String, debris_type: String, value:
 
 func _on_network_server_state_updated(state: Dictionary) -> void:
 	_log_message("Server state updated")
+
+## Upgrade Purchase Signal Handlers (Phase 3B addition)
+
+func _on_upgrade_purchased_api(result: Dictionary) -> void:
+	##Handle upgrade purchase success from API client
+	_log_message("Upgrade purchased via API: %s" % result)
+	if ui_manager:
+		ui_manager.handle_upgrade_purchased(result)
+
+func _on_upgrade_purchase_failed_api(reason: String, upgrade_type: String) -> void:
+	##Handle upgrade purchase failure from API client
+	_log_message("Upgrade purchase failed via API: %s - %s" % [upgrade_type, reason])
+	if ui_manager:
+		ui_manager.handle_upgrade_purchase_failed(reason, upgrade_type)
 
 ## Public API
 

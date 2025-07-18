@@ -1414,6 +1414,11 @@ func _on_credits_updated(credits: int) -> void:
 		player_ship.credits = credits
 	_update_credits_display()
 
+	# Real-time upgrade catalog refresh when credits change (Phase 3B requirement)
+	if trading_interface and trading_interface.visible:
+		_populate_upgrade_catalog()
+		_log_message("ZoneMain3D: Upgrade catalog refreshed due to credits change")
+
 func _create_debris_selection_row(debris_type: String, group_data: Dictionary) -> Control:
 	##Create a selection row for a specific debris type
 	var row_container = HBoxContainer.new()

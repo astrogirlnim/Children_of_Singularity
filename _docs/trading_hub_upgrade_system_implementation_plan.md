@@ -157,12 +157,12 @@ TradingInterface/
 - `scripts/ZoneMain.gd` - Add upgrade catalog population (2D version)
 
 **Tasks**:
-- [ ] Add `_populate_upgrade_catalog()` method
-- [ ] Display all 6 upgrade types with current levels
-- [ ] Show upgrade costs, effects, and requirements
-- [ ] Highlight affordable vs unaffordable upgrades
-- [ ] Show "MAXED OUT" for completed upgrade lines
-- [ ] Real-time updates when credits change
+- [x] Add `_populate_upgrade_catalog()` method
+- [x] Display all 6 upgrade types with current levels
+- [x] Show upgrade costs, effects, and requirements
+- [x] Highlight affordable vs unaffordable upgrades
+- [x] Show "MAXED OUT" for completed upgrade lines
+- [x] Real-time updates when credits change
 
 **Upgrade Display Format**:
 ```
@@ -173,7 +173,13 @@ Cost: 225 credits
 ```
 
 **Dependencies**: Phase 3A complete
-**Validation**: All upgrades display with correct information
+**Validation**: ✅ **COMPLETED** - All upgrades display with correct information:
+- ✅ All 6 upgrade types (speed_boost, inventory_expansion, collection_efficiency, zone_access, debris_scanner, cargo_magnet) displayed
+- ✅ Current level and max level shown (e.g., "Level 2/5")
+- ✅ Upgrade costs calculated and displayed accurately
+- ✅ Visual feedback with color coding (green=affordable, red=unaffordable, gold=maxed)
+- ✅ Real-time updates when credits change
+- ✅ Both ZoneMain3D.gd and ZoneMain.gd implementations completed
 
 ---
 
