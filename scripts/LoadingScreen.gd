@@ -54,6 +54,7 @@ var assets_loaded: bool = false
 
 func _ready() -> void:
 	print("LoadingScreen: Initializing custom loading screen")
+	add_to_group("loading_screens")  # For cleanup purposes
 	_setup_loading_screen()
 	_setup_loading_items()
 	_start_spinner_animation()
@@ -136,16 +137,10 @@ func _setup_loading_items() -> void:
 			"weight": 10
 		},
 		{
-			"name": "UI Themes",
-			"resource_path": "res://resources/themes/SpaceCustomTheme.tres",
-			"load_time": 0.2,
-			"weight": 5
-		},
-		{
 			"name": "Background Assets",
 			"resource_path": "res://assets/backgrounds/seamless/starfield_seamless.png",
 			"load_time": 0.4,
-			"weight": 10
+			"weight": 15
 		}
 	]
 
@@ -155,7 +150,7 @@ func start_loading() -> void:
 	##Start the loading process
 	print("LoadingScreen: Starting loading process")
 	is_loading = true
-	loading_start_time = Time.get_time_dict_from_system()["unix"]
+	loading_start_time = Time.get_unix_time_from_system()
 	current_loading_index = 0
 	current_message_index = 0
 	assets_loaded = false
@@ -290,7 +285,7 @@ func _check_loading_completion() -> void:
 	##Check if loading is complete and handle transition
 	if not assets_loaded and current_loading_index >= loading_items.size():
 		# Ensure minimum loading time has passed for user experience
-		var current_time = Time.get_time_dict_from_system()["unix"]
+		var current_time = Time.get_unix_time_from_system()
 		var elapsed_time = current_time - loading_start_time
 
 		if elapsed_time >= min_loading_time:
@@ -303,7 +298,7 @@ func _check_loading_completion() -> void:
 				print("LoadingScreen: Waiting for %d remaining threaded loads to complete" % active_threaded_loads.size())
 
 func _complete_loading() -> void:
-	##Complete the loading process and emit completion signal
+	##Complete the loading process and transition to main game
 	print("LoadingScreen: Loading complete!")
 	is_loading = false
 
@@ -315,9 +310,71 @@ func _complete_loading() -> void:
 	if loading_label:
 		loading_label.text = "Loading complete! Welcome to the singularity..."
 
-	# Emit completion signal after a brief delay for final message display
+	# Show completion message briefly
+	print("LoadingScreen: Waiting 1 second before transitioning...")
 	await get_tree().create_timer(1.0).timeout
+
+	# Emit signal for any listeners (but don't depend on it)
+	print("LoadingScreen: Emitting loading_complete signal...")
+	print("LoadingScreen: Signal has %d connections" % loading_complete.get_connections().size())
 	loading_complete.emit()
+
+	# Handle scene transition directly (don't wait for signal)
+	print("LoadingScreen: ✅ Handling scene transition directly...")
+	await _transition_to_main_game()
+
+func _transition_to_main_game() -> void:
+	print("LoadingScreen: Starting transition to main game")
+
+	# Critical debug: Validate scene file exists before transition
+	var scene_path = "res://scenes/zones/ZoneMain3D.tscn"
+	print("LoadingScreen: Validating scene file exists: ", scene_path)
+
+	if not ResourceLoader.exists(scene_path):
+		print("LoadingScreen: ❌ CRITICAL ERROR - Scene file does not exist: ", scene_path)
+		return
+
+	print("LoadingScreen: ✅ Scene file confirmed to exist")
+
+	# Check if scene is already loaded from preloading
+	var preloaded_scene = ResourceLoader.load_threaded_get(scene_path)
+	if preloaded_scene:
+		print("LoadingScreen: ✅ Using preloaded scene resource")
+	else:
+		print("LoadingScreen: ⚠️  Scene not preloaded, will load fresh")
+
+	print("LoadingScreen: Attempting scene change to: ", scene_path)
+	print("LoadingScreen: 🔄 KEEPING LOADING SCREEN VISIBLE during transition...")
+
+	# Attempt scene transition with error checking (KEEP LOADING SCREEN VISIBLE)
+	var error = get_tree().change_scene_to_file(scene_path)
+
+	if error != OK:
+		print("LoadingScreen: ❌ CRITICAL ERROR - Scene change failed with error code: ", error)
+		print("LoadingScreen: Error codes: OK=0, FAILED=1, ERR_UNAVAILABLE=2, ERR_UNCONFIGURED=3")
+		return
+
+	print("LoadingScreen: ✅ Scene change call completed successfully")
+	print("LoadingScreen: Waiting for ZoneMain3D to fully initialize...")
+
+	# Wait for ZoneMain3D to be fully ready (longer wait to ensure 3D objects are rendered)
+	await get_tree().create_timer(2.0).timeout
+	print("LoadingScreen: Post-transition check - Current scene: ", get_tree().current_scene)
+
+	if get_tree().current_scene:
+		print("LoadingScreen: ✅ New scene active: ", get_tree().current_scene.name)
+		print("LoadingScreen: ✅ ZoneMain3D ready - NOW fading out loading screen...")
+
+		# NOW fade out loading screen after ZoneMain3D is ready
+		print("LoadingScreen: Fading out loading screen")
+		await fade_out()
+
+		print("LoadingScreen: Cleaning up loading system")
+		cleanup_loading()
+
+		print("LoadingScreen: ✅ Transition complete - No grey screen!")
+	else:
+		print("LoadingScreen: ❌ CRITICAL ERROR - No current scene after transition!")
 
 func fade_out() -> void:
 	##Fade out the loading screen
@@ -357,3 +414,13 @@ func cleanup_loading() -> void:
 	active_threaded_loads.clear()
 	is_loading = false
 	assets_loaded = false
+
+## Static cleanup function to remove stuck LoadingScreen instances
+static func remove_all_loading_screens() -> void:
+	var tree = Engine.get_main_loop() as SceneTree
+	if tree and tree.current_scene:
+		var loading_screens = tree.get_nodes_in_group("loading_screens")
+		for screen in loading_screens:
+			if screen and is_instance_valid(screen):
+				print("LoadingScreen: Removing stuck loading screen instance")
+				screen.queue_free()
