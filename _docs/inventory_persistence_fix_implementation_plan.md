@@ -6,8 +6,11 @@ This checklist addresses game data persistence issues where player inventory, up
 
 ## Problem Summary
 - ✅ **Saving**: All data saves correctly to database
-- ❌ **Loading**: Game never loads existing data on startup
-- **Result**: Players lose ALL progress when restarting the game
+- ✅ **Loading**: Game loads existing data on startup (**FIXED in Phase 2**)
+- ✅ **Format Issues**: Backend/game data format mismatches (**FIXED**)
+- ✅ **Trading Hub Sync**: Backend inventory clearing (**FIXED**)
+- ❌ **Architecture**: Individual item storage vs stacking system (**CRITICAL - Phase 6**)
+- **Result**: Basic persistence works, but inventory architecture needs refactor
 
 ---
 
@@ -37,7 +40,13 @@ This checklist addresses game data persistence issues where player inventory, up
 ---
 
 ## **Phase 2: Complete Game Data Loading System** 🔄
-**Priority**: High | **Timeline**: 2-3 days | **Status**: ✅ COMPLETED
+**Priority**: High | **Timeline**: 2-3 days | **Status**: ✅ COMPLETED (**WITH CRITICAL FIXES**)
+
+**Issues Discovered & Resolved During Implementation**:
+- ❌ **Inventory Format Mismatch**: Backend used `item_type`/`item_id`, game expected `type`/`id`  
+- ✅ **FIXED**: Added automatic format conversion in `_on_inventory_loaded()`
+- ❌ **Trading Hub Backend Sync Bug**: Items accumulated forever (177 items for 25-item inventory)
+- ✅ **FIXED**: Added `clear_inventory()` call to `_sync_sale_with_backend()`
 
 ### 2.1 Zone Initialization Data Loading
 **Files**: `ZoneMain3D.gd`, `ZoneMain.gd`
@@ -108,25 +117,42 @@ func _on_player_data_loaded(data: Dictionary) -> void:
 **Files**: `ZoneMain3D.gd`, `ZoneMain.gd`
 
 - [x] Add `_on_inventory_loaded(inventory_data: Array)` handler
-- [x] Convert inventory format from backend to game format
+- [x] Convert inventory format from backend to game format (**CRITICAL FIX ADDED**)
 - [x] Restore inventory items to player ship
 - [x] Update inventory UI with correct counts
 - [x] Clear loading states when inventory is loaded
 
-**Implementation**:
+**Implementation** (**UPDATED - Format Conversion Fix**):
 ```gdscript
 func _on_inventory_loaded(inventory_data: Array) -> void:
     _log_message("Applying loaded inventory: %d items" % inventory_data.size())
 
     if player_ship:
         player_ship.current_inventory.clear()
-        player_ship.current_inventory = inventory_data.duplicate()
 
-        _log_message("Restored inventory: %d/%d items" % [player_ship.current_inventory.size(), player_ship.inventory_capacity])
+        # CRITICAL FIX: Convert backend format to game format
+        var converted_inventory = []
+        for backend_item in inventory_data:
+            # Convert backend format to game format
+            var game_item = {
+                "type": backend_item.get("item_type", "unknown"),        # item_type → type
+                "value": backend_item.get("value", 0),                   # value → value
+                "id": backend_item.get("item_id", "unknown"),            # item_id → id
+                "timestamp": backend_item.get("timestamp", 0)            # timestamp → timestamp
+            }
+            converted_inventory.append(game_item)
+
+        player_ship.current_inventory = converted_inventory
+        _log_message("Converted %d backend items to game format" % converted_inventory.size())
 
         # Update UI immediately
         _update_grouped_inventory_display(player_ship.current_inventory)
 ```
+
+**Format Mismatch Issue Resolved**:
+- **Problem**: Backend returned `item_type`/`item_id`, game expected `type`/`id`
+- **Solution**: Automatic format conversion in `_on_inventory_loaded()`
+- **Result**: ✅ Inventory loading now works correctly (0/25 → proper item display)
 
 ### 2.4 PlayerShip Initialization Order Fix
 **Files**: `PlayerShip3D.gd`, `PlayerShip.gd`
@@ -175,10 +201,45 @@ func _initialize_player_state() -> void:
 - [x] Ship speed, inventory capacity, and other upgrade effects work immediately (speed boosted from 150 to 300)
 - [x] UI displays correct data immediately without requiring user action
 
+### 2.6 Trading Hub Backend Sync Fix (**CRITICAL BUG FIX**)
+**Files**: `ZoneMain3D.gd`, `ZoneMain.gd`
+
+**Problem Discovered**: Trading hub was only clearing inventory locally but not removing sold items from backend database, causing infinite item accumulation (177 items for 25-item inventory).
+
+- [x] Fix `_sync_sale_with_backend()` to properly clear backend inventory
+- [x] Add `api_client.clear_inventory()` call after credit updates  
+- [x] Prevent backend item accumulation after sales
+- [x] Test backend inventory clearing functionality
+
+**Implementation**:
+```gdscript
+func _sync_sale_with_backend(sold_items: Array, total_value: int) -> void:
+    ##Sync the sale transaction with the backend API
+    if not api_client:
+        return
+
+    # Sync credits to backend
+    if api_client.has_method("update_credits"):
+        api_client.update_credits(total_value)
+        _log_message("Credits synced with backend API - Added %d credits" % total_value)
+
+    # CRITICAL FIX: Clear sold items from backend inventory
+    if api_client.has_method("clear_inventory"):
+        api_client.clear_inventory()
+        _log_message("FIXED - Cleared backend inventory to remove sold items")
+```
+
+**Issue Resolution**:
+- **Before**: 177+ individual items accumulating in backend for 25-item inventory
+- **After**: ✅ Backend inventory properly cleared on sale (0 items confirmed)
+- **Impact**: Prevents database bloat and inventory count mismatches
+
 ---
 
 ## **Phase 3: Error Handling and Resilience** 🛡️
-**Priority**: Medium | **Timeline**: 1-2 days
+**Priority**: Medium → **Lower Priority** | **Timeline**: 1-2 days | **Status**: 📋 PENDING
+
+**NOTE**: Phase 6 (Inventory Stacking Refactor) is now **HIGHER PRIORITY** due to critical architectural issues discovered during Phase 2 testing (177 individual items vs 25-item inventory limit).
 
 ### 3.1 Database Connection Error Handling
 **Files**: `APIClient.gd`, `ZoneMain3D.gd`
@@ -691,4 +752,11 @@ func _migrate_legacy_inventory_to_stacks(legacy_inventory: Array) -> Dictionary:
 **Total Estimated Duration**: 12-16 days
 **Critical Path**: Phase 1 → Phase 2 → Phase 6 → Testing
 **Immediate Priority**: Phase 6.1 (Frontend Inventory Architecture Refactor)
-**Current Status**: Phase 2 completed, Phase 6 planned and ready for implementation
+**Current Status**: Phase 1 & 2 completed with critical fixes, Phase 6 planned and ready for implementation
+
+**Recent Fixes Completed**:
+- ✅ Inventory format conversion (backend `item_type`/`item_id` → game `type`/`id`)
+- ✅ Trading hub backend sync fix (prevent item accumulation)  
+- ✅ Backend inventory clearing on sales (177 items → 0 items confirmed)
+
+**Next Actions**: Implement Phase 6 Inventory Stacking System to solve fundamental architecture issues
