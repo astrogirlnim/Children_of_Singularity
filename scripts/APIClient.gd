@@ -25,7 +25,7 @@ signal upgrade_purchase_failed(reason: String, upgrade_type: String)
 
 # API configuration
 var base_url: String = "http://localhost:8000/api/v1"
-var player_id: String = "player_001"
+var player_id: String = "550e8400-e29b-41d4-a716-446655440000"
 var request_timeout: float = 30.0
 
 # Request tracking

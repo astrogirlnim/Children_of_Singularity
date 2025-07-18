@@ -41,7 +41,7 @@ var friction: float = 600.0
 var max_speed: float = 300.0
 
 # Player state
-var player_id: String = "player_001"
+var player_id: String = "550e8400-e29b-41d4-a716-446655440000"
 var current_inventory: Array[Dictionary] = []
 var inventory_capacity: int = 10
 var credits: int = 0

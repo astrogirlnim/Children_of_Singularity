@@ -76,7 +76,7 @@ var current_velocity: float = 0.0            # Forward/backward velocity
 var current_direction: Vector3 = Vector3.FORWARD  # Ship's facing direction
 
 ## Player state (same as 2D version)
-var player_id: String = "player_001"
+var player_id: String = "550e8400-e29b-41d4-a716-446655440000"
 var current_inventory: Array[Dictionary] = []
 var inventory_capacity: int = 10
 var credits: int = 0
