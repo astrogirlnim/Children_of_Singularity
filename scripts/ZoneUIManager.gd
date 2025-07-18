@@ -476,7 +476,13 @@ func _on_dump_inventory_confirmed(dialog: ConfirmationDialog) -> void:
 	_update_trading_result("DUMPED %d items - No credits gained" % item_count, Color.RED)
 	update_inventory_display(player_ship.current_inventory)
 
-	print("ZoneUIManager: Dumped %d items, no credits gained" % item_count)
+	# CRITICAL FIX: Refresh any trading interface elements if they exist
+	if has_method("_populate_debris_selection_ui"):
+		call("_populate_debris_selection_ui")
+	if has_method("_update_selection_summary"):
+		call("_update_selection_summary")
+
+	print("ZoneUIManager: Dumped %d items, no credits gained, UI refreshed" % item_count)
 
 	# Clean up dialog
 	dialog.queue_free()
@@ -566,8 +572,14 @@ func handle_upgrades_cleared(cleared_data: Dictionary) -> void:
 	_populate_upgrade_catalog()  # Refresh catalog to show Level 0
 	update_upgrade_status_display(player_ship.upgrades, upgrade_system)
 
+	# CRITICAL FIX: Refresh trading interface elements if they exist (inventory capacity may have changed)
+	if has_method("_populate_debris_selection_ui"):
+		call("_populate_debris_selection_ui")
+	if has_method("_update_selection_summary"):
+		call("_update_selection_summary")
+
 	var total_cleared = cleared_data.get("total_cleared", 0)
-	print("ZoneUIManager: All upgrades reset to defaults - %d upgrades cleared" % total_cleared)
+	print("ZoneUIManager: All upgrades reset to defaults - %d upgrades cleared, UI refreshed" % total_cleared)
 
 func _update_trading_result(message: String, color: Color) -> void:
 	##Update trading result display with message and color

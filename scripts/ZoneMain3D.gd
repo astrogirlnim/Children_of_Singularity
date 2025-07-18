@@ -1116,7 +1116,11 @@ func _on_dump_inventory_confirmed(dialog: ConfirmationDialog) -> void:
 	_update_grouped_inventory_display(player_ship.current_inventory)
 	_update_inventory_displays()
 
-	_log_message("ZoneMain3D: Dumped %d items, no credits gained" % item_count)
+	# CRITICAL FIX: Refresh the trading interface to show updated inventory
+	_populate_debris_selection_ui()
+	_update_selection_summary()
+
+	_log_message("ZoneMain3D: Dumped %d items, no credits gained, trading interface refreshed" % item_count)
 
 	# Clean up dialog
 	dialog.queue_free()
@@ -1207,8 +1211,13 @@ func _on_upgrades_cleared(cleared_data: Dictionary) -> void:
 	_update_upgrade_status_display()
 	_update_inventory_displays()  # Inventory capacity may have changed
 
+	# CRITICAL FIX: Also refresh trading interface if open (inventory capacity may have changed)
+	if trading_interface and trading_interface.visible:
+		_populate_debris_selection_ui()
+		_update_selection_summary()
+
 	var total_cleared = cleared_data.get("total_cleared", 0)
-	_log_message("ZoneMain3D: All upgrades reset to defaults - %d upgrades cleared" % total_cleared)
+	_log_message("ZoneMain3D: All upgrades reset to defaults - %d upgrades cleared, trading interface refreshed" % total_cleared)
 
 func _on_trading_close_pressed() -> void:
 	##Handle trading close button press
