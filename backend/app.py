@@ -148,6 +148,10 @@ class UpgradePurchaseResponse(BaseModel):
     new_level: int
     cost: int
     remaining_credits: int
+
+
+class CreditsUpdateRequest(BaseModel):
+    credits_change: int
     error_message: str = ""
 
 
@@ -709,8 +713,9 @@ async def clear_player_inventory(player_id: str):
 
 
 @app.post("/api/v1/players/{player_id}/credits")
-async def update_player_credits(player_id: str, credits_change: int):
+async def update_player_credits(player_id: str, credits_data: CreditsUpdateRequest):
     """Update player credits (positive to add, negative to subtract)"""
+    credits_change = credits_data.credits_change
     logger.info(f"Updating credits for player: {player_id}, change: {credits_change}")
 
     try:

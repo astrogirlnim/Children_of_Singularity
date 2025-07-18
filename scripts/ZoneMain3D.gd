@@ -1019,24 +1019,12 @@ func _sync_sale_with_backend(sold_items: Array, total_value: int) -> void:
 		_log_message("ZoneMain3D: Warning - No API client available for backend sync")
 		return
 
-	# Create transaction data
-	var transaction_data = {
-		"player_id": player_ship.player_id,
-		"transaction_type": "sell_all",
-		"items_sold": sold_items,
-		"credits_earned": total_value,
-		"timestamp": Time.get_unix_time_from_system()
-	}
-
-	# Send to backend if method exists
-	if api_client.has_method("record_transaction"):
-		api_client.record_transaction(transaction_data)
-		_log_message("ZoneMain3D: Transaction synced with backend API")
-	elif api_client.has_method("sell_all_inventory"):
-		api_client.sell_all_inventory()
-		_log_message("ZoneMain3D: Sell all request sent to backend API")
+	# Sync credits to backend using the existing update_credits method
+	if api_client.has_method("update_credits"):
+		api_client.update_credits(total_value)  # Add the credits earned from sale
+		_log_message("ZoneMain3D: Credits synced with backend API - Added %d credits" % total_value)
 	else:
-		_log_message("ZoneMain3D: Warning - Backend API does not support transaction recording")
+		_log_message("ZoneMain3D: Warning - Backend API does not support credit updates")
 
 func _update_inventory_displays() -> void:
 	##Update all inventory-related UI displays
