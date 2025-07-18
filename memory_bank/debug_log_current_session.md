@@ -1,210 +1,171 @@
 # Debug Log - Current Session
+**Children of the Singularity - Loading Screen Implementation & Debugging**
 
-## Session Status: **🏆 DOUBLE SUCCESS - ALL VISUAL ISSUES RESOLVED 🏆**
+## Current Status: ❌ CRITICAL ISSUE - Scene Transition Failure
 
-### **🎉 ACHIEVEMENT UNLOCKED: PERFECT VISUAL SYSTEM**
-1. **Debris Sprites**: ✅ All PNG sprites loading perfectly with consistent scaling
-2. **Border Scaling**: ✅ UI border fits viewport exactly using scale transform
+### **Problem Summary**
+The custom loading screen system works perfectly through all phases:
+1. ✅ StartupScreen loads and animates correctly
+2. ✅ LoadingScreen displays custom image and loads all assets (100% completion)
+3. ✅ LoadingScreen attempts scene transition to ZoneMain3D.tscn
+4. ❌ **ZoneMain3D scene fails to initialize - grey screen persists**
 
-### **FINAL BREAKTHROUGH: Perfect Visual Consistency**
-- **Problem**: Debris sprites were too large compared to ship sprites
-- **Root Cause**: Debris using pixel_size 0.05 vs ship using pixel_size 0.0055 (9x difference)
-- **Solution**: Matched debris pixel_size to ship pixel_size for perfect visual consistency
-- **Result**: All debris objects now scale perfectly with the ship for professional appearance
-
-### **Critical Fixes Applied:**
-```gdscript
-# STEP 1: Fixed texture loading (stale import files)
-rm -f assets/sprites/debris/*.import
-godot --editor --quit-after 10 project.godot
-
-# STEP 2: Matched visual scale for consistency
-# BEFORE: sprite_3d.pixel_size = 0.05  # 9x larger than ship
-# AFTER:  sprite_3d.pixel_size = 0.0055 # Same as ship
+### **Evidence from Terminal Logs**
 ```
-
-### **Final System Status: PERFECT SUCCESS**
-- ✅ **Debris Spawning**: 30 debris objects spawning successfully
-- ✅ **PNG Sprites**: ALL 5 debris types using actual PNG sprites (1024x1024)
-- ✅ **Visual Consistency**: Debris and ship now use identical pixel_size (0.0055)
-- ✅ **Physics System**: Proper floating animation and rotation
-- ✅ **Collection System**: Collection areas working properly
-- ✅ **Texture Loading**: All compressed textures (.ctex) loading perfectly
-
-### **PNG Sprite Implementation: 100% SUCCESS**
-- ✅ **scrap_metal**: 1024x1024 PNG sprite loading perfectly
-- ✅ **broken_satellite**: 1024x1024 PNG sprite loading perfectly  
-- ✅ **bio_waste**: 1024x1024 PNG sprite loading perfectly
-- ✅ **ai_component**: 1024x1024 PNG sprite loading perfectly
-- ✅ **unknown_artifact**: 1024x1024 PNG sprite loading perfectly
-
-### **Technical Achievement Summary:**
-1. **Eliminated Colored Squares**: Replaced all fallback colored squares with high-quality PNG sprites
-2. **Fixed Import System**: Resolved stale import files causing texture loading failures
-3. **Achieved Visual Consistency**: Debris now perfectly scaled to match ship size
-4. **Optimized Rendering**: 1024x1024 textures efficiently rendered at appropriate scale
-
-### **Performance Metrics:**
-- **Texture Size**: 1024x1024 pixels (high quality)
-- **World Render Size**: ~5.6 world units (1024 × 0.0055)
-- **Visual Scale**: Perfect match with ship sprites
-- **Import Status**: All 5 debris types successfully imported and cached
-
-## 🏆 MISSION ACCOMPLISHED: Debris system now displays beautiful, consistently-sized PNG sprites! 🏆
+LoadingScreen: Starting transition to main game
+LoadingScreen: Fading out loading screen
+LoadingScreen: Cleaning up loading system
+LoadingScreen: Changing scene to: res://scenes/zones/ZoneMain3D.tscn
+LoadingScreen: Cleaning up loading system
+LoadingScreen: Cleaned up loading system on exit
+```
+**Critical Observation**: No ZoneMain3D initialization logs appear after scene change attempt.
 
 ---
 
-## Border Scaling Issue Investigation - **🎉 COMPLETE SUCCESS 🎉**
+## **Code Changes Made This Session**
 
-### **Problem Statement - RESOLVED**
-~~The UI border overlay (`lorge_border.png`) is not scaling properly to fit the game window viewport. The border extends beyond the visible game area instead of fitting exactly within the window dimensions.~~
+### **Phase 1: Custom Loading Screen Implementation** ✅ SUCCESSFUL
+**Files Modified:**
+- `scenes/ui/LoadingScreen.tscn` - Created custom loading screen UI
+- `scripts/LoadingScreen.gd` - Implemented threaded asset preloading system
+- `scripts/StartupScreen.gd` - Modified to use LoadingScreen instead of direct scene change
+- `assets/ui/loading_screen.png` - Added custom loading image
 
-**SOLUTION IMPLEMENTED**: Force Scale Transform approach successfully achieved perfect viewport fitting!
+**Key Features Implemented:**
+- Background asset preloading using ResourceLoader.load_threaded_request()
+- Custom loading messages ("Initializing quantum drive systems...", etc.)
+- Progress tracking and visual feedback
+- Loading screen with user's custom astronaut image
 
-### **Technical Details**
-- **Border Asset**: `assets/ui/lorge_border.png` (3000x1500 pixels)
-- **Typical Viewport**: ~1920x1102 or ~2151x1080 pixels  
-- **Previous Behavior**: TextureRect displayed at original texture size (3000x1500) ignoring manual size settings
-- **NEW BEHAVIOR**: Border scales perfectly to match viewport dimensions using scale transformation
-
-### **Root Cause Analysis - SOLVED**
-**Previous Issue**: TextureRect Auto-Sizing Behavior - Despite multiple manual sizing attempts, the TextureRect continued to size itself based on texture content rather than respecting programmatically set dimensions.
-
-**BREAKTHROUGH SOLUTION**: Instead of fighting TextureRect's natural sizing behavior, let it size naturally and apply scale transformation to achieve exact fit.
-
-### **Investigation Findings - FINAL SUCCESS**
-
-#### **Attempted Solutions (Historical):**
-1. **Manual Size Setting**: `border_frame.size = viewport_size` - **Failed**
-2. **Anchor Reset**: Set all anchors to 0.0 to prevent automatic sizing - **Failed**  
-3. **Multiple Stretch Modes**: Tried STRETCH_TILE, STRETCH_KEEP_ASPECT, etc. - **Partial Success**
-4. **Deferred Calls**: Used `call_deferred("set_size", viewport_size)` - **Failed**
-5. **Custom Minimum Size**: `custom_minimum_size = viewport_size` - **Partial Success**
-
-#### **WINNING SOLUTION: Force Scale Transform ✅**
+### **Phase 2: Critical Error Fixes** ✅ SUCCESSFUL
+**Issue 1: Script Parse Error in ZoneMain3D.gd**
 ```gdscript
-# Let TextureRect size naturally, then scale to fit
-border_frame.scale = Vector2(
-    viewport_size.x / texture_size.x,
-    viewport_size.y / texture_size.y
-)
+// ❌ BROKEN CODE (line 432):
+if loading_screen_script and loading_screen_script.has_method("remove_all_loading_screens"):
+    loading_screen_script.remove_all_loading_screens()
+
+// ✅ FIXED CODE:
+# Manually search and remove any LoadingScreen nodes
 ```
+**Result**: Eliminated "Cannot call non-static function 'has_method()' on class" parse error
 
-#### **Final Status: PERFECT SUCCESS**
-- **Method**: Scale transformation instead of size manipulation
-- **Result**: Border fits viewport EXACTLY with perfect visual quality
-- **Performance**: Excellent - no performance overhead from scaling
-- **Compatibility**: Works with all viewport sizes and aspect ratios
-
-### **Code Location - IMPLEMENTED**
-- **File**: `scripts/ScreenSpaceBorderManager.gd` ✅ **UPDATED**
-- **Key Functions**: `_create_border_element()`, `_update_border_positions()` ✅ **FIXED**
-- **Scene Integration**: `scenes/zones/ZoneMain.tscn`, `scenes/zones/ZoneMain3D.tscn` ✅ **WORKING**
-
-### **IMPLEMENTED SOLUTION - Force Scale Transform**
-
-#### **✅ Successful Implementation:**
+**Issue 2: Time API Error in LoadingScreen.gd**
 ```gdscript
-# WORKING CODE - Applied successfully in _update_border_positions()
-# Calculate scale factors to fit texture exactly to viewport
-var scale_x = viewport_size.x / texture_size.x if texture_size.x > 0 else 1.0
-var scale_y = viewport_size.y / texture_size.y if texture_size.y > 0 else 1.0
+// ❌ BROKEN CODE:
+loading_start_time = Time.get_time_dict_from_system()["unix"]
 
-# Apply direct scale transformation - this overrides texture sizing behavior
-border_frame.scale = Vector2(scale_x, scale_y)
+// ✅ FIXED CODE:
+loading_start_time = Time.get_unix_time_from_system()
 ```
+**Result**: Eliminated hundreds of "Invalid access to property 'unix'" errors
 
-#### **Key Configuration Changes:**
+### **Phase 3: Signal Connection Architecture Fix** ✅ SUCCESSFUL
+**Issue 3: Destroyed Signal Handler**
 ```gdscript
-# WORKING ScreenSpaceBorderManager settings
-border_rect.stretch_mode = TextureRect.STRETCH_KEEP      # Changed from STRETCH_TILE
-border_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH   # Simplified from PROPORTIONAL
-border_rect.custom_minimum_size = Vector2.ZERO          # Removed constraints
+// ❌ BROKEN FLOW:
+StartupScreen connects to LoadingScreen.loading_complete signal
+StartupScreen destroys itself (queue_free())
+LoadingScreen finishes → emits signal → NO ONE LISTENING!
+
+// ✅ FIXED FLOW:
+LoadingScreen handles scene transition internally
+No dependency on external signal handlers
 ```
 
-#### **Final Debug Output Pattern:**
-```
-Applied scale transformation - X: 0.640, Y: 0.735
-Final scaled size: (1920.0, 1102.0)  # Perfect viewport match!
-Size matches viewport? true
-```
-
-### **STATUS**: **🎉 COMPLETE SUCCESS 🎉**
-**Impact**: Perfect visual polish - border frames game content precisely
-**User Feedback**: "It worked!! Amazing." - Confirmed working in live testing
-
-### **🎨 ASSET UPDATE: Border Design V2 Successfully Implemented**
-
-#### **Asset Update Process:**
-1. **Source**: Updated `lorge_border_v2.png` from `documentation/design/border/`
-2. **Destination**: Replaced `assets/ui/lorge_border.png` (2.5MB → 2.7MB)
-3. **Import Process**: Forced Godot reimport by removing .import file
-4. **Verification**: ✅ New .import file created, .ctex generated (597ms import time)
-5. **Testing**: ✅ Updated border displays with perfect scale transformation
-
-#### **Technical Achievement:**
-- **Asset Pipeline**: Seamless design-to-game workflow established
-- **Scale Transform**: New border design works perfectly with existing scaling solution
-- **File Management**: Proper version control of design assets in documentation folder
-- **Import System**: Reliable Godot texture import process confirmed
-
-**Result**: User's updated border design v2 is now live in the game with pixel-perfect viewport fitting!
-
-### **🎨 ASSET UPDATE #2: Latest Border Design Changes Applied**
-
-#### **Second Update Process:**
-1. **Source**: Latest `lorge_border_v2.png` from `documentation/design/border/`
-2. **Destination**: Updated `assets/ui/lorge_border.png` (2.7MB → 1.4MB)
-3. **Import Process**: Forced reimport - Godot processed in 500ms
-4. **Verification**: ✅ New .import and .ctex files generated successfully
-5. **Testing**: ✅ Latest design version now displaying in game
-
-#### **Iterative Asset Pipeline Confirmed:**
-- **Design Workflow**: User can edit designs in documentation folder
-- **Import Process**: Reliable copy → reimport → test cycle established
-- **Scale System**: All design iterations work perfectly with scale transform
-- **Performance**: Fast import times (500ms) for quick iteration
-
-**Status**: ✅ **SEAMLESS ASSET ITERATION PIPELINE ESTABLISHED** - User can now rapidly iterate on border designs!
+**Files Modified:**
+- `scripts/LoadingScreen.gd` - Added `_transition_to_main_game()` method
+- `scripts/StartupScreen.gd` - Removed signal connection dependency
 
 ---
 
-## 🔧 LINTING & ERROR RESOLUTION - **🎉 COMPLETE SUCCESS 🎉**
+## **Current Investigation: ZoneMain3D Scene Failure**
 
-### **Comprehensive Error Resolution Achieved:**
+### **Hypothesis**
+The scene change appears to succeed but ZoneMain3D fails to initialize properly.
 
-#### **✅ Database Issues RESOLVED:**
-1. **PostgreSQL Compatibility**: Updated from psycopg2 to psycopg3 for Python 3.13 compatibility
-2. **Database Setup**: Created postgres user with dev_password and proper schema
-3. **Connection Management**: Fixed all database connection code for psycopg3 API
-4. **Environment Variables**: Set DB_PASSWORD and added .env to gitignore
+### **Evidence**
+1. **No ZoneMain3D logs appear** after LoadingScreen completes
+2. **Expected logs missing**:
+   ```
+   ZoneMain3D: Initializing zone environment
+   ZoneMain3D: Setting up 3D camera system
+   ZoneMain3D: Starting game systems
+   ```
+3. **Grey screen persists** instead of 3D space environment
 
-#### **✅ Python Backend Issues RESOLVED:**  
-1. **Import Errors**: Fixed all module import issues in virtual environment
-2. **Code Formatting**: Applied Black formatter for consistent Python code style
-3. **Linting Errors**: Removed all RealDictCursor references and fixed syntax
-4. **Type Checking**: All Python type checking now passes
+### **Potential Root Causes**
+1. **ZoneMain3D.tscn scene corruption** - Scene file may have parse errors
+2. **ZoneMain3D.gd script issues** - Script may fail during _ready()
+3. **Missing dependencies** - Required resources not properly loaded
+4. **Camera/Viewport issues** - 3D rendering not initializing correctly
 
-#### **✅ GDScript Validation RESOLVED:**
-1. **Syntax Validation**: All 28 GDScript files pass validation
-2. **Project Context**: Full Godot project validation successful
-3. **Code Quality**: All GDScript follows proper formatting standards
+---
 
-#### **✅ Quality Assurance COMPLETE:**
-- **API Endpoints**: Health and stats endpoints working correctly
-- **Security Scan**: Reviewed and validated (only documentation keywords detected)
-- **Performance**: All files reasonable size, logging systems intact
-- **Documentation**: All required files present and valid
+## **Recommended Debugging Steps**
 
-#### **✅ Precommit Hooks SUCCESSFUL:**
-- **Gitleaks**: No sensitive data exposure
-- **Code Formatting**: Python Black and GDScript formatting applied
-- **File Cleanup**: Trailing whitespace and line endings fixed
-- **Validation**: All linting and security checks passed
+### **Immediate Actions**
+1. **Validate ZoneMain3D.tscn scene file**:
+   ```bash
+   godot --headless --validate scenes/zones/ZoneMain3D.tscn
+   ```
 
-### **Final Status: 🏆 ZERO LINTING ERRORS 🏆**
-**Commit**: `9219851` - All linting errors resolved and database connectivity established
-**Quality Score**: ✅ 100% - All quality checks passing
-**Deployment Ready**: ✅ Code ready for commit, PR, and production deployment
+2. **Check ZoneMain3D.gd script for runtime errors**:
+   ```bash
+   godot --headless --validate scripts/ZoneMain3D.gd
+   ```
 
-**"Clean code it is! Ready for production, your codebase now stands. Strong with the quality force, you have become!"** 🌟
+3. **Add debug logging to ZoneMain3D._ready()**:
+   ```gdscript
+   func _ready() -> void:
+       print("ZoneMain3D: ✅ SCENE LOADED SUCCESSFULLY")
+       print("ZoneMain3D: Initializing 3D environment...")
+   ```
+
+### **Systematic Investigation**
+1. **Test direct scene load** - Bypass LoadingScreen entirely
+2. **Check scene dependencies** - Verify all referenced resources exist
+3. **Validate 3D rendering** - Ensure camera and environment setup correctly
+4. **Test fallback scene** - Try loading simpler scene to isolate issue
+
+### **Backup Plan**
+If ZoneMain3D continues to fail:
+1. **Revert to working scene** - Use last known working configuration
+2. **Incremental rebuild** - Add complexity gradually to identify breaking point
+3. **Alternative main scene** - Consider temporary replacement while debugging
+
+---
+
+## **System State Before Issues**
+
+### **Working Components** ✅
+- StartupScreen with 60-frame animation (15 FPS)
+- Custom LoadingScreen with threaded asset preloading
+- Backend API responding correctly (port 8000)
+- All asset imports successful
+- Git repository in clean state
+
+### **Known Working Flow** (Pre-LoadingScreen)
+```
+StartupScreen → Direct scene change → ZoneMain3D loads ✅
+```
+
+### **Current Broken Flow**
+```
+StartupScreen → LoadingScreen → Scene change attempt → Grey screen ❌
+```
+
+---
+
+## **Next Steps**
+1. **Immediate**: Validate ZoneMain3D scene and script integrity
+2. **Short-term**: Add comprehensive debug logging to scene transition
+3. **Medium-term**: Implement fallback scene loading mechanism
+4. **Long-term**: Create robust error handling for scene loading failures
+
+## **Priority Level: 🔴 CRITICAL**
+Game is completely unplayable - no 3D environment loads after loading screen.
+
+---
+
+*Last Updated: 2025-01-25 - Status: Active Investigation*

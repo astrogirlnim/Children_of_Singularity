@@ -318,18 +318,16 @@ func _switch_to_loading_screen() -> void:
 	if loading_screen_scene:
 		loading_screen_instance = loading_screen_scene.instantiate() as LoadingScreen
 		if loading_screen_instance:
-			# Connect loading screen signals
-			loading_screen_instance.loading_complete.connect(_on_loading_complete)
-			loading_screen_instance.loading_progress_updated.connect(_on_loading_progress_updated)
+			print("StartupScreen: ✅ Loading screen instantiated successfully")
 
 			# Add loading screen to scene tree
 			get_tree().root.add_child(loading_screen_instance)
 
-			# Remove startup screen
-			queue_free()
-
-			# Start loading process
+			# Start loading process (LoadingScreen will handle scene transition)
 			loading_screen_instance.start_loading()
+
+			# Remove startup screen now that loading screen is active
+			queue_free()
 
 			print("StartupScreen: Successfully switched to loading screen")
 		else:
@@ -339,21 +337,7 @@ func _switch_to_loading_screen() -> void:
 		print("StartupScreen: ERROR - Loading screen scene not available, falling back to direct scene change")
 		_fallback_to_direct_scene_change()
 
-func _on_loading_complete() -> void:
-	##Handle loading completion and transition to main game
-	print("StartupScreen: Loading complete, transitioning to main game")
-
-	# Fade out loading screen
-	if loading_screen_instance:
-		await loading_screen_instance.fade_out()
-		loading_screen_instance.queue_free()
-
-	# Load the main game scene
-	_load_main_game()
-
-func _on_loading_progress_updated(progress: float, message: String) -> void:
-	##Handle loading progress updates for debugging
-	print("StartupScreen: Loading progress: %.1f%% - %s" % [progress, message])
+# Signal handlers removed - LoadingScreen handles scene transition directly
 
 func _fallback_to_direct_scene_change() -> void:
 	##Fallback to direct scene change if loading screen fails
@@ -362,18 +346,31 @@ func _fallback_to_direct_scene_change() -> void:
 
 func _load_main_game() -> void:
 	# Load the main game scene
-	print("StartupScreen: Loading main game scene")
+	print("StartupScreen: ✅ Loading main game scene")
 
 	# Load the main 3D game scene
 	var main_scene_path = "res://scenes/zones/ZoneMain3D.tscn"
+	print("StartupScreen: Target scene path: %s" % main_scene_path)
 
+	# Check if the scene file exists
+	if not FileAccess.file_exists(main_scene_path):
+		print("StartupScreen: ❌ ERROR: Scene file does not exist: %s" % main_scene_path)
+		return
+
+	print("StartupScreen: Scene file exists, proceeding with deferred scene change...")
 	# Use deferred call to avoid issues during transition
 	call_deferred("_change_scene", main_scene_path)
 
 func _change_scene(scene_path: String) -> void:
 	# Change to the specified scene
-	print("StartupScreen: Changing to scene: %s" % scene_path)
-	get_tree().change_scene_to_file(scene_path)
+	print("StartupScreen: ✅ Executing scene change to: %s" % scene_path)
+	print("StartupScreen: Current scene: %s" % get_tree().current_scene.scene_file_path)
+
+	var result = get_tree().change_scene_to_file(scene_path)
+	if result != OK:
+		print("StartupScreen: ❌ ERROR: Failed to change scene. Error code: %d" % result)
+	else:
+		print("StartupScreen: ✅ Scene change initiated successfully")
 
 ## Public API methods for testing and configuration
 

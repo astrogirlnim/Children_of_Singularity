@@ -113,11 +113,17 @@ var last_inventory_size: int = 0
 var last_inventory_hash: String = ""
 
 func _ready() -> void:
+	print("🔴 ZoneMain3D._ready() CALLED - Scene is initializing!")
+	print("🔴 ZoneMain3D: Current scene tree node count: ", get_tree().get_node_count())
+	print("🔴 ZoneMain3D: Starting initialization...")
+
 	_log_message("ZoneMain3D: Initializing 3D zone controller")
 	_initialize_3d_zone()
 	_update_debug_display()
 	_log_message("ZoneMain3D: 3D Zone ready for gameplay")
 	zone_ready.emit()
+
+	print("🔴 ZoneMain3D._ready() COMPLETED - Scene fully initialized!")
 
 func _process(delta: float) -> void:
 	##Handle periodic updates including position sync
@@ -417,6 +423,31 @@ func _input(event):
 				skybox_manager_3d.toggle_skybox_visibility(not current_visible)
 				var state_text = "HIDDEN" if current_visible else "VISIBLE"
 				_log_message("ZoneMain3D: Skybox toggled - Now %s (F9 to toggle)" % state_text)
+
+		# Clean up stuck loading screens with F12 key
+		elif event.keycode == KEY_F12:
+			_cleanup_stuck_loading_screens()
+			_log_message("ZoneMain3D: Manually cleaned up stuck loading screens (F12)")
+
+func _cleanup_stuck_loading_screens() -> void:
+	##Remove any stuck LoadingScreen instances from the scene tree
+	_log_message("ZoneMain3D: Searching for stuck loading screens...")
+
+	# Manually search and remove any LoadingScreen nodes
+	var tree = get_tree()
+	if tree and tree.current_scene:
+		var all_nodes = tree.current_scene.find_children("*", "LoadingScreen", true, false)
+		for node in all_nodes:
+			if node and is_instance_valid(node):
+				_log_message("ZoneMain3D: Removing stuck LoadingScreen node: %s" % node.name)
+				node.queue_free()
+
+		# Also check for any Control nodes that might be loading screens
+		var control_nodes = tree.current_scene.find_children("*", "Control", true, false)
+		for node in control_nodes:
+			if node and is_instance_valid(node) and node.name.to_lower().contains("loading"):
+				_log_message("ZoneMain3D: Removing potential stuck loading node: %s" % node.name)
+				node.queue_free()
 
 func _log_message(message: String) -> void:
 	##Add a message to the game log and display it
