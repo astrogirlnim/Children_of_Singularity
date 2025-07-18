@@ -651,26 +651,39 @@ func handle_upgrade_purchased(result: Dictionary) -> void:
 	var upgrade_type = result.get("upgrade_type", "")
 	var new_level = result.get("new_level", 0)
 	var cost = result.get("cost", 0)
+	var remaining_credits = result.get("remaining_credits", 0)
 
 	# Update player data
 	if player_ship:
 		player_ship.upgrades[upgrade_type] = new_level
-		player_ship.credits -= cost
+		player_ship.credits = remaining_credits  # Use remaining credits from API response
 
 		# Apply upgrade effects immediately
 		if upgrade_system:
 			upgrade_system.apply_upgrade_effects(upgrade_type, new_level, player_ship)
 
-		print("ZoneUIManager: Applied %s level %d effects to player" % [upgrade_type, new_level])
+		print("ZoneUIManager: Applied %s level %d effects to player, credits now: %d" % [upgrade_type, new_level, remaining_credits])
 
-	# Update UI
-	update_credits_display(player_ship.credits if player_ship else 0)
+	# Update UI immediately
+	update_credits_display(remaining_credits)
 	_populate_upgrade_catalog()  # Refresh catalog with new levels
 	_update_purchase_result("SUCCESS!\nPurchased %s level %d for %d credits" % [upgrade_type, new_level, cost], Color.GREEN)
 
-	# Clear selection
+	# Clear selection to reset interface
 	current_selected_upgrade = ""
 	current_upgrade_cost = 0
+
+	# Clear upgrade details panel to show updated state
+	if upgrade_details_label:
+		upgrade_details_label.text = "Select an upgrade above to see details"
+
+	# Reset purchase button
+	if purchase_button:
+		purchase_button.text = "PURCHASE UPGRADE"
+		purchase_button.disabled = true
+
+	# Force UI refresh to ensure immediate update
+	print("ZoneUIManager: Forcing UI refresh after successful upgrade purchase")
 
 func handle_upgrade_purchase_failed(reason: String, upgrade_type: String) -> void:
 	##Handle failed upgrade purchase from API
