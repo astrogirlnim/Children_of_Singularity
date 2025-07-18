@@ -976,6 +976,11 @@ func _on_sell_all_pressed() -> void:
 	_populate_debris_selection_ui()
 	_update_selection_summary()
 
+	# CRITICAL FIX: Refresh upgrade catalog after credit update (Phase 3B real-time update)
+	if trading_interface and trading_interface.visible:
+		_populate_upgrade_catalog()
+		_log_message("ZoneMain3D: Upgrade catalog refreshed after selling items")
+
 	# Show success message
 	var success_message = "SUCCESS!\nSold %d items for %d credits\nTotal Credits: %d" % [item_count, total_value, player_ship.credits]
 	_update_trading_result(success_message, Color.GREEN)
@@ -1119,6 +1124,11 @@ func _on_sell_selected_pressed() -> void:
 	# Refresh the selection UI with new inventory
 	_populate_debris_selection_ui()
 	_update_selection_summary()
+
+	# CRITICAL FIX: Refresh upgrade catalog after credit update (Phase 3B real-time update)
+	if trading_interface and trading_interface.visible:
+		_populate_upgrade_catalog()
+		_log_message("ZoneMain3D: Upgrade catalog refreshed after selling selected items")
 
 	# Show success message
 	var success_message = "SUCCESS!\nSold %d selected items for %d credits\nTotal Credits: %d" % [sold_items.size(), total_value, player_ship.credits]

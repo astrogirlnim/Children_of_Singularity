@@ -458,6 +458,11 @@ func _populate_upgrade_catalog() -> void:
 		var upgrade_data = upgrade_definitions[upgrade_type]
 		var current_level = player_ship.upgrades.get(upgrade_type, 0)
 		var max_level = upgrade_data.max_level
+		var cost = upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+		var can_afford = player_credits >= cost
+
+		print("ZoneUIManager: Creating upgrade button - %s: Level %d/%d, Cost %d, Credits %d, Affordable: %s" %
+			[upgrade_type, current_level, max_level, cost, player_credits, can_afford])
 
 		# Create upgrade button for this type
 		var upgrade_button = _create_upgrade_button(upgrade_type, upgrade_data, current_level, max_level, player_credits)
@@ -574,8 +579,13 @@ func _on_upgrade_selected(upgrade_type: String, upgrade_data: Dictionary, curren
 func refresh_upgrade_catalog() -> void:
 	##Refresh upgrade catalog with current player data (Phase 3B requirement for real-time updates)
 	if trading_interface and trading_interface.visible:
+		var current_credits = player_ship.credits if player_ship else 0
+		print("ZoneUIManager: Refreshing upgrade catalog - Trading interface visible, Player credits: %d" % current_credits)
 		_populate_upgrade_catalog()
 		print("ZoneUIManager: Upgrade catalog refreshed due to data change")
+	else:
+		var interface_status = "not visible" if trading_interface else "not found"
+		print("ZoneUIManager: Skipping upgrade catalog refresh - Trading interface %s" % interface_status)
 
 ## Upgrade Purchase Handlers (Phase 3B implementation)
 

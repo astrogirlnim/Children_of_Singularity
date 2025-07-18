@@ -352,6 +352,22 @@ func _on_sell_all_requested() -> void:
 	##Handle sell all request
 	if api_client and api_client.has_method("sell_all_inventory"):
 		api_client.sell_all_inventory()
+		# Note: upgrade catalog refresh will be triggered by credits_updated signal from API
+	else:
+		# Fallback: if API client not available, handle locally and refresh catalog
+		_log_message("API client not available, handling sell all locally")
+		if player_ship and player_ship.current_inventory.size() > 0:
+			var total_value = 0
+			for item in player_ship.current_inventory:
+				total_value += item.get("value", 0)
+			var sold_items = player_ship.clear_inventory()
+			player_ship.add_credits(total_value)
+
+			# Update UI and refresh upgrade catalog
+			if ui_manager:
+				ui_manager.update_credits_display(player_ship.credits)
+				ui_manager.refresh_upgrade_catalog()  # CRITICAL FIX: Manual refresh for local updates
+			_log_message("Sold %d items for %d credits locally with catalog refresh" % [sold_items.size(), total_value])
 
 func _on_ai_message_received(message: String, priority: int) -> void:
 	##Handle AI message received
@@ -410,6 +426,7 @@ func _on_credits_updated(credits: int) -> void:
 		ui_manager.update_credits_display(credits)
 		# Real-time upgrade catalog refresh when credits change (Phase 3B requirement)
 		ui_manager.refresh_upgrade_catalog()
+		_log_message("Credits updated from API with upgrade catalog refresh: %d" % credits)
 
 func _on_inventory_updated(inventory: Array) -> void:
 	_log_message("Inventory updated: %d items" % inventory.size())
