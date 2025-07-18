@@ -8,8 +8,6 @@ extends HTTPRequest
 ## Signal emitted when player data is loaded
 signal player_data_loaded(player_data: Dictionary)
 
-
-
 ## Signal emitted when inventory is updated
 signal inventory_updated(inventory_data: Array)
 
@@ -19,6 +17,12 @@ signal credits_updated(credits: int)
 ## Signal emitted when API request fails
 signal api_error(error_message: String)
 
+## Signal emitted when upgrade purchase is successful
+signal upgrade_purchased(result: Dictionary)
+
+## Signal emitted when upgrade purchase fails
+signal upgrade_purchase_failed(reason: String, upgrade_type: String)
+
 # API configuration
 var base_url: String = "http://localhost:8000/api/v1"
 var player_id: String = "player_001"
@@ -27,6 +31,10 @@ var request_timeout: float = 30.0
 # Request tracking
 var pending_requests: Dictionary = {}
 var request_id_counter: int = 0
+
+# Retry logic for upgrade purchases
+var max_retries: int = 3
+var retry_delay: float = 1.0
 
 func _ready() -> void:
 	_log_message("APIClient: Initializing HTTP client")
@@ -107,6 +115,62 @@ func check_health() -> void:
 	if request_id == -1:
 		api_error.emit("Failed to initiate health check request")
 
+## Purchase an upgrade for the player
+func purchase_upgrade(target_player_id: String, upgrade_type: String, expected_cost: int) -> void:
+	_log_message("APIClient: Initiating upgrade purchase - Type: %s, Expected Cost: %d, Player: %s" % [upgrade_type, expected_cost, target_player_id])
+
+	# Validate input parameters
+	if target_player_id.is_empty():
+		target_player_id = self.player_id
+
+	if upgrade_type.is_empty():
+		var error_msg = "Invalid upgrade type: cannot be empty"
+		_log_message("APIClient: %s" % error_msg)
+		upgrade_purchase_failed.emit(error_msg, upgrade_type)
+		return
+
+	if expected_cost < 0:
+		var error_msg = "Invalid expected cost: cannot be negative (%d)" % expected_cost
+		_log_message("APIClient: %s" % error_msg)
+		upgrade_purchase_failed.emit(error_msg, upgrade_type)
+		return
+
+	# Make the upgrade purchase request
+	_make_upgrade_purchase_request(target_player_id, upgrade_type, expected_cost, 1)
+
+func _make_upgrade_purchase_request(target_player_id: String, upgrade_type: String, expected_cost: int, attempt: int) -> void:
+	##Internal method to make upgrade purchase request with retry logic
+	var url = "%s/players/%s/upgrades/purchase" % [base_url, target_player_id]
+	_log_message("APIClient: Making upgrade purchase request (attempt %d/%d) to %s" % [attempt, max_retries, url])
+
+	# Prepare request body
+	var request_data = {
+		"upgrade_type": upgrade_type,
+		"expected_cost": expected_cost
+	}
+	var json_data = JSON.stringify(request_data)
+	var headers = ["Content-Type: application/json"]
+
+	# Track request with upgrade-specific information
+	var request_id = _make_request(url, HTTPClient.METHOD_POST, headers, "purchase_upgrade", json_data)
+	if request_id == -1:
+		if attempt < max_retries:
+			_log_message("APIClient: Request failed, retrying in %f seconds (attempt %d/%d)" % [retry_delay, attempt + 1, max_retries])
+			await get_tree().create_timer(retry_delay).timeout
+			_make_upgrade_purchase_request(target_player_id, upgrade_type, expected_cost, attempt + 1)
+		else:
+			var error_msg = "Failed to initiate upgrade purchase request after %d attempts" % max_retries
+			_log_message("APIClient: %s" % error_msg)
+			upgrade_purchase_failed.emit(error_msg, upgrade_type)
+	else:
+		# Store additional context for this request
+		if request_id in pending_requests:
+			pending_requests[request_id]["upgrade_type"] = upgrade_type
+			pending_requests[request_id]["expected_cost"] = expected_cost
+			pending_requests[request_id]["attempt"] = attempt
+			pending_requests[request_id]["target_player_id"] = target_player_id
+		_log_message("APIClient: Upgrade purchase request sent successfully (ID: %d)" % request_id)
+
 func _make_request(url: String, method: HTTPClient.Method, headers: Array, request_type: String, body: String = "") -> int:
 	##Make an HTTP request and track it
 	var request_id = request_id_counter
@@ -143,19 +207,41 @@ func _on_request_completed(_result: int, response_code: int, _headers: PackedStr
 		api_error.emit("Failed to parse server response")
 		return
 
+	# Try to find the matching pending request to get context
+	var request_context = _find_and_remove_matching_request(response_data, response_code)
+
 	# Handle different response codes
 	if response_code >= 200 and response_code < 300:
-		_handle_successful_response(response_data)
+		_handle_successful_response(response_data, request_context)
 	else:
-		_handle_error_response(response_code, response_data)
+		_handle_error_response(response_code, response_data, request_context)
 
-func _handle_successful_response(response_data: Dictionary) -> void:
+func _find_and_remove_matching_request(response_data: Dictionary, response_code: int) -> Dictionary:
+	##Find and remove the matching pending request to get context
+	var context = {}
+
+	# For now, we'll use a simple approach: find the most recent upgrade request
+	# In a more sophisticated implementation, we could use request IDs or timestamps
+	for request_id in pending_requests.keys():
+		var request_info = pending_requests[request_id]
+		if request_info.get("type") == "purchase_upgrade":
+			context = request_info.duplicate()
+			pending_requests.erase(request_id)
+			_log_message("APIClient: Found matching upgrade purchase request context - Type: %s" % context.get("upgrade_type", "unknown"))
+			break
+
+	return context
+
+func _handle_successful_response(response_data: Dictionary, request_context: Dictionary = {}) -> void:
 	##Handle successful API responses
 	_log_message("APIClient: Successful response received")
 
-	# Determine response type based on content (since we don't have request tracking)
+	# Determine response type based on content
 	if "status" in response_data and response_data.status == "healthy":
 		_log_message("APIClient: Backend health check passed")
+	elif response_data.has("success") and response_data.has("new_level") and response_data.has("cost"):
+		# This is an upgrade purchase response
+		_handle_upgrade_purchase_response(response_data, request_context)
 	elif response_data is Dictionary and "player_id" in response_data and "credits" in response_data:
 		_log_message("APIClient: Player data received")
 		player_data_loaded.emit(response_data)
@@ -169,16 +255,65 @@ func _handle_successful_response(response_data: Dictionary) -> void:
 	else:
 		_log_message("APIClient: Generic success response")
 
-func _handle_error_response(response_code: int, response_data: Dictionary) -> void:
+func _handle_upgrade_purchase_response(response_data: Dictionary, request_context: Dictionary = {}) -> void:
+	##Handle upgrade purchase specific responses
+	var success = response_data.get("success", false)
+	var upgrade_type = request_context.get("upgrade_type", "unknown")
+	var error_message = response_data.get("error_message", "")
+
+	if success:
+		var new_level = response_data.get("new_level", 0)
+		var cost = response_data.get("cost", 0)
+		var remaining_credits = response_data.get("remaining_credits", 0)
+		var expected_cost = request_context.get("expected_cost", 0)
+
+		_log_message("APIClient: Upgrade purchase successful - Type: %s, Level: %d, Cost: %d (expected: %d), Remaining Credits: %d" % [upgrade_type, new_level, cost, expected_cost, remaining_credits])
+
+		# Prepare result dictionary for signal emission
+		var result = {
+			"success": true,
+			"new_level": new_level,
+			"cost": cost,
+			"remaining_credits": remaining_credits,
+			"upgrade_type": upgrade_type,
+			"expected_cost": expected_cost,
+			"error_message": ""
+		}
+
+		upgrade_purchased.emit(result)
+
+		# Also emit credits_updated signal for UI consistency
+		credits_updated.emit(remaining_credits)
+
+	else:
+		_log_message("APIClient: Upgrade purchase failed - Type: %s, Error: %s" % [upgrade_type, error_message])
+		upgrade_purchase_failed.emit(error_message, upgrade_type)
+
+func _handle_error_response(response_code: int, response_data: Dictionary, request_context: Dictionary = {}) -> void:
 	##Handle API error responses
 	var error_message = "API Error %d" % response_code
+	var upgrade_type = request_context.get("upgrade_type", "unknown")
+
 	if "detail" in response_data:
 		error_message += ": %s" % response_data.detail
 	elif "message" in response_data:
 		error_message += ": %s" % response_data.message
+	elif "error_message" in response_data:
+		error_message += ": %s" % response_data.error_message
 
 	_log_message("APIClient: %s" % error_message)
-	api_error.emit(error_message)
+
+	# Check if this is an upgrade purchase error
+	if request_context.get("type") == "purchase_upgrade":
+		_log_message("APIClient: Detected upgrade purchase error response for type: %s" % upgrade_type)
+		upgrade_purchase_failed.emit(error_message, upgrade_type)
+	elif response_data.has("success") and not response_data.success:
+		# This is likely an upgrade purchase error based on response structure
+		_log_message("APIClient: Detected upgrade purchase error response")
+		upgrade_purchase_failed.emit(error_message, upgrade_type)
+	else:
+		# Generic API error
+		api_error.emit(error_message)
 
 func _log_message(message: String) -> void:
 	##Log a message with timestamp
