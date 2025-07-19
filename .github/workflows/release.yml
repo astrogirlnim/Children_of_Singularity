@@ -169,19 +169,26 @@ jobs:
       - name: 📥 Checkout Source
         uses: actions/checkout@v4
 
-      - name: 🔧 Install AWS CLI
+      - name: 🔧 Setup AWS CLI
         if: ${{ vars.USE_S3_STORAGE == 'true' }}
         run: |
-          echo "🔧 Installing AWS CLI on GitHub runner..."
-          sudo apt-get update -qq
-          sudo apt-get install -y curl unzip
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip -q awscliv2.zip
-          sudo ./aws/install
+          echo "🔧 Setting up AWS CLI on GitHub runner..."
 
-          # Verify installation
-          aws --version
-          echo "✅ AWS CLI installed successfully"
+          # Check if AWS CLI is already installed
+          if command -v aws &> /dev/null; then
+            echo "✅ AWS CLI already installed: $(aws --version)"
+          else
+            echo "📦 Installing AWS CLI..."
+            sudo apt-get update -qq
+            sudo apt-get install -y curl unzip
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip -q awscliv2.zip
+            sudo ./aws/install --update
+
+            # Verify installation
+            aws --version
+            echo "✅ AWS CLI installed successfully"
+          fi
 
       - name: ⚙️ Configure AWS Credentials
         if: ${{ vars.USE_S3_STORAGE == 'true' }}
@@ -390,15 +397,17 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
           COMMIT_HASH: ${{ github.sha }}
         run: |
-          # Install AWS CLI if not available (should already be installed from earlier step)
+          # Ensure AWS CLI is available (should already be installed from earlier step)
           if ! command -v aws &> /dev/null; then
             echo "🔧 Installing AWS CLI..."
             sudo apt-get update -qq
             sudo apt-get install -y curl unzip
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip -q awscliv2.zip
-            sudo ./aws/install
+            sudo ./aws/install --update
             aws --version
+          else
+            echo "✅ AWS CLI already available: $(aws --version)"
           fi
 
           # Make S3 manager executable
@@ -473,15 +482,17 @@ jobs:
           AWS_REGION: ${{ vars.AWS_REGION || 'us-west-2' }}
           S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME || 'children-of-singularity-releases' }}
         run: |
-          # Install AWS CLI if not available
+          # Ensure AWS CLI is available
           if ! command -v aws &> /dev/null; then
             echo "🔧 Installing AWS CLI..."
             sudo apt-get update -qq
             sudo apt-get install -y curl unzip
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip -q awscliv2.zip
-            sudo ./aws/install
+            sudo ./aws/install --update
             aws --version
+          else
+            echo "✅ AWS CLI already available: $(aws --version)"
           fi
 
           VERSION="${{ needs.version-check.outputs.version }}"

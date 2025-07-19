@@ -14,19 +14,26 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: 🔧 Install AWS CLI
+    - name: 🔧 Setup AWS CLI
       if: ${{ vars.USE_S3_STORAGE == 'true' }}
       run: |
-        echo "🔧 Installing AWS CLI on GitHub runner..."
-        sudo apt-get update -qq
-        sudo apt-get install -y curl unzip
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        unzip -q awscliv2.zip
-        sudo ./aws/install
+        echo "🔧 Setting up AWS CLI on GitHub runner..."
 
-        # Verify installation
-        aws --version
-        echo "✅ AWS CLI installed successfully"
+        # Check if AWS CLI is already installed
+        if command -v aws &> /dev/null; then
+          echo "✅ AWS CLI already installed: $(aws --version)"
+        else
+          echo "📦 Installing AWS CLI..."
+          sudo apt-get update -qq
+          sudo apt-get install -y curl unzip
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -q awscliv2.zip
+          sudo ./aws/install --update
+
+          # Verify installation
+          aws --version
+          echo "✅ AWS CLI installed successfully"
+        fi
 
     - name: ⚙️ Configure AWS Credentials
       if: ${{ vars.USE_S3_STORAGE == 'true' }}
