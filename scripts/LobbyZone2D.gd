@@ -81,6 +81,13 @@ var current_upgrade_cost: int = 0
 var upgrade_buttons: Dictionary = {}  # Store upgrade button references
 var trading_interface_open: bool = false
 
+# Selective trading UI elements (will be created dynamically)
+var debris_selection_container: ScrollContainer
+var debris_selection_list: VBoxContainer
+var selection_summary_label: Label
+var sell_selected_button: Button
+var selected_debris: Dictionary = {}  # Store selected quantities per debris type
+
 # Lobby state
 var player_can_interact: bool = false
 var computer_in_range: bool = false
@@ -363,6 +370,9 @@ func _setup_trading_interface() -> void:
 	# Initialize upgrade interface components
 	_initialize_upgrade_interface()
 
+	# Create enhanced selective trading UI structure
+	_create_selective_trading_ui()
+
 	print("[LobbyZone2D] Trading interface setup complete with all button connections")
 
 func _connect_trading_interface_buttons() -> void:
@@ -422,6 +432,56 @@ func _initialize_upgrade_interface() -> void:
 		purchase_result.text = ""
 
 	print("[LobbyZone2D] Upgrade interface initialized")
+
+func _create_selective_trading_ui() -> void:
+	##Create the enhanced selective trading UI elements
+	print("[LobbyZone2D] Creating selective trading UI elements")
+
+	if not trading_content:
+		print("[LobbyZone2D] ERROR - Trading content container not found!")
+		return
+
+	# Create scroll container for debris selection
+	debris_selection_container = ScrollContainer.new()
+	debris_selection_container.name = "DebrisSelectionContainer"
+	debris_selection_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	debris_selection_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	debris_selection_container.custom_minimum_size = Vector2(0, 200)
+
+	# Create VBox for debris list
+	debris_selection_list = VBoxContainer.new()
+	debris_selection_list.name = "DebrisSelectionList"
+	debris_selection_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	debris_selection_container.add_child(debris_selection_list)
+
+	# Create selection summary label
+	selection_summary_label = Label.new()
+	selection_summary_label.name = "SelectionSummary"
+	selection_summary_label.text = "No items selected"
+	selection_summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	selection_summary_label.add_theme_color_override("font_color", Color.CYAN)
+
+	# Create sell selected button
+	sell_selected_button = Button.new()
+	sell_selected_button.name = "SellSelectedButton"
+	sell_selected_button.text = "SELL SELECTED"
+	sell_selected_button.pressed.connect(_on_sell_selected_pressed)
+
+	# Rearrange trading content structure
+	# Move existing elements to correct positions
+	if trading_result:
+		trading_content.move_child(trading_result, 0)
+
+	# Add new elements in order
+	trading_content.add_child(debris_selection_container)
+	trading_content.add_child(selection_summary_label)
+	trading_content.add_child(sell_selected_button)
+
+	# Keep sell all button at the end
+	if sell_all_button:
+		trading_content.move_child(sell_all_button, -1)
+
+	print("[LobbyZone2D] Selective trading UI structure created")
 
 ## TRADING INTERFACE BUTTON HANDLERS - CRITICAL MISSING FUNCTIONALITY
 
@@ -1024,13 +1084,16 @@ func _interact_with_computer() -> void:
 		# CRITICAL FIX: Populate upgrade catalog when interface opens
 		_populate_upgrade_catalog()
 
+		# CRITICAL FIX: Populate selective debris selection UI when interface opens
+		_populate_debris_selection_ui()
+
 		# Set trading interface title
 		if trading_title:
 			trading_title.text = "TRADING TERMINAL - LOBBY"
 
 		# Clear any previous results
 		if trading_result:
-			trading_result.text = "Select 'Sell All' to convert your debris into credits."
+			trading_result.text = "Select specific quantities of debris to sell, or use 'Sell All' to convert everything into credits."
 
 		if purchase_result:
 			purchase_result.text = ""
@@ -1454,3 +1517,319 @@ func _on_player_data_updated(data_type: String) -> void:
 	# If trading interface is open and credits/upgrades changed, refresh catalog
 	if trading_interface_open and (data_type == "credits" or data_type == "upgrades"):
 		_populate_upgrade_catalog()
+
+## Selective Trading Methods - Ported from 3D Implementation
+
+func _populate_debris_selection_ui() -> void:
+	##Populate the debris selection UI with current inventory
+	if not debris_selection_list or not LocalPlayerData:
+		return
+
+	# Clear existing selection items
+	for child in debris_selection_list.get_children():
+		child.queue_free()
+
+	# Group inventory by type
+	var inventory = LocalPlayerData.get_inventory()
+	var grouped_inventory = _group_inventory_by_type(inventory)
+	print("[LobbyZone2D] Populating selection UI with %d debris types" % grouped_inventory.size())
+
+	# Create selection row for each debris type
+	for debris_type in grouped_inventory:
+		var group_data = grouped_inventory[debris_type]
+		var selection_row = _create_debris_selection_row(debris_type, group_data)
+		debris_selection_list.add_child(selection_row)
+
+	print("[LobbyZone2D] Created %d debris selection rows" % grouped_inventory.size())
+
+func _create_debris_selection_row(debris_type: String, group_data: Dictionary) -> Control:
+	##Create a selection row for a specific debris type
+	var row_container = HBoxContainer.new()
+	row_container.name = "Row_%s" % debris_type
+	row_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Debris type label
+	var type_label = Label.new()
+	type_label.text = debris_type.capitalize().replace("_", " ")
+	type_label.custom_minimum_size = Vector2(120, 0)
+	type_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row_container.add_child(type_label)
+
+	# Available quantity label
+	var available_label = Label.new()
+	available_label.text = "x%d" % group_data.quantity
+	available_label.custom_minimum_size = Vector2(40, 0)
+	available_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	available_label.add_theme_color_override("font_color", Color.WHITE)
+	row_container.add_child(available_label)
+
+	# Quantity selector (SpinBox)
+	var quantity_selector = SpinBox.new()
+	quantity_selector.name = "QuantitySelector_%s" % debris_type
+	quantity_selector.min_value = 0
+	quantity_selector.max_value = group_data.quantity
+	quantity_selector.step = 1
+	quantity_selector.value = 0
+	quantity_selector.custom_minimum_size = Vector2(80, 0)
+	quantity_selector.allow_greater = false  # Prevent values above max
+	quantity_selector.allow_lesser = false   # Prevent values below min
+
+	# Connect multiple signals with debugging
+	quantity_selector.value_changed.connect(_on_debris_quantity_changed.bind(debris_type))
+	quantity_selector.get_line_edit().text_submitted.connect(_on_debris_quantity_text_submitted.bind(debris_type))
+	quantity_selector.get_line_edit().text_changed.connect(_on_debris_quantity_text_changed.bind(debris_type))
+	print("[LobbyZone2D] DEBUG - Connected SpinBox signals for %s (min: %d, max: %d)" % [debris_type, quantity_selector.min_value, quantity_selector.max_value])
+
+	row_container.add_child(quantity_selector)
+
+	# Individual value label
+	var individual_value_label = Label.new()
+	individual_value_label.text = "%d ea" % group_data.individual_value
+	individual_value_label.custom_minimum_size = Vector2(50, 0)
+	individual_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	individual_value_label.add_theme_color_override("font_color", Color.GRAY)
+	row_container.add_child(individual_value_label)
+
+	# Selected value label (will update based on quantity)
+	var selected_value_label = Label.new()
+	selected_value_label.name = "SelectedValue_%s" % debris_type
+	selected_value_label.text = "0 credits"
+	selected_value_label.custom_minimum_size = Vector2(80, 0)
+	selected_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	selected_value_label.add_theme_color_override("font_color", Color.YELLOW)
+	row_container.add_child(selected_value_label)
+
+	# Max button for quick selection
+	var max_button = Button.new()
+	max_button.text = "MAX"
+	max_button.custom_minimum_size = Vector2(50, 0)
+	max_button.pressed.connect(_on_select_max_debris.bind(debris_type, group_data.quantity))
+	row_container.add_child(max_button)
+
+	return row_container
+
+func _on_debris_quantity_changed(new_quantity: float, debris_type: String) -> void:
+	##Handle debris quantity selection change
+	var quantity = int(new_quantity)
+
+	# Add extensive debugging
+	print("[LobbyZone2D] DEBUG - _on_debris_quantity_changed called - Type: %s, New Quantity: %f, Int Quantity: %d" % [debris_type, new_quantity, quantity])
+
+	# Store or remove from selected_debris based on quantity
+	if quantity > 0:
+		selected_debris[debris_type] = quantity
+		print("[LobbyZone2D] Selected %d %s for sale" % [quantity, debris_type])
+	else:
+		# Remove from dictionary if quantity is 0 to keep it clean
+		if debris_type in selected_debris:
+			selected_debris.erase(debris_type)
+		print("[LobbyZone2D] Deselected %s (quantity 0)" % debris_type)
+
+	# Debug the selected_debris dictionary state
+	print("[LobbyZone2D] DEBUG - selected_debris dictionary: %s" % selected_debris)
+
+	# Update the selected value display for this debris type
+	_update_debris_row_value(debris_type)
+
+	# Update overall selection summary (this will enable/disable sell selected button)
+	_update_selection_summary()
+
+func _on_debris_quantity_text_submitted(text: String, debris_type: String) -> void:
+	##Handle when user types a number and presses Enter in the SpinBox
+	print("[LobbyZone2D] DEBUG - Text submitted for %s: '%s'" % [debris_type, text])
+	var quantity = int(text)
+	_on_debris_quantity_changed(quantity, debris_type)
+
+func _on_debris_quantity_text_changed(text: String, debris_type: String) -> void:
+	##Handle when user types in the SpinBox (every character change)
+	print("[LobbyZone2D] DEBUG - Text changed for %s: '%s'" % [debris_type, text])
+	# Only process if the text is a valid number
+	if text.is_valid_int():
+		var quantity = int(text)
+		_on_debris_quantity_changed(quantity, debris_type)
+
+func _on_select_max_debris(debris_type: String, max_quantity: int) -> void:
+	##Handle max button press - select all available quantity
+	selected_debris[debris_type] = max_quantity
+
+	# Update the quantity selector to reflect the MAX selection
+	var quantity_selector = debris_selection_list.get_node_or_null("Row_%s/QuantitySelector_%s" % [debris_type, debris_type])
+	if quantity_selector:
+		quantity_selector.value = max_quantity
+
+	print("[LobbyZone2D] Selected maximum %d %s for sale" % [max_quantity, debris_type])
+
+	# Update displays
+	_update_debris_row_value(debris_type)
+	_update_selection_summary()
+
+func _get_debris_value(debris_type: String) -> int:
+	##Get the individual value for a specific debris type from LocalPlayerData inventory
+	if not LocalPlayerData:
+		return 0
+
+	var inventory = LocalPlayerData.get_inventory()
+	for item in inventory:
+		if item.get("type") == debris_type:
+			return item.get("value", 0)
+
+	# If not found in current inventory, use default values
+	match debris_type:
+		"scrap_metal":
+			return 5
+		"bio_waste":
+			return 25
+		"ai_component":
+			return 500
+		"broken_satellite":
+			return 150
+		"unknown_artifact":
+			return 1000
+		_:
+			return 1  # Default value
+
+func _update_debris_row_value(debris_type: String) -> void:
+	##Update the selected value display for a specific debris type
+	var selected_quantity = selected_debris.get(debris_type, 0)
+	print("[LobbyZone2D] DEBUG - _update_debris_row_value - Type: %s, Selected Quantity: %d" % [debris_type, selected_quantity])
+
+	# Safety check: make sure debris_selection_list exists and hasn't been cleared
+	if not debris_selection_list or not debris_selection_list.get_child_count() > 0:
+		print("[LobbyZone2D] DEBUG - Debris selection list not available, skipping value update")
+		return
+
+	# Find the selected value label
+	var selected_value_label = debris_selection_list.get_node_or_null("Row_%s/SelectedValue_%s" % [debris_type, debris_type])
+	if not selected_value_label:
+		print("[LobbyZone2D] DEBUG - Could not find selected value label for %s (UI may have been refreshed)" % debris_type)
+		return
+
+	print("[LobbyZone2D] DEBUG - Found selected value label for %s" % debris_type)
+
+	# Get the individual value for this debris type
+	var individual_value = _get_debris_value(debris_type)
+	print("[LobbyZone2D] DEBUG - Found individual value for %s: %d" % [debris_type, individual_value])
+
+	# Calculate and display total value for selected quantity
+	var total_value = selected_quantity * individual_value
+	print("[LobbyZone2D] DEBUG - Calculated total value: %d x %d = %d" % [selected_quantity, individual_value, total_value])
+
+	selected_value_label.text = "%d credits" % total_value
+	print("[LobbyZone2D] DEBUG - Updated label text to: %s" % selected_value_label.text)
+
+func _update_selection_summary() -> void:
+	##Update the selection summary display and button states
+	if not selection_summary_label:
+		return
+
+	var total_selected_items = 0
+	var total_selected_value = 0
+
+	# Calculate totals (only count items with quantity > 0)
+	for debris_type in selected_debris:
+		var quantity = selected_debris[debris_type]
+		if quantity > 0:
+			total_selected_items += quantity
+
+			# Find individual value from LocalPlayerData inventory
+			if LocalPlayerData:
+				var inventory = LocalPlayerData.get_inventory()
+				for item in inventory:
+					if item.get("type") == debris_type:
+						total_selected_value += quantity * item.get("value", 0)
+						break
+
+	# Update summary text and button state
+	if total_selected_items > 0:
+		selection_summary_label.text = "Selected: %d items worth %d credits" % [total_selected_items, total_selected_value]
+		selection_summary_label.add_theme_color_override("font_color", Color.CYAN)
+
+		# Enable sell selected button
+		if sell_selected_button:
+			sell_selected_button.disabled = false
+			print("[LobbyZone2D] Sell Selected button ENABLED - %d items selected" % total_selected_items)
+	else:
+		selection_summary_label.text = "No items selected"
+		selection_summary_label.add_theme_color_override("font_color", Color.GRAY)
+
+		# Disable sell selected button
+		if sell_selected_button:
+			sell_selected_button.disabled = true
+			print("[LobbyZone2D] Sell Selected button DISABLED - no items selected")
+
+	print("[LobbyZone2D] Selection summary updated - %d items, %d credits, button enabled: %s" %
+		[total_selected_items, total_selected_value, not sell_selected_button.disabled if sell_selected_button else false])
+
+func _on_sell_selected_pressed() -> void:
+	##Handle sell selected button press - sell the currently selected items
+	print("[LobbyZone2D] Sell selected button pressed")
+
+	if not LocalPlayerData:
+		print("[LobbyZone2D] ERROR - LocalPlayerData not found!")
+		_update_trading_result("System Error: Player data not available!", Color.RED)
+		return
+
+	if selected_debris.is_empty():
+		_update_trading_result("No items selected to sell!", Color.YELLOW)
+		print("[LobbyZone2D] No items selected to sell")
+		return
+
+	var inventory = LocalPlayerData.get_inventory()
+	var sold_items = []
+	var total_value = 0
+	var items_to_remove = []
+
+	# Process each selected debris type
+	for debris_type in selected_debris:
+		var quantity_to_sell = selected_debris[debris_type]
+		if quantity_to_sell <= 0:
+			continue
+
+		var items_found = 0
+
+		# Find and mark items for removal
+		for i in range(inventory.size()):
+			var item = inventory[i]
+			if item.get("type") == debris_type and items_found < quantity_to_sell:
+				sold_items.append(item)
+				items_to_remove.append(i)
+				total_value += item.get("value", 0)
+				items_found += 1
+
+		print("[LobbyZone2D] Found %d/%d %s items to sell" % [items_found, quantity_to_sell, debris_type])
+
+	if sold_items.is_empty():
+		_update_trading_result("No items found to sell!", Color.YELLOW)
+		print("[LobbyZone2D] No items found to sell")
+		return
+
+	# Remove items from inventory (reverse order to maintain indices)
+	items_to_remove.sort()
+	items_to_remove.reverse()
+	for index in items_to_remove:
+		inventory.remove_at(index)
+
+	# Update LocalPlayerData with modified inventory and add credits
+	LocalPlayerData.set_inventory(inventory)
+	LocalPlayerData.add_credits(total_value)
+
+	# Clear selections
+	selected_debris.clear()
+
+	# Update UI immediately
+	_update_lobby_ui_with_player_data()
+
+	# Refresh the selection UI with new inventory
+	_populate_debris_selection_ui()
+	_update_selection_summary()
+
+	# CRITICAL FIX: Refresh upgrade catalog after credit update
+	if trading_interface and trading_interface.visible:
+		_populate_upgrade_catalog()
+		print("[LobbyZone2D] Upgrade catalog refreshed after selling selected items")
+
+	# Show success message
+	var success_message = "SUCCESS!\nSold %d selected items for %d credits\nTotal Credits: %d" % [sold_items.size(), total_value, LocalPlayerData.get_credits()]
+	_update_trading_result(success_message, Color.GREEN)
+
+	print("[LobbyZone2D] Selective sale completed - %d items sold for %d credits" % [sold_items.size(), total_value])
