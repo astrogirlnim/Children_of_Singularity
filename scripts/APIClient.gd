@@ -63,8 +63,9 @@ func _ready() -> void:
 
 	# Check if we should use local storage mode
 	_log_message("APIClient: Detecting storage mode...")
-	_detect_storage_mode()
+	await _detect_storage_mode()
 
+	# NOW check the mode AFTER detection is complete
 	if not use_local_storage:
 		request_completed.connect(_on_request_completed)
 		request_timeout = 30.0
@@ -100,25 +101,34 @@ func _is_valid_uuid(uuid_string: String) -> bool:
 
 ## Detect whether to use backend or local storage
 func _detect_storage_mode() -> void:
+	_log_message("APIClient: Testing backend connectivity...")
+
 	# Try to connect to backend with short timeout
 	var test_request = HTTPRequest.new()
 	add_child(test_request)
-
 	test_request.timeout = 2.0  # Very short timeout
+
 	var url = base_url + "/health"
+	var error = test_request.request(url)
 
-	_log_message("APIClient: Testing backend connectivity...")
-	test_request.request(url)
+	if error != OK:
+		_log_message("APIClient: Failed to send test request, using local storage mode")
+		use_local_storage = true
+		test_request.queue_free()
+		return
 
-	# Wait briefly for response
-	await get_tree().create_timer(2.5).timeout
-
-	# Clean up test request
+	# Wait for response or timeout
+	var response = await test_request.request_completed
 	test_request.queue_free()
 
-	# If we get here without a response, assume no backend
-	use_local_storage = true
-	_log_message("APIClient: Backend not available, switching to local storage mode")
+	# Check if we got a successful response
+	var response_code = response[1]
+	if response_code == 200:
+		_log_message("APIClient: Backend available (health check returned %d)" % response_code)
+		use_local_storage = false
+	else:
+		_log_message("APIClient: Backend not available (health check failed: %d), using local storage mode" % response_code)
+		use_local_storage = true
 
 ## Load player data (unified interface)
 func load_player_data(target_player_id: String = "") -> void:
