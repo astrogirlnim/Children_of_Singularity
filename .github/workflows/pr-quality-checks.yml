@@ -14,6 +14,36 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: ⚙️ Configure AWS Credentials
+      if: ${{ vars.USE_S3_STORAGE == 'true' }}
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ vars.AWS_REGION || 'us-west-2' }}
+
+    - name: ☁️ Download Assets from S3
+      run: |
+        echo "☁️ Downloading game assets from S3 for validation..."
+        if [ "${{ vars.USE_S3_STORAGE }}" = "true" ]; then
+          echo "📦 S3 storage enabled, downloading assets..."
+
+          # Check if S3 manager script exists
+          if [ -f "./scripts/s3-manager.sh" ]; then
+            chmod +x ./scripts/s3-manager.sh
+
+            # Download assets from S3
+            echo "⬇️ Downloading assets from S3..."
+            ./scripts/s3-manager.sh download-assets latest-assets/ assets/
+
+            echo "✅ Assets downloaded from S3"
+          else
+            echo "⚠️ S3 manager script not found, continuing without S3 assets"
+          fi
+        else
+          echo "📦 S3 storage disabled, using local assets"
+        fi
+
     - name: Setup Godot
       uses: chickensoft-games/setup-godot@v1
       with:

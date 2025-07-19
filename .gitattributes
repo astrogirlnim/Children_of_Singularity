@@ -1,57 +1,69 @@
-# Git LFS configuration for Children of the Singularity
+# Asset Management for Children of the Singularity
+#
+# Assets are now managed via AWS S3 instead of Git LFS to avoid bandwidth limits.
+# Use the following commands to manage assets:
+#
+# Upload assets to S3:
+#   ./scripts/s3-manager.sh upload-assets assets/ latest-assets/
+#
+# Download assets from S3:
+#   ./scripts/s3-manager.sh download-assets latest-assets/ assets/
+#
+# The build process automatically downloads assets from S3 before building.
+# See documentation/s3-integration-guide.md for detailed setup.
 
-# EXCLUSIONS: Files that should NOT be tracked by LFS
-# Documentation and design assets are stored in S3, not LFS
-documentation/design/** -filter -diff -merge
-documentation/design/**/*.png -filter -diff -merge
-documentation/design/**/*.jpg -filter -diff -merge
-documentation/design/**/*.jpeg -filter -diff -merge
+# Text files should use LF line endings (no LFS needed)
+* text=auto
+*.sh text eol=lf
+*.py text eol=lf
+*.gd text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.cfg text eol=lf
+*.tres text eol=lf
+*.tscn text eol=lf
 
-# Images
-*.png filter=lfs diff=lfs merge=lfs -text
-*.jpg filter=lfs diff=lfs merge=lfs -text
-*.jpeg filter=lfs diff=lfs merge=lfs -text
-*.gif filter=lfs diff=lfs merge=lfs -text
-*.bmp filter=lfs diff=lfs merge=lfs -text
-*.tiff filter=lfs diff=lfs merge=lfs -text
-*.tga filter=lfs diff=lfs merge=lfs -text
-*.webp filter=lfs diff=lfs merge=lfs -text
-*.ico filter=lfs diff=lfs merge=lfs -text
-# Audio
-*.ogg filter=lfs diff=lfs merge=lfs -text
-*.wav filter=lfs diff=lfs merge=lfs -text
-*.mp3 filter=lfs diff=lfs merge=lfs -text
-*.flac filter=lfs diff=lfs merge=lfs -text
-*.aac filter=lfs diff=lfs merge=lfs -text
-*.m4a filter=lfs diff=lfs merge=lfs -text
-# 3D Models
-*.fbx filter=lfs diff=lfs merge=lfs -text
-*.obj filter=lfs diff=lfs merge=lfs -text
-*.dae filter=lfs diff=lfs merge=lfs -text
-*.blend filter=lfs diff=lfs merge=lfs -text
-*.3ds filter=lfs diff=lfs merge=lfs -text
-*.max filter=lfs diff=lfs merge=lfs -text
-*.ma filter=lfs diff=lfs merge=lfs -text
-*.mb filter=lfs diff=lfs merge=lfs -text
-# Video
-*.mp4 filter=lfs diff=lfs merge=lfs -text
-*.avi filter=lfs diff=lfs merge=lfs -text
-*.mov filter=lfs diff=lfs merge=lfs -text
-*.webm filter=lfs diff=lfs merge=lfs -text
-*.mkv filter=lfs diff=lfs merge=lfs -text
-# Fonts
-*.ttf filter=lfs diff=lfs merge=lfs -text
-*.otf filter=lfs diff=lfs merge=lfs -text
-*.woff filter=lfs diff=lfs merge=lfs -text
-*.woff2 filter=lfs diff=lfs merge=lfs -text
-# Other large binary files
-*.zip filter=lfs diff=lfs merge=lfs -text
-*.rar filter=lfs diff=lfs merge=lfs -text
-*.7z filter=lfs diff=lfs merge=lfs -text
-*.tar.gz filter=lfs diff=lfs merge=lfs -text
-*.exe filter=lfs diff=lfs merge=lfs -text
-*.dll filter=lfs diff=lfs merge=lfs -text
-*.so filter=lfs diff=lfs merge=lfs -text
-*.dylib filter=lfs diff=lfs merge=lfs -text
-# Godot-specific large files (excluding project.godot and small config files)
-# Note: project.godot, .import, .remap, .tres, .res are small config files and should not be in LFS
+# Binary files (no LFS - managed by S3)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
+*.tiff binary
+*.tga binary
+*.webp binary
+*.ico binary
+*.ogg binary
+*.wav binary
+*.mp3 binary
+*.flac binary
+*.aac binary
+*.m4a binary
+*.fbx binary
+*.obj binary
+*.dae binary
+*.blend binary
+*.3ds binary
+*.max binary
+*.ma binary
+*.mb binary
+*.mp4 binary
+*.avi binary
+*.mov binary
+*.webm binary
+*.mkv binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+*.rar binary
+*.7z binary
+*.tar.gz binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary

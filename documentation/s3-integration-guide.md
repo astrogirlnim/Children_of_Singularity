@@ -8,8 +8,17 @@ The S3 integration provides:
 - **Extended Retention**: Releases stored beyond GitHub's limitations
 - **Cost Optimization**: Automatic lifecycle management (Standard → IA → Glacier)
 - **Secure Access**: Pre-signed URLs for time-limited downloads
-- **Asset Management**: Development asset syncing and backup
+- **Asset Management**: Complete asset storage and distribution (replacing Git LFS)
 - **Build Caching**: Faster builds by reusing assets from cloud storage
+
+## Migration from Git LFS to S3
+
+Due to GitHub LFS bandwidth limitations, all game assets have been migrated from Git LFS to S3 storage:
+
+- **Assets are no longer tracked in Git** - The `assets/` directory is now ignored and populated from S3
+- **Automatic Downloads** - Build scripts and CI/CD workflows automatically download assets from S3
+- **Local Development** - Run `./scripts/s3-manager.sh download-assets latest-assets/ assets/` to get assets locally
+- **No LFS Required** - Eliminates Git LFS setup, bandwidth costs, and storage limits
 
 ## Architecture
 
@@ -23,7 +32,7 @@ Local Development → S3 Assets → Build Process → S3 Releases → Distributi
 
 **No S3 Bucket Versioning Needed:**
 - **Release Artifacts**: Each release has a unique path (`releases/v1.0.0/`, `releases/v1.1.0/`)
-- **Development Assets**: Versioned by Git LFS in the repository
+- **Development Assets**: Managed via S3 (no longer using Git LFS due to bandwidth limits)
 - **Documentation**: Versioned by Git in the repository
 - **Cost Benefit**: Eliminates versioning storage costs and complexity
 - **Permission Benefit**: Reduces required IAM permissions
@@ -331,7 +340,7 @@ aws ce get-cost-and-usage \
 
 ### Data Protection
 
-1. **Versioning**: Not enabled - releases are naturally versioned by path (v1.0.0/, v1.1.0/), and development assets are versioned by Git LFS
+1. **Versioning**: Not enabled - releases are naturally versioned by path (v1.0.0/, v1.1.0/), and development assets are managed via S3
 2. **Encryption**: S3 server-side encryption  
 3. **Pre-signed URLs**: Time-limited access
 4. **Private Bucket**: No public read by default

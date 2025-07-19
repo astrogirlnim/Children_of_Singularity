@@ -51,6 +51,10 @@ fi
 # Function to run the game in development mode
 run_dev() {
     print_status "INFO" "Starting Children of the Singularity in development mode..."
+
+    # Download assets from S3 if available
+    download_assets_from_s3
+
     print_status "INFO" "Press Ctrl+C to stop the game"
     print_status "INFO" "Game logs will appear below:"
     echo "============================================"
@@ -123,6 +127,9 @@ check_export_templates() {
 # Function to build for distribution (if templates available)
 build_dist() {
     print_status "INFO" "Preparing distribution build..."
+
+    # Download assets from S3 if available
+    download_assets_from_s3
 
     # Check templates first
     if ! check_export_templates; then

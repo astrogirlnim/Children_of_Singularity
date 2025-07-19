@@ -12,6 +12,12 @@ documentation/godot_summarized/repomix-output.md
 # Documentation assets are stored in S3, not tracked in git
 documentation/design/
 
+# S3-managed assets (downloaded automatically during build)
+# These directories will be populated from S3, not tracked in git
+assets/
+!assets/.gitkeep
+!assets/README.md
+
 # Python
 __pycache__/
 *.pyc
