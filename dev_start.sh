@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Children of the Singularity - Local-First Development Startup Script
-# This script starts the game in local-first mode (same as release builds)
-# Use dev_start_with_backend.sh if you need to test with the Python backend
+# Children of the Singularity - Local-Only Development Startup Script
+# This script starts the game in local-only mode (pure offline functionality)
+# Game uses LocalPlayerData.gd for all data operations
 
 set -e  # Exit on any error
 
-echo "🚀 Starting Children of the Singularity - Local-First Mode"
-echo "=========================================================="
+echo "🚀 Starting Children of the Singularity - Local-Only Mode"
+echo "========================================================"
 
 # Colors for output
 RED='\033[0;31m'
@@ -52,14 +52,12 @@ cleanup() {
 # Set up cleanup trap
 trap cleanup EXIT INT TERM
 
-echo -e "${PURPLE}🎯 LOCAL-FIRST MODE${NC}"
-echo -e "${BLUE}This development session will run exactly like release builds:${NC}"
-echo -e "  • No backend API running"
+echo -e "${PURPLE}🎯 LOCAL-ONLY MODE${NC}"
+echo -e "${BLUE}Pure offline functionality with complete data persistence:${NC}"
+echo -e "  • No backend dependencies"
 echo -e "  • All data stored locally in user:// directory"
-echo -e "  • APIClient.gd will detect no backend and use LocalPlayerData.gd"
-echo -e "  • Complete offline functionality"
-echo ""
-echo -e "${YELLOW}💡 Want to test with backend? Use: ${NC}./dev_start_with_backend.sh"
+echo -e "  • APIClient.gd operates in local-only mode"
+echo -e "  • AWS Trading Marketplace still available via TradingMarketplace.gd"
 echo ""
 
 echo -e "${BLUE}Step 1: Checking Godot installation...${NC}"
@@ -118,7 +116,7 @@ else
 fi
 
 echo ""
-echo -e "${BLUE}Step 4: Starting Godot game in local-first mode...${NC}"
+echo -e "${BLUE}Step 4: Starting Godot game in local-only mode...${NC}"
 
 # Start Godot game
 echo -e "${YELLOW}Launching Godot game...${NC}"
@@ -141,19 +139,20 @@ if ! verify_process $GODOT_PID "Godot Game"; then
 fi
 
 echo ""
-echo -e "${GREEN}✅ Local-First development environment fully operational!${NC}"
+echo -e "${GREEN}✅ Local-Only development environment fully operational!${NC}"
 echo ""
 echo -e "${PURPLE}🎮 GAME INFORMATION:${NC}"
-echo -e "  🎯 Mode: ${GREEN}Local-First (Release Environment)${NC}"
+echo -e "  🎯 Mode: ${GREEN}Local-Only (Pure Offline)${NC}"
 echo -e "  🎮 Game: ${GREEN}Running (PID: $GODOT_PID)${NC}"
 echo -e "  💾 Data: ${GREEN}Local JSON files only${NC}"
 echo -e "  🌐 Network: ${GREEN}No backend required${NC}"
+echo -e "  🔄 Trading: ${GREEN}AWS Marketplace available${NC}"
 echo ""
 echo -e "${BLUE}🔍 WHAT'S HAPPENING:${NC}"
-echo -e "  • APIClient.gd will detect no backend (localhost:8000 unavailable)"
-echo -e "  • Game automatically switches to local storage mode"
-echo -e "  • All player data saved to user:// directory as JSON files"
-echo -e "  • Complete offline functionality (same as release builds)"
+echo -e "  • APIClient.gd operates in pure local-only mode"
+echo -e "  • All player data managed by LocalPlayerData.gd"
+echo -e "  • Complete offline functionality with data persistence"
+echo -e "  • AWS Trading Marketplace available via TradingMarketplace.gd"
 echo ""
 echo -e "${BLUE}💾 LOCAL DATA FILES:${NC}"
 echo -e "  📄 player_save.json       - Credits, progress, player ID"
@@ -163,9 +162,9 @@ echo -e "  📄 player_settings.json   - Game preferences"
 echo ""
 echo -e "${YELLOW}💡 DEVELOPMENT TIPS:${NC}"
 echo -e "  • This matches exactly what release users experience"
-echo -e "  • Test offline functionality, data persistence, upgrades"
-echo -e "  • For backend testing, use: ./dev_start_with_backend.sh"
+echo -e "  • Test all offline functionality, data persistence, upgrades"
 echo -e "  • Data persists between sessions in user:// directory"
+echo -e "  • Inventory clearing and upgrade resetting fully supported"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop the game${NC}"
 
@@ -181,5 +180,5 @@ while true; do
 done
 
 echo ""
-echo -e "${GREEN}🎉 Local-first development session completed successfully!${NC}"
+echo -e "${GREEN}🎉 Local-only development session completed successfully!${NC}"
 echo -e "${BLUE}Your save data has been preserved in: $USER_DATA_DIR${NC}"
