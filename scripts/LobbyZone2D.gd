@@ -256,9 +256,9 @@ func _apply_exact_window_scaling_to_background(sprite: Sprite2D, texture: Textur
 
 	print("[LobbyZone2D] Applying exact scaling - Viewport: %s, Texture: %s" % [viewport_size, texture_size])
 
-	# Reset position to center and remove any size constraints
-	sprite.position = viewport_size / 2  # Center the sprite
-	sprite.centered = true  # Ensure sprite is centered
+	# Keep background at origin (0,0) so editor coordinates work correctly
+	sprite.position = Vector2.ZERO  # Keep at origin instead of centering
+	sprite.centered = false  # Don't center the sprite
 
 	# Calculate separate scale factors for X and Y to stretch to fill window
 	var scale_x = viewport_size.x / texture_size.x if texture_size.x > 0 else 1.0
