@@ -1777,7 +1777,7 @@ func _on_sell_selected_pressed() -> void:
 	var inventory = LocalPlayerData.get_inventory()
 	var sold_items = []
 	var total_value = 0
-	var items_to_remove = []
+	var items_to_remove_ids = []
 
 	# Process each selected debris type
 	for debris_type in selected_debris:
@@ -1787,12 +1787,11 @@ func _on_sell_selected_pressed() -> void:
 
 		var items_found = 0
 
-		# Find and mark items for removal
-		for i in range(inventory.size()):
-			var item = inventory[i]
+		# Find and collect item IDs for removal
+		for item in inventory:
 			if item.get("type") == debris_type and items_found < quantity_to_sell:
 				sold_items.append(item)
-				items_to_remove.append(i)
+				items_to_remove_ids.append(item.get("item_id", ""))
 				total_value += item.get("value", 0)
 				items_found += 1
 
@@ -1803,14 +1802,13 @@ func _on_sell_selected_pressed() -> void:
 		print("[LobbyZone2D] No items found to sell")
 		return
 
-	# Remove items from inventory (reverse order to maintain indices)
-	items_to_remove.sort()
-	items_to_remove.reverse()
-	for index in items_to_remove:
-		inventory.remove_at(index)
+	# Remove items from inventory using LocalPlayerData API
+	for item_id in items_to_remove_ids:
+		if item_id != "":
+			LocalPlayerData.remove_inventory_item(item_id)
+			print("[LobbyZone2D] Removed item with ID: %s" % item_id)
 
-	# Update LocalPlayerData with modified inventory and add credits
-	LocalPlayerData.set_inventory(inventory)
+	# Add credits
 	LocalPlayerData.add_credits(total_value)
 
 	# Clear selections
