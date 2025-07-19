@@ -191,9 +191,9 @@ func _initialize_3d_zone() -> void:
 	# Initialize trading interface UI connections
 	_initialize_trading_interface()
 
-	# NEW: Load existing player data BEFORE other initialization
+	# FIXED: Only load from backend if we're not in local mode and local data isn't already loaded
 	if api_client and player_ship:
-		_load_complete_player_data_from_backend()
+		_load_player_data_smartly()
 
 	# Initialize 3D debris manager
 	_initialize_debris_manager_3d()
@@ -2135,3 +2135,37 @@ func _on_inventory_loaded(inventory_data: Array) -> void:
 
 		# Update UI immediately
 		_update_grouped_inventory_display(player_ship.current_inventory)
+
+func _load_player_data_smartly() -> void:
+	##Smart player data loading - checks local mode and existing data before backend loading
+	_log_message("ZoneMain3D: Smart loading - checking data source priority...")
+
+	# Check if LocalPlayerData has already loaded valid data
+	var local_player_data = LocalPlayerData
+	if local_player_data and local_player_data.is_initialized:
+		var has_valid_local_data = (
+			local_player_data.credits > 0 or
+			local_player_data.upgrades.values().any(func(level): return level > 0) or
+			local_player_data.inventory.size() > 0
+		)
+
+		if has_valid_local_data:
+			_log_message("ZoneMain3D: FOUND VALID LOCAL DATA - Skipping backend loading to preserve local progress")
+			_log_message("ZoneMain3D: Local data summary - Credits: %d, Upgrades: %s" % [local_player_data.credits, local_player_data.upgrades])
+			return
+
+	# Check if APIClient is already in local storage mode
+	if api_client and api_client.has_method("is_using_local_storage"):
+		if api_client.is_using_local_storage():
+			_log_message("ZoneMain3D: APIClient in local storage mode - Skipping backend loading")
+			return
+
+	# SAFETY CHECK: If PlayerShip3D already has local data loaded, don't override it
+	if player_ship and (player_ship.credits > 0 or player_ship.upgrades.values().any(func(level): return level > 0)):
+		_log_message("ZoneMain3D: PlayerShip3D already has valid data loaded - Skipping backend loading")
+		_log_message("ZoneMain3D: PlayerShip3D data - Credits: %d, Upgrades: %s" % [player_ship.credits, player_ship.upgrades])
+		return
+
+	# Only proceed with backend loading if no valid local data exists and backend is available
+	_log_message("ZoneMain3D: No local data found - Attempting backend loading (will fail safely in local mode)")
+	_load_complete_player_data_from_backend()

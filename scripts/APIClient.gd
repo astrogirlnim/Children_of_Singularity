@@ -80,6 +80,11 @@ func _ready() -> void:
 	_log_message("APIClient: === CLIENT READY IN %s MODE ===" % ("local" if use_local_storage else "backend"))
 	_log_message("APIClient: Client ready in %s mode" % ("local" if use_local_storage else "backend"))
 
+## Check if APIClient is using local storage mode
+func is_using_local_storage() -> bool:
+	"""Return true if APIClient is operating in local storage mode"""
+	return use_local_storage
+
 ## Validate UUID format
 func _is_valid_uuid(uuid_string: String) -> bool:
 	"""Validate that a string is a properly formatted UUID"""
