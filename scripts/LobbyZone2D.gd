@@ -75,28 +75,37 @@ func _setup_lobby_environment() -> void:
 	screen_size = get_viewport().get_visible_rect().size
 	print("[LobbyZone2D] Screen size: %s" % screen_size)
 
-	# Setup background to fit screen size
+	# Position player relative to screen size (left-center area)
+	if lobby_player:
+		lobby_player.global_position = Vector2(screen_size.x * 0.25, screen_size.y * 0.5)
+		# Scale player appropriately for the screen
+		var player_scale = min(screen_size.x / 1920.0, screen_size.y / 1080.0) * 1.2  # Base scale with multiplier
+		if lobby_player.get_node_or_null("PlayerSprite2D"):
+			lobby_player.get_node("PlayerSprite2D").scale = Vector2(player_scale, player_scale)
+		print("[LobbyZone2D] Player positioned at: %s with scale: %s" % [lobby_player.global_position, player_scale])
+
+	# Setup background to stretch and fill the entire screen (like startup screen)
 	if background:
 		# Load the horizontal trading hub background
 		var background_texture = preload("res://assets/trading_hub_pixel_horizontal.png")
 		background.texture = background_texture
 
-		# Scale background to fit screen while maintaining aspect ratio
+		# Apply exact window scaling to stretch background to fill screen
 		if background_texture:
-			var texture_size = background_texture.get_size()
-			var scale_factor = max(screen_size.x / texture_size.x, screen_size.y / texture_size.y)
-			background.scale = Vector2(scale_factor, scale_factor)
-			background.position = screen_size / 2
-			print("[LobbyZone2D] Background scaled to: %s at position: %s" % [background.scale, background.position])
+			_apply_exact_window_scaling_to_background(background, background_texture)
+			print("[LobbyZone2D] Background stretched to fill screen: %s" % background.scale)
 
 	# Setup trading computer sprite
 	if computer_sprite:
 		var computer_texture = preload("res://assets/computer_trading_hub_sprite.png")
 		computer_sprite.texture = computer_texture
 
-		# Position computer in a good spot (adjust as needed)
-		trading_computer.position = Vector2(screen_size.x * 0.7, screen_size.y * 0.5)
-		print("[LobbyZone2D] Trading computer positioned at: %s" % trading_computer.position)
+		# Position computer relative to screen size (right side, vertically centered)
+		trading_computer.position = Vector2(screen_size.x * 0.75, screen_size.y * 0.5)
+		# Scale computer appropriately for the screen
+		var computer_scale = min(screen_size.x / 1920.0, screen_size.y / 1080.0) * 1.5  # Base scale with multiplier
+		computer_sprite.scale = Vector2(computer_scale, computer_scale)
+		print("[LobbyZone2D] Trading computer positioned at: %s with scale: %s" % [trading_computer.position, computer_sprite.scale])
 
 func _setup_ui_elements() -> void:
 	##Setup lobby-specific UI elements
@@ -130,10 +139,9 @@ func _setup_system_references() -> void:
 	##Setup references to game systems from singletons/autoloads
 	print("[LobbyZone2D] Setting up system references")
 
-	# Get references from LocalPlayerData singleton
+	# LocalPlayerData is available as a singleton - no need for inventory_manager property
 	if LocalPlayerData:
-		inventory_manager = LocalPlayerData.inventory_manager
-		print("[LobbyZone2D] Connected to InventoryManager")
+		print("[LobbyZone2D] Connected to LocalPlayerData singleton")
 
 	# Get UpgradeSystem reference
 	upgrade_system = get_node_or_null("/root/UpgradeSystem")
@@ -242,6 +250,30 @@ func return_to_3d_world() -> void:
 
 	# Change scene back to 3D zone
 	get_tree().change_scene_to_file("res://scenes/zones/ZoneMain3D.tscn")
+
+func _apply_exact_window_scaling_to_background(sprite: Sprite2D, texture: Texture2D) -> void:
+	##Apply exact window scaling to stretch background to fill screen (like startup screen)
+	if not sprite or not texture:
+		return
+
+	var viewport_size = get_viewport().get_visible_rect().size
+	var texture_size = texture.get_size()
+
+	print("[LobbyZone2D] Applying exact scaling - Viewport: %s, Texture: %s" % [viewport_size, texture_size])
+
+	# Reset position to center and remove any size constraints
+	sprite.position = viewport_size / 2  # Center the sprite
+	sprite.centered = true  # Ensure sprite is centered
+
+	# Calculate separate scale factors for X and Y to stretch to fill window
+	var scale_x = viewport_size.x / texture_size.x if texture_size.x > 0 else 1.0
+	var scale_y = viewport_size.y / texture_size.y if texture_size.y > 0 else 1.0
+
+	# Apply scale transformation to stretch background to exact viewport size
+	sprite.scale = Vector2(scale_x, scale_y)
+
+	print("[LobbyZone2D] Applied scale transformation - X: %.3f, Y: %.3f" % [scale_x, scale_y])
+	print("[LobbyZone2D] Background positioned at: %s" % sprite.position)
 
 func log_message(message: String) -> void:
 	##Add a message to the lobby log
