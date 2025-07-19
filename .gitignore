@@ -4,6 +4,9 @@
 .cursor/rules/**
 .cursor/rules/
 
+#Infrastructure info
+infrastructure_setup.env
+
 # Documentation
 documentation/godot_summarized/repomix-output.md
 # Documentation assets are stored in S3, not tracked in git
