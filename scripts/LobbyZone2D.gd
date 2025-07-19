@@ -71,9 +71,15 @@ var last_inventory_size: int = -1
 var last_inventory_capacity: int = -1
 var last_upgrades_hash: String = ""
 var inventory_items: Array[Control] = []
+var ui_update_timer: float = 0.0
 
 func _ready() -> void:
 	print("[LobbyZone2D] Initializing 2D trading lobby with dynamic scaling")
+
+	# Critical safety check - verify essential nodes exist
+	if not _verify_essential_nodes():
+		print("[LobbyZone2D] CRITICAL ERROR: Essential nodes missing, lobby will not function properly")
+		return
 
 	# Store original sizes before any scaling
 	_store_original_sizes()
@@ -102,6 +108,34 @@ func _ready() -> void:
 	lobby_loaded = true
 	lobby_ready.emit()
 	print("[LobbyZone2D] Lobby initialization complete with dynamic scaling")
+
+func _verify_essential_nodes() -> bool:
+	##Verify that all essential @onready nodes were resolved correctly
+	var missing_nodes: Array[String] = []
+
+	# Check core references
+	if not camera_2d: missing_nodes.append("camera_2d")
+	if not background: missing_nodes.append("background")
+	if not lobby_player: missing_nodes.append("lobby_player")
+	if not trading_computer: missing_nodes.append("trading_computer")
+	if not ui_layer: missing_nodes.append("ui_layer")
+	if not hud: missing_nodes.append("hud")
+	if not lobby_status: missing_nodes.append("lobby_status")
+	if not interaction_prompt: missing_nodes.append("interaction_prompt")
+	if not trading_interface: missing_nodes.append("trading_interface")
+
+	# Check UI card references
+	if not inventory_panel: missing_nodes.append("inventory_panel")
+	if not stats_panel: missing_nodes.append("stats_panel")
+	if not upgrade_status_panel: missing_nodes.append("upgrade_status_panel")
+	if not controls_panel: missing_nodes.append("controls_panel")
+
+	if missing_nodes.size() > 0:
+		print("[LobbyZone2D] MISSING NODES: ", missing_nodes)
+		return false
+
+	print("[LobbyZone2D] All essential nodes verified successfully")
+	return true
 
 func _store_original_sizes() -> void:
 	"""Store original sizes before any scaling modifications"""
@@ -372,7 +406,7 @@ func close_trading_interface() -> void:
 
 func _on_trading_computer_area_entered(area: Area2D) -> void:
 	##Handle player entering trading computer interaction area
-	# Check if the area being entered is the trading computer
+	# The signal comes from player's InteractionArea2D, so 'area' is the area the player entered
 	if area == trading_computer:
 		computer_in_range = true
 		player_can_interact = true
@@ -381,15 +415,19 @@ func _on_trading_computer_area_entered(area: Area2D) -> void:
 			interaction_prompt.text = "Press F to access Trading Terminal"
 			interaction_prompt.visible = true
 
+		print("[LobbyZone2D] Player entered trading computer interaction area")
+
 func _on_trading_computer_area_exited(area: Area2D) -> void:
 	##Handle player exiting trading computer interaction area
-	# Check if the area being exited is the trading computer
+	# The signal comes from player's InteractionArea2D, so 'area' is the area the player exited
 	if area == trading_computer:
 		computer_in_range = false
 		player_can_interact = false
 
 		if interaction_prompt:
 			interaction_prompt.visible = false
+
+		print("[LobbyZone2D] Player exited trading computer interaction area")
 
 func return_to_3d_world() -> void:
 	##Return player to the 3D world
@@ -441,8 +479,9 @@ func _setup_ui_data_connections() -> void:
 
 	# Connect to LocalPlayerData signals if available
 	if LocalPlayerData:
-		LocalPlayerData.data_saved.connect(_on_player_data_updated)
-		print("[LobbyZone2D] Connected to LocalPlayerData signals")
+		if LocalPlayerData.has_signal("data_saved") and not LocalPlayerData.data_saved.is_connected(_on_player_data_updated):
+			LocalPlayerData.data_saved.connect(_on_player_data_updated)
+			print("[LobbyZone2D] Connected to LocalPlayerData signals")
 	else:
 		print("[LobbyZone2D] WARNING - LocalPlayerData not available")
 
@@ -462,8 +501,10 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("interact") and computer_in_range:
 		_interact_with_computer()
 
-	# Periodically update UI (every 0.5 seconds)
-	if Engine.get_physics_ticks() % 30 == 0:  # 60 FPS / 2 = every 30 ticks = 0.5 seconds
+	# Periodically update UI (every 0.5 seconds) using a timer
+	ui_update_timer += delta
+	if ui_update_timer >= 0.5:
+		ui_update_timer = 0.0
 		_update_lobby_ui_with_player_data()
 
 func _update_lobby_ui_with_player_data() -> void:
@@ -499,13 +540,16 @@ func _update_lobby_ui_with_player_data() -> void:
 
 func _update_credits_display(credits: int) -> void:
 	##Update the credits display in the StatsPanel
-	if credits_label:
+	if credits_label and is_instance_valid(credits_label):
 		credits_label.text = "Credits: %d" % credits
 		print("[LobbyZone2D] Updated credits display: %d" % credits)
+	else:
+		print("[LobbyZone2D] WARNING: credits_label not available")
 
 func _update_inventory_display(inventory: Array, capacity: int) -> void:
 	##Update the inventory display with grouped items
-	if not inventory_grid or not inventory_status:
+	if not inventory_grid or not is_instance_valid(inventory_grid) or not inventory_status or not is_instance_valid(inventory_status):
+		print("[LobbyZone2D] WARNING: inventory UI elements not available")
 		return
 
 	# Update status text
