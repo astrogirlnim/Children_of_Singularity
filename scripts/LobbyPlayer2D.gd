@@ -61,11 +61,10 @@ func _setup_player_sprite() -> void:
 		var sprite_texture = preload("res://assets/schlorp_guy_sprite.png")
 		player_sprite.texture = sprite_texture
 
-		# Scale sprite appropriately for lobby
-		sprite_scale = Vector2(1.0, 1.0)  # Adjust as needed
-		player_sprite.scale = sprite_scale
+		# Use editor-set scale instead of programmatic scaling
+		sprite_scale = player_sprite.scale  # Get the scale from editor
 
-		print("[LobbyPlayer2D] Player sprite loaded and scaled to: %s" % sprite_scale)
+		print("[LobbyPlayer2D] Player sprite loaded with editor scale: %s" % sprite_scale)
 
 func _setup_collision() -> void:
 	##Setup collision shape for the player

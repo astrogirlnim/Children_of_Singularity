@@ -15,11 +15,12 @@ signal trading_computer_accessed()
 signal lobby_exit_requested()
 
 # Core lobby references
+@onready var camera_2d: Camera2D = $Camera2D
 @onready var background: Sprite2D = $Background
 @onready var lobby_player: CharacterBody2D = $LobbyPlayer2D
 @onready var trading_computer: Area2D = $TradingComputer
 @onready var computer_sprite: Sprite2D = $TradingComputer/ComputerSprite2D
-@onready var exit_boundaries: Node2D = $ExitBoundaries
+@onready var exit_boundaries: Area2D = $ExitBoundaries
 
 # UI Layer references
 @onready var ui_layer: CanvasLayer = $UILayer
@@ -54,6 +55,11 @@ func _ready() -> void:
 	_setup_system_references()
 	_setup_boundaries()
 
+	# Exit boundaries signal should be connected in the editor
+	# If not connected in editor, uncomment the line below:
+	# exit_boundaries.body_exited.connect(_on_exit_boundaries_body_exited)
+	print("[LobbyZone2D] Exit boundaries ready for signal detection")
+
 	# Mark lobby as ready
 	lobby_loaded = true
 	lobby_ready.emit()
@@ -64,8 +70,8 @@ func _process(_delta: float) -> void:
 	if Input.is_action_just_pressed("interact") and computer_in_range:
 		_interact_with_computer()
 
-	# Check for exit boundaries
-	_check_exit_boundaries()
+	# Exit boundaries are now handled by Area2D signal (_on_exit_boundaries_body_exited)
+	# No need for manual boundary checking
 
 func _setup_lobby_environment() -> void:
 	##Setup the 2D lobby visual environment
@@ -82,16 +88,16 @@ func _setup_lobby_environment() -> void:
 			var player_sprite = lobby_player.get_node("PlayerSprite2D")
 			print("[LobbyZone2D] Using editor-set player scale: %s" % player_sprite.scale)
 
-	# Setup background to stretch and fill the entire screen (like startup screen)
+	# Setup background - use editor positioning for consistency
 	if background:
 		# Load the horizontal trading hub background
 		var background_texture = preload("res://assets/trading_hub_pixel_horizontal.png")
 		background.texture = background_texture
 
-		# Apply exact window scaling to stretch background to fill screen
-		if background_texture:
-			_apply_exact_window_scaling_to_background(background, background_texture)
-			print("[LobbyZone2D] Background stretched to fill screen: %s" % background.scale)
+		# Use editor-set background position (no programmatic override)
+		# This ensures sprites and camera work with consistent coordinates
+		print("[LobbyZone2D] Background using editor position: %s" % background.position)
+		print("[LobbyZone2D] Background using editor centering: %s" % background.centered)
 
 	# Setup trading computer sprite
 	if computer_sprite:
@@ -291,3 +297,10 @@ func get_lobby_status() -> Dictionary:
 		"computer_in_range": computer_in_range,
 		"trading_interface_open": trading_interface.visible if trading_interface else false
 	}
+
+
+func _on_exit_boundaries_body_exited(body: Node2D) -> void:
+	# Check if the exiting body is our lobby player
+	if body == lobby_player:
+		print("[LobbyZone2D] Player exited lobby boundaries via Area2D signal")
+		_prompt_lobby_exit()

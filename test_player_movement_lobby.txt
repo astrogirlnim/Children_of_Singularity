@@ -1,0 +1,1959 @@
+🚀 Starting Children of the Singularity - Local-Only Mode
+========================================================
+[0;35m🎯 LOCAL-ONLY MODE[0m
+[0;34mPure offline functionality with complete data persistence:[0m
+  • No backend dependencies
+  • All data stored locally in user:// directory
+  • APIClient.gd operates in local-only mode
+  • AWS Trading Marketplace still available via TradingMarketplace.gd
+
+[0;34mStep 1: Checking Godot installation...[0m
+[0;32m✅ Godot found: 4.4.1.stable.official.49a5bc7b6[0m
+[0;34mStep 2: Verifying project structure...[0m
+[0;32m✅ Project structure verified[0m
+[0;34mStep 3: Checking local data directory...[0m
+[1;33mLocal data will be stored in:[0m
+  /Users/ns/Library/Application Support/Godot/app_userdata/Children of the Singularity
+[0;32m✅ User data directory exists[0m
+[0;34m📄 Existing save files:[0m
+    -rw-r--r--@ 1 ns  staff    2 Jul 18 16:04 /Users/ns/Library/Application Support/Godot/app_userdata/Children of the Singularity/inventory_data.json
+    -rw-r--r--@ 1 ns  staff  429 Jul 18 16:04 /Users/ns/Library/Application Support/Godot/app_userdata/Children of the Singularity/player_data.json
+    -rw-r--r--@ 1 ns  staff    2 Jul 19 12:01 /Users/ns/Library/Application Support/Godot/app_userdata/Children of the Singularity/player_inventory.json
+    -rw-r--r--@ 1 ns  staff  434 Jul 19 15:31 /Users/ns/Library/Application Support/Godot/app_userdata/Children of the Singularity/player_save.json
+    -rw-r--r--@ 1 ns  staff  194 Jul 19 15:31 /Users/ns/Library/Application Support/Godot/app_userdata/Children of the Singularity/player_settings.json
+    -rw-r--r--@ 1 ns  staff  105 Jul 19 15:30 /Users/ns/Library/Application Support/Godot/app_userdata/Children of the Singularity/player_upgrades.json
+    -rw-r--r--@ 1 ns  staff  343 Jul 19 10:54 /Users/ns/Library/Application Support/Godot/app_userdata/Children of the Singularity/trading_config.json
+    -rw-r--r--@ 1 ns  staff  135 Jul 18 16:04 /Users/ns/Library/Application Support/Godot/app_userdata/Children of the Singularity/upgrades_data.json
+
+[0;34mStep 4: Starting Godot game in local-only mode...[0m
+[1;33mLaunching Godot game...[0m
+Godot Engine v4.4.1.stable.official.49a5bc7b6 - https://godotengine.org
+TextServer: Added interface "Dummy"
+TextServer: Added interface "ICU / HarfBuzz / Graphite (Built-in)"
+Devices:
+  #0: Apple Apple M4 Pro (Apple9) - Supported, Integrated
+- Metal multiview supported:
+  max view count: 16
+  max instances: 4294967295
+Metal 3.2 - Forward+ - Using Device #0: Apple - Apple M4 Pro (Apple9)
+Using "default" pen tablet driver...
+Shader 'CanvasSdfShaderRD' (group 0) SHA256: c775fc7b8439c5274c1c3ef47ddce7361cad2e32c7b14db2412685960a908309
+Shader 'SkeletonShaderRD' (group 0) SHA256: 58691c3035fd29bf49d25ada7b05f9cd035119742551152de7ee0ac6c311b452
+Shader 'SortShaderRD' (group 0) SHA256: c0f225fe65ce71c0efbb42d474e1557d1323c319d7ca13266e534aa4df08acfc
+Shader 'ParticlesShaderRD' (group 0) SHA256: 1b6b4dd7f4a04fc5e1db881906eb045f703886875e8ffdf8a849660e1977a3f2
+Shader 'ParticlesCopyShaderRD' (group 0) SHA256: 616f963f3ec2a1cdf69fa03250ee7cdc221c1ac31ba2c9eecdecdebe57103a74
+Shader 'CanvasShaderRD' (group 0) SHA256: ac07c4c33a092cf20ce4501b2f834d2bb5948ec43ce0daf2f979c6e42fd9247f
+Shader 'CanvasOcclusionShaderRD' (group 0) SHA256: 1ace5a94ef6b73ea982ba80d4545d33099b044a51f10b63816db60d52777f0ba
+Shader 'ClusterRenderShaderRD' (group 0) SHA256: 1ae916dab92bab171aaf64d4241d999b189413d8ef9b10d7670124e9928380f0
+Shader 'ClusterStoreShaderRD' (group 0) SHA256: d094fe02fae7cc443b74d2945ecc216d9f29114c528ce73ac6c39f4ee2c181ee
+Shader 'ClusterDebugShaderRD' (group 0) SHA256: afd1f7325b5553cabe122d7b8129f8664cbb40369d7db6f8d3e025a507067d23
+Shader 'SceneForwardClusteredShaderRD' (group 0) SHA256: e117f17f30e514271e0534c7ea38fe0ee7ef056de09480e39d4eee337cbd3324
+Shader 'SceneForwardClusteredShaderRD' (group 1) SHA256: 0266d7248b5653fe01997b64880a35cd20b126b6e89a26ea0eba45c3a8b77723
+Shader 'SceneForwardClusteredShaderRD' (group 2) SHA256: 71385a1f63c276f00c604ed2ed9df9ffefd670f3de14d2e0cb528a47035e5435
+Shader 'SceneForwardClusteredShaderRD' (group 3) SHA256: 52288b33483088111ead84d6f576a1a91199673200adf9f6fc850f701de7c2d6
+Shader 'BestFitNormalShaderRD' (group 0) SHA256: 858039aa0099dfbbe348283f077233e60a24361e44c78bbe286a0c99056bebad
+Shader 'ResolveShaderRD' (group 0) SHA256: 925147ad89390b103f9504b20a1114fcafe781965d12e542364dc645a8e3699f
+Shader 'TaaResolveShaderRD' (group 0) SHA256: de0f7c27348676ece4d78a34a2fbc589d62c1909e43bc1d295cb750479dbe750
+Shader 'Fsr2DepthClipPassShaderRD' (group 0) SHA256: 1d18071fef27d3e70f14a7bd47f9f303651dc89356741b1ccc5cd7b2ce245f7e
+Shader 'Fsr2ReconstructPreviousDepthPassShaderRD' (group 0) SHA256: 5cc5627a4273deb824d6e79e6dd6620dcbc7f6166607bf9be7b69ee314576a47
+Shader 'Fsr2LockPassShaderRD' (group 0) SHA256: 1ac448ec2645eedbce09b312ea9aa4b320b392f2533b376542cf9653e55057cb
+Shader 'Fsr2AccumulatePassShaderRD' (group 0) SHA256: 3b2c1d5c1bab4fede24e098a2ed447ca0b322e5b993dd0ecae03d8d3de2ab465
+Shader 'Fsr2RcasPassShaderRD' (group 0) SHA256: ad454817b4fc932f7946c0b7abeca3d6be8bf58be95a9eb76bc8f3eb4bc7f122
+Shader 'Fsr2ComputeLuminancePyramidPassShaderRD' (group 0) SHA256: c1520008dd6a308a2f97addcc486a592bfab469aefa9b826e2c9171384370736
+Shader 'Fsr2AutogenReactivePassShaderRD' (group 0) SHA256: 9f5a0b2cded928f6c91730b361e413bb5d2954a187c5b319a152e5bdbbd955d3
+Shader 'Fsr2TcrAutogenPassShaderRD' (group 0) SHA256: a8efd1754c7854b4e99272b383ec5f3e3241fec7f55fb40318e0ca60be9214bf
+Shader 'SsEffectsDownsampleShaderRD' (group 0) SHA256: 0c706c61d6f86846e6e9526c167d3c0f4f044db5b5652298336b4345901cf699
+Shader 'SsilShaderRD' (group 0) SHA256: 0d2fb0eb2a3f51c7556613966d7460e10ba819917b0a75869ad809403f75a8d9
+Shader 'SsilImportanceMapShaderRD' (group 0) SHA256: 10e36f8c8c087db8f425edceb6a507eaeb20040e61318fb7759af2947da05267
+Shader 'SsilBlurShaderRD' (group 0) SHA256: 467a76c53f24fcdbca6903cda615320e7f10194945f380197b158513c3e17548
+Shader 'SsilInterleaveShaderRD' (group 0) SHA256: 9ee260c908cdc2d8455add48ecc5b3dc835f1087dac47523e5c685cfb5d58320
+Shader 'SsaoShaderRD' (group 0) SHA256: 88827ce9eda9e3d2b7b83200456475c4b38b66adfad745ea6c4365359d66cb9c
+Shader 'SsaoImportanceMapShaderRD' (group 0) SHA256: 4f7627c70c06910e7bfa60fb89b1dd0db6a7ac99c5fe14a9bb5c27fb15013a57
+Shader 'SsaoBlurShaderRD' (group 0) SHA256: 34e6c8f9ec2b4903e90522c94750d7e363c3ed280aafba5e00886f71984f41ca
+Shader 'SsaoInterleaveShaderRD' (group 0) SHA256: edc32793e70830654484b7e312096580653596f6faedf87be84bd837ff03a8e2
+Shader 'ScreenSpaceReflectionScaleShaderRD' (group 0) SHA256: e822dd2629a444f31987451cabe5795569bf8868df1451fe0af0d793c10b8abf
+Shader 'ScreenSpaceReflectionShaderRD' (group 0) SHA256: dc188ea8d239e7180a726f67f5f12976848210ad98f7a93a847721d079282143
+Shader 'ScreenSpaceReflectionFilterShaderRD' (group 0) SHA256: ac34ebb9b749731ef23e8b9a02adbe5fa331ab10cd94489bf0deed5e28c96f32
+Shader 'SubsurfaceScatteringShaderRD' (group 0) SHA256: c87ec037921272175120bd13a778f08b87ee2838dd986dcb635b4569691e4255
+Shader 'MotionVectorsStoreShaderRD' (group 0) SHA256: 0f7dec93ebe782deeee69dc22fc590d26dfb1e9d93779f964babe9f9813635cc
+Shader 'SkyShaderRD' (group 0) SHA256: 448d9a7eb90b1c334ab625bb228fdf691de2717b37f45b23e219b1f2d36ef417
+Shader 'VoxelGiShaderRD' (group 0) SHA256: 95a09dae119e549a8c9c962c855ad7f6e96ae328ca771ea50fbe54449767a417
+Shader 'VoxelGiDebugShaderRD' (group 0) SHA256: e9e93a457170c6bb6970b9a7ccd46f978c11b60ea669a66564622b6e203c4f81
+Shader 'SdfgiPreprocessShaderRD' (group 0) SHA256: f8f5484f11068f0f81d857530dded63b3667a4d750af123ccf605c1cddbaf647
+Shader 'SdfgiDirectLightShaderRD' (group 0) SHA256: b27a49f73a3a7fc0f5c5145f801030dd4725906bb256a2d93e0427e3cca69383
+Shader 'SdfgiIntegrateShaderRD' (group 0) SHA256: 19fcaa228d0f678731000c1df9217ef8d21d7e5df65065a363d898ba3e5e1c54
+Shader 'GiShaderRD' (group 0) SHA256: 71d0ff334910be52109526029de94318a302c6d193542274b8e99cbe5a8cf133
+Shader 'SdfgiDebugShaderRD' (group 0) SHA256: 2ddd17356527dfb3215c4d4c274ead86b3744538e1e3196b8acab73eb31cbd15
+Shader 'SdfgiDebugProbesShaderRD' (group 0) SHA256: e01ce89a709919ed8fd5f514f95fdd9b0490acf5d52a0ff6e7db637c0f2352a4
+Shader 'VolumetricFogShaderRD' (group 0) SHA256: 49e608c805d3d5799bdc2e785c9f49b26fbb8f2d91ece489785c0a2c33a9a945
+Shader 'VolumetricFogProcessShaderRD' (group 0) SHA256: d27dcb2b80ff5590fb65c517686ffbab2919ac809650d1b421fe206c724454e7
+Shader 'BokehDofShaderRD' (group 0) SHA256: 13fafdc7a485696d30f95e1c6f1d1de40b38d1fd8f8baf0a9c75d561a9d05b27
+Shader 'CopyShaderRD' (group 0) SHA256: dae7f8876f5ff152fed4a7691a40221ecca9061b638c3a80f3a2937449031242
+Shader 'CopyToFbShaderRD' (group 0) SHA256: a4b618b2e22a5b2cc56271d32862b8979ee054cbb402e4069a8aba1131c0de24
+Shader 'CubeToDpShaderRD' (group 0) SHA256: 432e86432f0d0b3eb96a9b747838b2c38f49ab222daf13a49088aad1fc2cdda1
+Shader 'CubemapDownsamplerShaderRD' (group 0) SHA256: 171efde02913b98d452d83c2216b3237dda5a9c9460bcac27261f8bbd8a42e5e
+Shader 'CubemapFilterShaderRD' (group 0) SHA256: 7d9c151e60a6bd284cf0796a1a863b9ce665456ac99461a292bd900ca74871e2
+Shader 'CubemapRoughnessShaderRD' (group 0) SHA256: 9c24a6ca261d515c00c063deaff242fc05e839eb903694de70219bda3b89bcaf
+Shader 'SpecularMergeShaderRD' (group 0) SHA256: 07e3ec96e17bdf96251d10baa4d493fd4ea44f1472befab6b58988eeae52d42e
+Shader 'ShadowFrustumShaderRD' (group 0) SHA256: 29f24c0ceac127df4697a974fdddac6fdd3dab609a27aa1a2784eb5621244304
+Shader 'MotionVectorsShaderRD' (group 0) SHA256: 9d8a378c0c22714c3b6c3526e8961ebb3c50f38190341922f70f233a4b0bad21
+Shader 'LuminanceReduceShaderRD' (group 0) SHA256: d14bd28ed993d440371fcd598862f6a71bc02ba9dd58afed3542db905a3438e3
+Shader 'TonemapShaderRD' (group 0) SHA256: 98c0d5507b1b8e3317492558d2587ae7d07a498fcf6f6530acc1860e95b0d1ad
+Shader 'FsrUpscaleShaderRD' (group 0) SHA256: 33ab9eb235ef91e0b184f27da75a84df64d7e90c2b67fa1544d4d55d155c0daf
+Shader 'BlitShaderRD' (group 0) SHA256: c5389d0d248751a2c0109df0062e85e08c459d851ff4dfa1affdd8d5332573c8
+CoreAudio: detected 2 channels
+CoreAudio: output sampling rate: 44100 Hz
+CoreAudio: output audio buffer frames: 512 calculated latency: 11ms
+
+TextServer: Primary interface set to: "ICU / HarfBuzz / Graphite (Built-in)".
+CameraServer: Registered camera MacBook Pro Camera with ID 1 and position 0 at index 0
+Loading resource: res://default_bus_layout.tres
+CORE API HASH: 4052744068
+EDITOR API HASH: 910296392
+Loading resource: res://scripts/AudioManager.gd
+Loading resource: res://scripts/LocalPlayerData.gd
+[2025-07-19T15:34:22] LocalPlayerData: === INITIALIZATION START ===
+[2025-07-19T15:34:22] LocalPlayerData: Initializing local storage system
+[2025-07-19T15:34:22] LocalPlayerData: === LOADING ALL DATA START ===
+[2025-07-19T15:34:22] LocalPlayerData: Loading all player data from local files
+[2025-07-19T15:34:22] LocalPlayerData: Step 1/4 - Loading player data...
+[2025-07-19T15:34:22] LocalPlayerData: === LOADING PLAYER DATA FROM FILE ===
+[2025-07-19T15:34:22] LocalPlayerData: File path: user://player_save.json
+[2025-07-19T15:34:22] LocalPlayerData: Raw JSON loaded from file: {
+	"credits": 25.0,
+	"first_run_complete": true,
+	"gameplay_stats": {
+		"debris_collected": 0.0,
+		"total_credits_earned": 3885.0,
+		"total_items_sold": 0.0,
+		"trades_completed": 0.0,
+		"zones_explored": 1.0
+	},
+	"last_played": "2025-07-19T15:31:12",
+	"player_id": "player_368_9121",
+	"player_name": "Player",
+	"zone_progress": {
+		"current_zone": "zone_alpha_01",
+		"max_zone": 1.0,
+		"unlocked_areas": [
+			"zone_alpha_01"
+		]
+	}
+}
+[2025-07-19T15:34:22] LocalPlayerData: Parsed player_data: { "credits": 25.0, "first_run_complete": true, "gameplay_stats": { "debris_collected": 0.0, "total_credits_earned": 3885.0, "total_items_sold": 0.0, "trades_completed": 0.0, "zones_explored": 1.0 }, "last_played": "2025-07-19T15:31:12", "player_id": "player_368_9121", "player_name": "Player", "zone_progress": { "current_zone": "zone_alpha_01", "max_zone": 1.0, "unlocked_areas": ["zone_alpha_01"] } }
+[2025-07-19T15:34:22] LocalPlayerData: Player data loaded - Credits: 25
+[2025-07-19T15:34:22] LocalPlayerData: Player data load result: true
+[2025-07-19T15:34:22] LocalPlayerData: Step 2/4 - Loading settings...
+[2025-07-19T15:34:22] LocalPlayerData: Settings loaded
+[2025-07-19T15:34:22] LocalPlayerData: Settings load result: true
+[2025-07-19T15:34:22] LocalPlayerData: Step 3/4 - Loading inventory...
+[2025-07-19T15:34:22] LocalPlayerData: Inventory loaded - 0 items
+[2025-07-19T15:34:22] LocalPlayerData: Inventory load result: true
+[2025-07-19T15:34:22] LocalPlayerData: Step 4/4 - Loading upgrades...
+[2025-07-19T15:34:22] LocalPlayerData: === LOADING UPGRADES FROM FILE ===
+[2025-07-19T15:34:22] LocalPlayerData: Upgrades file path: user://player_upgrades.json
+[2025-07-19T15:34:22] LocalPlayerData: Raw upgrades JSON: {
+	"cargo_magnet": 0.0,
+	"collection_efficiency": 0.0,
+	"inventory_expansion": 0.0,
+	"speed_boost": 0.0
+}
+[2025-07-19T15:34:22] LocalPlayerData: Parsed upgrades: { "cargo_magnet": 0.0, "collection_efficiency": 0.0, "inventory_expansion": 0.0, "speed_boost": 0.0 }
+[2025-07-19T15:34:22] LocalPlayerData: Upgrades loaded successfully
+[2025-07-19T15:34:22] LocalPlayerData: Upgrades load result: true
+[2025-07-19T15:34:22] LocalPlayerData: Checking if first run - has 'first_run_complete': true
+[2025-07-19T15:34:22] LocalPlayerData: Not first run, using loaded data
+[2025-07-19T15:34:22] LocalPlayerData: Loaded credits: 25
+[2025-07-19T15:34:22] LocalPlayerData: Loaded upgrades: { "cargo_magnet": 0.0, "collection_efficiency": 0.0, "inventory_expansion": 0.0, "speed_boost": 0.0 }
+[2025-07-19T15:34:22] LocalPlayerData: === DATA LOADING COMPLETE - CREDITS: 25, UPGRADES: { "cargo_magnet": 0.0, "collection_efficiency": 0.0, "inventory_expansion": 0.0, "speed_boost": 0.0 } ===
+[2025-07-19T15:34:22] LocalPlayerData: All data loaded successfully
+[2025-07-19T15:34:22] LocalPlayerData: === INITIALIZATION COMPLETE ===
+Loading resource: res://scripts/TradingConfig.gd
+Loading resource: res://scripts/TradingMarketplace.gd
+Loaded system CA certificates
+Loading resource: res://scenes/ui/StartupScreen.tscn
+Loading resource: res://scripts/StartupScreen.gd
+Loading resource: res://scenes/ui/LoadingScreen.tscn
+Loading resource: res://scripts/LoadingScreen.gd
+Loading resource: res://scenes/objects/Debris3D.tscn
+Loading resource: res://scenes/objects/TradingHub3D.tscn
+Loading resource: res://scripts/TradingHub3D.gd
+Loading resource: res://documentation/design/trading_hub/trading_hub.png
+Loading resource: res://.godot/imported/trading_hub.png-3bc56a85061ee3be2ed0179402098d5c.s3tc.ctex
+Loading resource: res://assets/ui/loading_screen.png
+Loading resource: res://.godot/imported/loading_screen.png-60df6aab58b2ef9ff4864b5cd107673b.ctex
+AudioManager: Initializing audio system
+AudioManager: Music volume set to: 0.8
+AudioManager: SFX volume set to: 1.0
+AudioManager: Loading background music
+Loading resource: res://assets/audio/music/background_music.ogg
+Loading resource: res://.godot/imported/background_music.ogg-94ad3c8d334223cbece653e602402970.oggvorbisstr
+AudioManager: Enabled seamless looping for OGG audio stream
+AudioManager: Background music started successfully with seamless looping
+[TradingConfig] Loading trading marketplace configuration
+[TradingConfig] Loaded configuration from user://trading_config.json
+[TradingMarketplace] Initializing trading marketplace client
+StartupScreen: Starting animation startup sequence
+StartupScreen: Setting up startup screen UI
+StartupScreen: Configuring VideoDisplay...
+StartupScreen: VideoDisplay configured - visible: true, size: (2151.0, 1080.0)
+StartupScreen: UI setup complete
+StartupScreen: Loading startup animation frames...
+Loading resource: res://assets/ui/startup_screen/frames/frame_001.png
+Loading resource: res://.godot/imported/frame_001.png-7964247012566565790900675fb1772e.ctex
+StartupScreen: Loaded frame 1
+Loading resource: res://assets/ui/startup_screen/frames/frame_002.png
+Loading resource: res://.godot/imported/frame_002.png-0bca8f3140ceaea6815fab6fe3bc08c9.ctex
+StartupScreen: Loaded frame 2
+Loading resource: res://assets/ui/startup_screen/frames/frame_003.png
+Loading resource: res://.godot/imported/frame_003.png-e81bdb9770b85790b63b8de070beefa7.ctex
+StartupScreen: Loaded frame 3
+Loading resource: res://assets/ui/startup_screen/frames/frame_004.png
+Loading resource: res://.godot/imported/frame_004.png-a6fe4bce16b929ba2de2849f412dc013.ctex
+StartupScreen: Loaded frame 4
+Loading resource: res://assets/ui/startup_screen/frames/frame_005.png
+Loading resource: res://.godot/imported/frame_005.png-d7cba27a8440f331f43a69e331a10491.ctex
+StartupScreen: Loaded frame 5
+Loading resource: res://assets/ui/startup_screen/frames/frame_006.png
+Loading resource: res://.godot/imported/frame_006.png-42401fd84b410702f81970bae6042d26.ctex
+StartupScreen: Loaded frame 6
+Loading resource: res://assets/ui/startup_screen/frames/frame_007.png
+Loading resource: res://.godot/imported/frame_007.png-725c3eca9b372dba40defb97579eb832.ctex
+StartupScreen: Loaded frame 7
+Loading resource: res://assets/ui/startup_screen/frames/frame_008.png
+Loading resource: res://.godot/imported/frame_008.png-7a22099ff80c8344bfa70f3ea653c927.ctex
+StartupScreen: Loaded frame 8
+Loading resource: res://assets/ui/startup_screen/frames/frame_009.png
+Loading resource: res://.godot/imported/frame_009.png-6652984028e08158440a466fb748d52f.ctex
+StartupScreen: Loaded frame 9
+Loading resource: res://assets/ui/startup_screen/frames/frame_010.png
+Loading resource: res://.godot/imported/frame_010.png-9fbfe1b4d614a1b1b3ecd718e2cae7a1.ctex
+StartupScreen: Loaded frame 10
+Loading resource: res://assets/ui/startup_screen/frames/frame_011.png
+Loading resource: res://.godot/imported/frame_011.png-211c2c93fc35fb359cc14be8be76f968.ctex
+StartupScreen: Loaded frame 11
+Loading resource: res://assets/ui/startup_screen/frames/frame_012.png
+Loading resource: res://.godot/imported/frame_012.png-1422ae0f98bc0f1e7d676782c4c1878e.ctex
+StartupScreen: Loaded frame 12
+Loading resource: res://assets/ui/startup_screen/frames/frame_013.png
+Loading resource: res://.godot/imported/frame_013.png-5a0fd8d85a336f48f480b3f39ce501b2.ctex
+StartupScreen: Loaded frame 13
+Loading resource: res://assets/ui/startup_screen/frames/frame_014.png
+Loading resource: res://.godot/imported/frame_014.png-d2d8908284edfb48b4ca8279b182e5d1.ctex
+StartupScreen: Loaded frame 14
+Loading resource: res://assets/ui/startup_screen/frames/frame_015.png
+Loading resource: res://.godot/imported/frame_015.png-e34ddb50fcfa160f362f4cd729c5e6db.ctex
+StartupScreen: Loaded frame 15
+Loading resource: res://assets/ui/startup_screen/frames/frame_016.png
+Loading resource: res://.godot/imported/frame_016.png-a2618897e3160946e3efb2ad564704a6.ctex
+StartupScreen: Loaded frame 16
+Loading resource: res://assets/ui/startup_screen/frames/frame_017.png
+Loading resource: res://.godot/imported/frame_017.png-b8ecc3e509c6f0515aea847eddde772e.ctex
+StartupScreen: Loaded frame 17
+Loading resource: res://assets/ui/startup_screen/frames/frame_018.png
+Loading resource: res://.godot/imported/frame_018.png-7b1ba80ca471e00ab2b95c23feb4bc70.ctex
+StartupScreen: Loaded frame 18
+Loading resource: res://assets/ui/startup_screen/frames/frame_019.png
+Loading resource: res://.godot/imported/frame_019.png-6c0e215cfa158994331016de1534cf89.ctex
+StartupScreen: Loaded frame 19
+Loading resource: res://assets/ui/startup_screen/frames/frame_020.png
+Loading resource: res://.godot/imported/frame_020.png-c20ecf34bdcab3bf0fdb0f2753f04b18.ctex
+StartupScreen: Loaded frame 20
+Loading resource: res://assets/ui/startup_screen/frames/frame_021.png
+Loading resource: res://.godot/imported/frame_021.png-cc40e84efb6cdfed6137a4c3fa17be3a.ctex
+StartupScreen: Loaded frame 21
+Loading resource: res://assets/ui/startup_screen/frames/frame_022.png
+Loading resource: res://.godot/imported/frame_022.png-67737c4136f1ec7c766fcc1c47c8b1ee.ctex
+StartupScreen: Loaded frame 22
+Loading resource: res://assets/ui/startup_screen/frames/frame_023.png
+Loading resource: res://.godot/imported/frame_023.png-dc3c1b9418c23394d99d2a4c75e304ba.ctex
+StartupScreen: Loaded frame 23
+Loading resource: res://assets/ui/startup_screen/frames/frame_024.png
+Loading resource: res://.godot/imported/frame_024.png-0560f3ef48e6367e3c77e42800b0b91e.ctex
+StartupScreen: Loaded frame 24
+Loading resource: res://assets/ui/startup_screen/frames/frame_025.png
+Loading resource: res://.godot/imported/frame_025.png-26297c4ac54e666efc67338d7852209f.ctex
+StartupScreen: Loaded frame 25
+Loading resource: res://assets/ui/startup_screen/frames/frame_026.png
+Loading resource: res://.godot/imported/frame_026.png-b1caf63f6c07fc120434b05b75ba4e33.ctex
+StartupScreen: Loaded frame 26
+Loading resource: res://assets/ui/startup_screen/frames/frame_027.png
+Loading resource: res://.godot/imported/frame_027.png-591a9ec6131a1bf872575cb9a8f99950.ctex
+StartupScreen: Loaded frame 27
+Loading resource: res://assets/ui/startup_screen/frames/frame_028.png
+Loading resource: res://.godot/imported/frame_028.png-5b67f15728fd4e0cc07c016c46674c45.ctex
+StartupScreen: Loaded frame 28
+Loading resource: res://assets/ui/startup_screen/frames/frame_029.png
+Loading resource: res://.godot/imported/frame_029.png-24f987f46dca3173bc422dcb5ca688b4.ctex
+StartupScreen: Loaded frame 29
+Loading resource: res://assets/ui/startup_screen/frames/frame_030.png
+Loading resource: res://.godot/imported/frame_030.png-c234a591afe2817ff2a15ddddc7997fe.ctex
+StartupScreen: Loaded frame 30
+Loading resource: res://assets/ui/startup_screen/frames/frame_031.png
+Loading resource: res://.godot/imported/frame_031.png-f2bd5816d646a27bc215abc552df437f.ctex
+StartupScreen: Loaded frame 31
+Loading resource: res://assets/ui/startup_screen/frames/frame_032.png
+Loading resource: res://.godot/imported/frame_032.png-0fcf4c94bd35c51b7cc9b49fc6b6f5b5.ctex
+StartupScreen: Loaded frame 32
+Loading resource: res://assets/ui/startup_screen/frames/frame_033.png
+Loading resource: res://.godot/imported/frame_033.png-ea767ffb3b74811eeabcad6549c9957d.ctex
+StartupScreen: Loaded frame 33
+Loading resource: res://assets/ui/startup_screen/frames/frame_034.png
+Loading resource: res://.godot/imported/frame_034.png-c4410840b985c9af4e5055dba9fca6f7.ctex
+StartupScreen: Loaded frame 34
+Loading resource: res://assets/ui/startup_screen/frames/frame_035.png
+Loading resource: res://.godot/imported/frame_035.png-c4d8d01ae40a61922e62498395ddd83c.ctex
+StartupScreen: Loaded frame 35
+Loading resource: res://assets/ui/startup_screen/frames/frame_036.png
+Loading resource: res://.godot/imported/frame_036.png-e854cc1614c6d9e4504b7126a15a22c3.ctex
+StartupScreen: Loaded frame 36
+Loading resource: res://assets/ui/startup_screen/frames/frame_037.png
+Loading resource: res://.godot/imported/frame_037.png-5a1c107ba39ab187260e46754fa2d1d0.ctex
+StartupScreen: Loaded frame 37
+Loading resource: res://assets/ui/startup_screen/frames/frame_038.png
+Loading resource: res://.godot/imported/frame_038.png-b245259b84caf1c1734207ad9ac590be.ctex
+StartupScreen: Loaded frame 38
+Loading resource: res://assets/ui/startup_screen/frames/frame_039.png
+Loading resource: res://.godot/imported/frame_039.png-1216e64a17e5a27a068fd189a2538dc1.ctex
+StartupScreen: Loaded frame 39
+Loading resource: res://assets/ui/startup_screen/frames/frame_040.png
+Loading resource: res://.godot/imported/frame_040.png-26438e59f1ef67f01c8a491016665361.ctex
+StartupScreen: Loaded frame 40
+Loading resource: res://assets/ui/startup_screen/frames/frame_041.png
+Loading resource: res://.godot/imported/frame_041.png-a32f28446d7681812c6e67f48adf95cb.ctex
+StartupScreen: Loaded frame 41
+Loading resource: res://assets/ui/startup_screen/frames/frame_042.png
+Loading resource: res://.godot/imported/frame_042.png-ca93160c752b53d1c0cda0fca6b90e12.ctex
+StartupScreen: Loaded frame 42
+Loading resource: res://assets/ui/startup_screen/frames/frame_043.png
+Loading resource: res://.godot/imported/frame_043.png-71722e454e2cecd0f8048bf16f690d24.ctex
+StartupScreen: Loaded frame 43
+Loading resource: res://assets/ui/startup_screen/frames/frame_044.png
+Loading resource: res://.godot/imported/frame_044.png-291d2c82adf1878b98cbc9687e61b673.ctex
+StartupScreen: Loaded frame 44
+Loading resource: res://assets/ui/startup_screen/frames/frame_045.png
+Loading resource: res://.godot/imported/frame_045.png-6550c10de21d1f20ac59ed4316310004.ctex
+StartupScreen: Loaded frame 45
+Loading resource: res://assets/ui/startup_screen/frames/frame_046.png
+Loading resource: res://.godot/imported/frame_046.png-ec1520d4762bcc479c71fecb8cb781bc.ctex
+StartupScreen: Loaded frame 46
+Loading resource: res://assets/ui/startup_screen/frames/frame_047.png
+Loading resource: res://.godot/imported/frame_047.png-fbb845d49939925e0e86b4549cb415d0.ctex
+StartupScreen: Loaded frame 47
+Loading resource: res://assets/ui/startup_screen/frames/frame_048.png
+Loading resource: res://.godot/imported/frame_048.png-5ae76725f30ae6264f04db93040cf3cf.ctex
+StartupScreen: Loaded frame 48
+Loading resource: res://assets/ui/startup_screen/frames/frame_049.png
+Loading resource: res://.godot/imported/frame_049.png-3b18e16f89e4d09d51454976a132c39a.ctex
+StartupScreen: Loaded frame 49
+Loading resource: res://assets/ui/startup_screen/frames/frame_050.png
+Loading resource: res://.godot/imported/frame_050.png-0f2a4933a9e591004ad8a83e69caae7e.ctex
+StartupScreen: Loaded frame 50
+Loading resource: res://assets/ui/startup_screen/frames/frame_051.png
+Loading resource: res://.godot/imported/frame_051.png-30ba51c1604e133ce0e382ac162723c6.ctex
+StartupScreen: Loaded frame 51
+Loading resource: res://assets/ui/startup_screen/frames/frame_052.png
+Loading resource: res://.godot/imported/frame_052.png-84e9826ebf6aa39b6c71633f98841aa1.ctex
+StartupScreen: Loaded frame 52
+Loading resource: res://assets/ui/startup_screen/frames/frame_053.png
+Loading resource: res://.godot/imported/frame_053.png-af4c8cfb6f9ecc34e0546857ce7a03e0.ctex
+StartupScreen: Loaded frame 53
+Loading resource: res://assets/ui/startup_screen/frames/frame_054.png
+Loading resource: res://.godot/imported/frame_054.png-1d3e2a3a56ec3ee199ae20e0bc56bf44.ctex
+StartupScreen: Loaded frame 54
+Loading resource: res://assets/ui/startup_screen/frames/frame_055.png
+Loading resource: res://.godot/imported/frame_055.png-d23fc6e766556a5e76e360912c43ab9a.ctex
+StartupScreen: Loaded frame 55
+Loading resource: res://assets/ui/startup_screen/frames/frame_056.png
+Loading resource: res://.godot/imported/frame_056.png-e8fbef7e40c1a45e2684e432ff8cdfb6.ctex
+StartupScreen: Loaded frame 56
+Loading resource: res://assets/ui/startup_screen/frames/frame_057.png
+Loading resource: res://.godot/imported/frame_057.png-4780b23a4510a25ce827458fe98fd3fc.ctex
+StartupScreen: Loaded frame 57
+Loading resource: res://assets/ui/startup_screen/frames/frame_058.png
+Loading resource: res://.godot/imported/frame_058.png-0795b510f9738ab3b45d8542e816a51e.ctex
+StartupScreen: Loaded frame 58
+Loading resource: res://assets/ui/startup_screen/frames/frame_059.png
+Loading resource: res://.godot/imported/frame_059.png-698217d82f78411d22419d81465b3bb3.ctex
+StartupScreen: Loaded frame 59
+Loading resource: res://assets/ui/startup_screen/frames/frame_060.png
+Loading resource: res://.godot/imported/frame_060.png-45f02e601732612feefc96345570bff8.ctex
+StartupScreen: Loaded frame 60
+StartupScreen: Animation loading complete - 60/60 frames loaded
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 1 (texture size: 768x432)
+StartupScreen: Initial frame set, ready for animation
+StartupScreen: Setting up animation timer (15.0 FPS)
+StartupScreen: Animation timer ready
+StartupScreen: Starting gif-style animation loop
+StartupScreen: Animation loop started successfully
+StartupScreen: Preloading loading screen scene
+StartupScreen: Loading screen scene preloaded successfully
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 2 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 3 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 4 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 5 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 6 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 7 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 8 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 9 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 10 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 11 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 12 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 13 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 14 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 15 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 16 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 17 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 18 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 19 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 20 (texture size: 768x432)
+StartupScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (768.0, 432.0)
+StartupScreen: Applied scale transformation - X: 2.801, Y: 2.500
+StartupScreen: ✅ Successfully displaying frame 21 (texture size: 768x432)
+StartupScreen: Mouse clicked
+StartupScreen: Starting transition to loading screen
+StartupScreen: Transition complete, switching to loading screen
+StartupScreen: Switching to custom loading screen
+StartupScreen: ✅ Loading screen instantiated successfully
+LoadingScreen: Initializing custom loading screen
+LoadingScreen: Setting up loading screen display
+LoadingScreen: Applying exact scaling - Viewport: (2151.0, 1080.0), Texture: (1536.0, 1024.0)
+LoadingScreen: Applied scale transformation - X: 1.400, Y: 1.055
+LoadingScreen: Background image configured with exact window scaling
+LoadingScreen: Progress bar hidden
+LoadingScreen: Loading text hidden
+LoadingScreen: Spinner animation hidden
+LoadingScreen: Clean loading screen setup complete (no progress UI)
+LoadingScreen: Configured 6 loading items
+LoadingScreen: Starting loading process
+LoadingScreen: Updated message: Initializing quantum drive systems...
+LoadingScreen: Starting resource preloading
+LoadingScreen: Queued threaded loading for: res://scenes/zones/ZoneMain3D.tscn
+Loading resource: res://scenes/zones/ZoneMain3D.tscn
+LoadingScreen: Queued threaded loading for: res://scenes/player/PlayerShip3D.tscn
+Loading resource: res://scenes/player/PlayerShip3D.tscn
+LoadingScreen: Resource already cached: res://scenes/objects/Debris3D.tscn
+LoadingScreen: Resource already cached: res://scenes/objects/TradingHub3D.tscn
+LoadingScreen: Queued threaded loading for: res://scenes/objects/SpaceStationModule3D.tscn
+Loading resource: res://scenes/objects/SpaceStationModule3D.tscn
+Loading resource: res://scripts/PlayerShip3D.gd
+LoadingScreen: Queued threaded loading for: res://assets/backgrounds/seamless/starfield_seamless.png
+StartupScreen: Successfully switched to loading screen
+Loading resource: res://scripts/APIClient.gd
+StartupScreen: Cleaned up animation resources
+Loading resource: res://assets/sprites/space_station_v1.png
+Loading resource: res://assets/backgrounds/seamless/starfield_seamless.png
+Loading resource: res://.godot/imported/space_station_v1.png-17d6ee33586065aa01bf648a5050aebf.s3tc.ctex
+Loading resource: res://.godot/imported/starfield_seamless.png-e02bfe5dfca9f648d00cc16b570dba92.ctex
+[0;32m✅ Godot Game is running (PID: 90804)[0m
+
+[0;32m✅ Local-Only development environment fully operational![0m
+
+[0;35m🎮 GAME INFORMATION:[0m
+  🎯 Mode: [0;32mLocal-Only (Pure Offline)[0m
+  🎮 Game: [0;32mRunning (PID: 90804)[0m
+  💾 Data: [0;32mLocal JSON files only[0m
+  🌐 Network: [0;32mNo backend required[0m
+  🔄 Trading: [0;32mAWS Marketplace available[0m
+
+[0;34m🔍 WHAT'S HAPPENING:[0m
+  • APIClient.gd operates in pure local-only mode
+  • All player data managed by LocalPlayerData.gd
+  • Complete offline functionality with data persistence
+  • AWS Trading Marketplace available via TradingMarketplace.gd
+
+[0;34m💾 LOCAL DATA FILES:[0m
+  📄 player_save.json       - Credits, progress, player ID
+  📄 player_inventory.json  - Items and quantities
+  📄 player_upgrades.json   - Upgrade levels
+  📄 player_settings.json   - Game preferences
+
+[1;33m💡 DEVELOPMENT TIPS:[0m
+  • This matches exactly what release users experience
+  • Test all offline functionality, data persistence, upgrades
+  • Data persists between sessions in user:// directory
+  • Inventory clearing and upgrade resetting fully supported
+
+[1;33mPress Ctrl+C to stop the game[0m
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_113.png
+Loading resource: res://.godot/imported/ship_turn_frame_113.png-8b32c11856b877f6fa2e705e4a3b951f.s3tc.ctex
+Loading resource: res://scripts/UpgradeSystem.gd
+Loading resource: res://scripts/AICommunicator.gd
+Loading resource: res://scripts/NetworkManager.gd
+Loading resource: res://scripts/CameraController3D.gd
+Loading resource: res://scripts/SkyboxManager3D.gd
+Loading resource: res://scenes/objects/UpgradeHub3D.tscn
+Loading resource: res://resources/themes/SpaceCustomTheme.tres
+Loading resource: res://assets/ui/lorge_border.png
+Loading resource: res://.godot/imported/lorge_border.png-95304c67251c8d3fb4151af0335298f3.ctex
+Loading resource: res://scripts/ScreenSpaceBorderManager.gd
+LoadingScreen: Loaded: ZoneMain3D Scene
+LoadingScreen: Progress: 40.0% (1/6 items)
+LoadingScreen: Loaded: Player Ship 3D
+LoadingScreen: Progress: 55.0% (2/6 items)
+LoadingScreen: Skipping resource: Debris Objects (not found or not loading)
+LoadingScreen: Progress: 65.0% (3/6 items)
+LoadingScreen: Skipping resource: Trading Hub (not found or not loading)
+LoadingScreen: Progress: 75.0% (4/6 items)
+LoadingScreen: Loaded: Space Station Module
+LoadingScreen: Progress: 85.0% (5/6 items)
+LoadingScreen: Loaded: Background Assets
+LoadingScreen: Progress: 100.0% (6/6 items)
+LoadingScreen: All assets loaded, completing loading process
+LoadingScreen: Loading complete!
+LoadingScreen: Waiting 1 second before transitioning...
+LoadingScreen: Emitting loading_complete signal...
+LoadingScreen: Signal has 0 connections
+LoadingScreen: ✅ Handling scene transition directly...
+LoadingScreen: Starting transition to main game
+LoadingScreen: Validating scene file exists: res://scenes/zones/ZoneMain3D.tscn
+LoadingScreen: ✅ Scene file confirmed to exist
+LoadingScreen: ✅ Using preloaded scene resource
+LoadingScreen: Attempting scene change to: res://scenes/zones/ZoneMain3D.tscn
+LoadingScreen: 🔄 KEEPING LOADING SCREEN VISIBLE during transition...
+LoadingScreen: Waiting for ZoneMain3D zone_ready signal...
+[2025-07-19T15:34:29] APIClient: === INITIALIZING LOCAL-ONLY CLIENT ===
+[2025-07-19T15:34:29] APIClient: Initializing local-only APIClient
+[2025-07-19T15:34:29] APIClient: LocalPlayerData reference obtained - is_initialized: true
+[2025-07-19T15:34:29] APIClient: LocalPlayerData already initialized, proceeding immediately
+[2025-07-19T15:34:29] APIClient: === LOCAL-ONLY CLIENT READY ===
+[2025-07-19T15:34:29] APIClient: Local-only client ready for all data operations
+[2025-07-19T15:34:29] UpgradeSystem: Initializing upgrade system
+[2025-07-19T15:34:29] UpgradeSystem: Loaded 4 upgrade types
+[2025-07-19T15:34:29] AICommunicator: Initializing AI communication system
+[2025-07-19T15:34:29] AICommunicator: Setting up milestone triggers
+[2025-07-19T15:34:29] AICommunicator: Milestone triggers configured: 5 milestones
+[2025-07-19T15:34:29] AICommunicator: Initializing AI message templates
+[2025-07-19T15:34:29] AICommunicator: AI message templates loaded: 4 messages
+[2025-07-19T15:34:29] AICommunicator: AI communication system ready
+[2025-07-19T15:34:29] NetworkManager: Initializing ENet networking system
+[2025-07-19T15:34:29] NetworkManager: ENet networking system ready
+[2025-07-19T15:34:29] CameraController3D: Setting up Mario Kart 8 style camera with mouse rotation gimbal
+[2025-07-19T15:34:29] CameraController3D: Created inner gimbal for pitch control
+[2025-07-19T15:34:29] CameraController3D: PERSPECTIVE camera configured - FOV: 85.0, Distance: 12.0, Height: 3.0
+[2025-07-19T15:34:29] CameraController3D: Camera rotation reset to prevent tilting issues
+[2025-07-19T15:34:29] CameraController3D: Mario Kart 8 style camera controller initialized
+[SkyboxManager3D] Initializing skybox system with 1 layers
+[SkyboxManager3D] Pivot node created for camera following
+[SkyboxManager3D] Creating 1 skybox shells
+[SkyboxManager3D] Creating skybox layer: Shell_0_Stars_Seamless
+Loading resource: res://scripts/SkyboxLayer.gd
+[SkyboxLayer] Initializing skybox layer with radius: 1500.0
+[SkyboxLayer] Created inside-out sphere mesh with 64 radial segments, radius: 1500.0
+[SkyboxLayer] Configured as opaque base layer
+[SkyboxLayer] Material configured with alpha: 1.00, tint: (1.0, 1.0, 1.0, 1.0)
+[SkyboxLayer] Loaded texture: res://assets/backgrounds/seamless/starfield_seamless.png with UV scale: 12.00
+[SkyboxLayer] Sphere generated and configured
+[SkyboxManager3D] Layer 'Shell_0_Stars_Seamless' created with radius 1500.0
+[SkyboxManager3D] All skybox layers created successfully
+[SkyboxManager3D] Skybox system ready with 1 active layers
+[2025-07-19T15:34:29] PlayerShip3D: Initializing 3D player ship
+[2025-07-19T15:34:29] PlayerShip3D: Setting up 3D components
+[2025-07-19T15:34:29] PlayerShip3D: Loading ship animation textures...
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_098.png
+Loading resource: res://.godot/imported/ship_turn_frame_098.png-857c15d1141e989bd6894bba3dad068f.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_099.png
+Loading resource: res://.godot/imported/ship_turn_frame_099.png-51d3a2aa4c023de61554fd62e5d35ac4.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_100.png
+Loading resource: res://.godot/imported/ship_turn_frame_100.png-3f1d3a7d6c6c47a5422855139f0a6986.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_101.png
+Loading resource: res://.godot/imported/ship_turn_frame_101.png-32985a9aa1b0f1a85d6db0ed399f21c3.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_102.png
+Loading resource: res://.godot/imported/ship_turn_frame_102.png-eac1cbfcbd23676f714378bce6229e1c.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_103.png
+Loading resource: res://.godot/imported/ship_turn_frame_103.png-6988c158501f5ef8a7c3189f453bf49c.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_104.png
+Loading resource: res://.godot/imported/ship_turn_frame_104.png-f70e755e0a337c235fbd6f46a3b592a0.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_105.png
+Loading resource: res://.godot/imported/ship_turn_frame_105.png-d12c6fe370608b5602d8612bbabf4864.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_106.png
+Loading resource: res://.godot/imported/ship_turn_frame_106.png-39fff975fd5c258652a17e1f01b132ce.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_107.png
+Loading resource: res://.godot/imported/ship_turn_frame_107.png-e250631e922a65ac7b3e7fcd84ad2f18.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_108.png
+Loading resource: res://.godot/imported/ship_turn_frame_108.png-c3ea3fbd1ae139b62e0f5435efbd480e.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_109.png
+Loading resource: res://.godot/imported/ship_turn_frame_109.png-d05bff670dd6800d9640588dbb40b1d4.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_110.png
+Loading resource: res://.godot/imported/ship_turn_frame_110.png-107bc438978c1f9826effa7091069091.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_111.png
+Loading resource: res://.godot/imported/ship_turn_frame_111.png-9de22a962110754bda9b18b1b212185d.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_112.png
+Loading resource: res://.godot/imported/ship_turn_frame_112.png-f84d765c8568cec85a8719e58d4eb127.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_114.png
+Loading resource: res://.godot/imported/ship_turn_frame_114.png-e256188176819dbe4b46843e03ee1185.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_115.png
+Loading resource: res://.godot/imported/ship_turn_frame_115.png-c5d20a9882c3824736966816238cec69.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_116.png
+Loading resource: res://.godot/imported/ship_turn_frame_116.png-3b192ec1222969a081c920ac9160a9f5.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_117.png
+Loading resource: res://.godot/imported/ship_turn_frame_117.png-15fb3cbb1bf04954850493b883cbb640.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_118.png
+Loading resource: res://.godot/imported/ship_turn_frame_118.png-cf836c95ad233b14894e2c556ad07481.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_119.png
+Loading resource: res://.godot/imported/ship_turn_frame_119.png-88e05be41cbdadb6f7dcbaf7d2448d43.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_120.png
+Loading resource: res://.godot/imported/ship_turn_frame_120.png-c98eb1c2c86a773803ad18a6c7094fdb.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_121.png
+Loading resource: res://.godot/imported/ship_turn_frame_121.png-6a25e4851e07f18a811893a337a8eb6e.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_122.png
+Loading resource: res://.godot/imported/ship_turn_frame_122.png-dc314e36dce02ba3e3b99edfd9080f94.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_123.png
+Loading resource: res://.godot/imported/ship_turn_frame_123.png-874bc4b5a8503eab7cb12c7321eb1d68.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_124.png
+Loading resource: res://.godot/imported/ship_turn_frame_124.png-75271165652a66b58d3fcb36c2e62b1b.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_125.png
+Loading resource: res://.godot/imported/ship_turn_frame_125.png-34693a71bee8d02d5b1fa12345a2f67c.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_126.png
+Loading resource: res://.godot/imported/ship_turn_frame_126.png-84f2b759814d724caecc76e95de4794d.ctex
+Loading resource: res://assets/sprites/ships/animation_frames/ship_turn_frame_127.png
+Loading resource: res://.godot/imported/ship_turn_frame_127.png-82b995c829158e1e0f66a26b98d66162.ctex
+[2025-07-19T15:34:29] PlayerShip3D: Loaded ship animation textures (frames 98-127)
+[2025-07-19T15:34:29] PlayerShip3D: Sprite3D configured with billboard mode and default frame
+[2025-07-19T15:34:29] PlayerShip3D: Setting up 3D collision detection
+[2025-07-19T15:34:29] PlayerShip3D: Collision layers configured - Layer: 1, Mask: 17 (includes boundary walls)
+[2025-07-19T15:34:29] PlayerShip3D: Created wide collision box (4x2x4)
+[2025-07-19T15:34:29] PlayerShip3D: Setting up 3D collection area
+[2025-07-19T15:34:29] PlayerShip3D: Collection area signals connected
+[2025-07-19T15:34:29] PlayerShip3D: Setting up 3D interaction area
+[2025-07-19T15:34:29] PlayerShip3D: Interaction area signals connected
+[2025-07-19T15:34:29] PlayerShip3D: === INITIALIZING PLAYER STATE ===
+[2025-07-19T15:34:29] PlayerShip3D: Initializing 3D player state
+[2025-07-19T15:34:29] PlayerShip3D: is_loading_from_backend: false
+[2025-07-19T15:34:29] PlayerShip3D: local_player_data available: true
+[2025-07-19T15:34:29] PlayerShip3D: local_player_data initialized: true
+[2025-07-19T15:34:29] PlayerShip3D: in_local_mode: true
+[2025-07-19T15:34:29] PlayerShip3D: Loading data from LocalPlayerData
+[2025-07-19T15:34:29] PlayerShip3D: Loaded from LocalPlayerData - Credits: 25, Upgrades: { "cargo_magnet": 0.0, "collection_efficiency": 0.0, "inventory_expansion": 0.0, "speed_boost": 0.0 }, Inventory: 0 items
+[2025-07-19T15:34:29] PlayerShip3D: All upgrade effects applied - Final inventory capacity: 10
+[2025-07-19T15:34:29] PlayerShip3D: === PLAYER STATE INITIALIZATION COMPLETE - CREDITS: 25 ===
+[2025-07-19T15:34:29] PlayerShip3D: 3D player ship ready for gameplay
+[2025-07-19T15:34:29] TradingHub3D: Initializing Trading Hub with 162-frame animation
+[2025-07-19T15:34:29] TradingHub3D: Loading trading hub animation textures...
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0001.png
+Loading resource: res://.godot/imported/frame_0001.png-6c20cbd09651d7ad7d154d63193144f8.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0002.png
+Loading resource: res://.godot/imported/frame_0002.png-47115170f69743731103dc0ed557489f.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0003.png
+Loading resource: res://.godot/imported/frame_0003.png-4dc784b2e5f00aefe6bd141d88375be3.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0004.png
+Loading resource: res://.godot/imported/frame_0004.png-22fdaf0bc33d7d96cc7f12a53515384d.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0005.png
+Loading resource: res://.godot/imported/frame_0005.png-646350820c6773882647f9d90b8bd874.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0006.png
+Loading resource: res://.godot/imported/frame_0006.png-e8381e8d447d41a495f0349944ebf0a8.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0007.png
+Loading resource: res://.godot/imported/frame_0007.png-f8e4fa62fd09c085a8bd4335154813f2.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0008.png
+Loading resource: res://.godot/imported/frame_0008.png-655b869221191b66de7e384ca301eab6.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0009.png
+Loading resource: res://.godot/imported/frame_0009.png-1ef62ed4fe11ccd67d923518186f908a.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0010.png
+Loading resource: res://.godot/imported/frame_0010.png-21788d8384714dd7a8454d71b6383211.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0011.png
+Loading resource: res://.godot/imported/frame_0011.png-afda0fcd9806b3fb4f9b6989cff65a4b.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0012.png
+Loading resource: res://.godot/imported/frame_0012.png-05e635057e8b33db1f2145dcc05b8f11.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0013.png
+Loading resource: res://.godot/imported/frame_0013.png-f8b344700a4e211641918970551fed76.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0014.png
+Loading resource: res://.godot/imported/frame_0014.png-e4703ff767349d3249a2689c490fa9fe.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0015.png
+Loading resource: res://.godot/imported/frame_0015.png-a721c20f4cafac44fdd0591a24440741.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0016.png
+Loading resource: res://.godot/imported/frame_0016.png-9e492a966822fb0217631ee0a1bb71b4.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0017.png
+Loading resource: res://.godot/imported/frame_0017.png-718c8edd7e4df52c3106ee3c96c39978.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0018.png
+Loading resource: res://.godot/imported/frame_0018.png-7d86c021536a1c0b7f2b07fbbbcb33ea.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0019.png
+Loading resource: res://.godot/imported/frame_0019.png-ea638424aef62200a621f48b23ea3758.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0020.png
+Loading resource: res://.godot/imported/frame_0020.png-58662ee86091d73dfa24bf6172544edc.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0021.png
+Loading resource: res://.godot/imported/frame_0021.png-bd7e43a9b94450934b392fd13936c047.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0022.png
+Loading resource: res://.godot/imported/frame_0022.png-5215a158bbffceb590670e1220d6bbe7.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0023.png
+Loading resource: res://.godot/imported/frame_0023.png-dc588789df07deacaf72960f91d0b53b.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0024.png
+Loading resource: res://.godot/imported/frame_0024.png-335877b034fc15dde28b49d7518db376.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0025.png
+Loading resource: res://.godot/imported/frame_0025.png-7ae7493cc87f1f4e2038a20b7c1b72c3.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0026.png
+Loading resource: res://.godot/imported/frame_0026.png-53619b995000e336016150d491fe0f1e.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0027.png
+Loading resource: res://.godot/imported/frame_0027.png-7a44db6e24fc8c8ed2b5be8e4667a7c3.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0028.png
+Loading resource: res://.godot/imported/frame_0028.png-88ea59140b5a06dd3939183c544b6572.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0029.png
+Loading resource: res://.godot/imported/frame_0029.png-f780c933a240be7ab9c4b8d56e41f8fd.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0030.png
+Loading resource: res://.godot/imported/frame_0030.png-92f4091e2519b0564a281257cf59c5bd.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0031.png
+Loading resource: res://.godot/imported/frame_0031.png-dfc0bb0efc81808f75199fc09b3f6983.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0032.png
+Loading resource: res://.godot/imported/frame_0032.png-de743679820c6403e34e9b9c3a00d229.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0033.png
+Loading resource: res://.godot/imported/frame_0033.png-640278ffd4504c06441380ada34f476f.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0034.png
+Loading resource: res://.godot/imported/frame_0034.png-8dbbc37808186dc2693c9460f34f1458.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0035.png
+Loading resource: res://.godot/imported/frame_0035.png-81bad1cfbd411c6503fe2a5babf16f30.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0036.png
+Loading resource: res://.godot/imported/frame_0036.png-659ff387f4c14fdec55b2c1e8f2c8173.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0037.png
+Loading resource: res://.godot/imported/frame_0037.png-0552735f53a8ffe00f6f867d3bc93bce.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0038.png
+Loading resource: res://.godot/imported/frame_0038.png-c72693fa544a9c4a397b7a87e2600e7f.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0039.png
+Loading resource: res://.godot/imported/frame_0039.png-fb9f770ed457ec8efc6f84f3424fec53.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0040.png
+Loading resource: res://.godot/imported/frame_0040.png-24c391707b698562e24363f03fffa6e0.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0041.png
+Loading resource: res://.godot/imported/frame_0041.png-ab6618b673c82a07ab51d063c44f29c9.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0042.png
+Loading resource: res://.godot/imported/frame_0042.png-8e38817bd44641544470e4bf456edecb.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0043.png
+Loading resource: res://.godot/imported/frame_0043.png-dd27832454985326f483748b8c7bb3c3.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0044.png
+Loading resource: res://.godot/imported/frame_0044.png-871d6a7f1bed37415ea74fbb00fb6ba8.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0045.png
+Loading resource: res://.godot/imported/frame_0045.png-4eead82595d0f4dd163d1e00e82a0a1d.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0046.png
+Loading resource: res://.godot/imported/frame_0046.png-119680fe84d0deca65c56f86b0262ecf.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0047.png
+Loading resource: res://.godot/imported/frame_0047.png-ccc0ccd6a04c8c153ec16d6b167931c8.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0048.png
+Loading resource: res://.godot/imported/frame_0048.png-0bd62e8949f85d10621d434086677fef.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0049.png
+Loading resource: res://.godot/imported/frame_0049.png-5dd3c8dadbe5f421d333bd368cfc9b79.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0050.png
+Loading resource: res://.godot/imported/frame_0050.png-8ff241a994cfd274685f637baa2f89a9.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0051.png
+Loading resource: res://.godot/imported/frame_0051.png-690c8cb5e2ae695e49a31bc148d0c446.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0052.png
+Loading resource: res://.godot/imported/frame_0052.png-e82e58465b7a5375a443150e451ee76a.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0053.png
+Loading resource: res://.godot/imported/frame_0053.png-95df2ba5932e309c162622daeb011122.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0054.png
+Loading resource: res://.godot/imported/frame_0054.png-a3714d78a6cdd1e53535ebebdc671b22.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0055.png
+Loading resource: res://.godot/imported/frame_0055.png-3d7a5417e64313ddb8460d5806cf8747.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0056.png
+Loading resource: res://.godot/imported/frame_0056.png-1543815e9f99d94879446cc92e27e78a.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0057.png
+Loading resource: res://.godot/imported/frame_0057.png-e33dd605850a7256a7e7a01a93f4379a.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0058.png
+Loading resource: res://.godot/imported/frame_0058.png-0da559f03bffef1395c021318bd33aad.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0059.png
+Loading resource: res://.godot/imported/frame_0059.png-da4a4b3f33d4d10f33ba384b9e74a722.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0060.png
+Loading resource: res://.godot/imported/frame_0060.png-616ff8c6308f54acd16c9b7db9c96748.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0061.png
+Loading resource: res://.godot/imported/frame_0061.png-7808e7e84d512fb95be0535c1ae6cd6c.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0062.png
+Loading resource: res://.godot/imported/frame_0062.png-2ac0d7aa7fe4887255303c68e04247c7.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0063.png
+Loading resource: res://.godot/imported/frame_0063.png-dfb712b936ba89580b5f12abf85c2ab0.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0064.png
+Loading resource: res://.godot/imported/frame_0064.png-748e3bb11adfe38bcb8a02566dbca617.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0065.png
+Loading resource: res://.godot/imported/frame_0065.png-81782359b189df2366f554305539e4c2.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0066.png
+Loading resource: res://.godot/imported/frame_0066.png-96fde26b08f8c8e3291ad9318c422762.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0067.png
+Loading resource: res://.godot/imported/frame_0067.png-bf6ecfa0d16dd491fb4cc8dce0aa5102.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0068.png
+Loading resource: res://.godot/imported/frame_0068.png-e9583e12cb96209ffdcc4cfd0e9bb7f7.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0069.png
+Loading resource: res://.godot/imported/frame_0069.png-4ec8bdb71192924e874e73d1b5b6e001.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0070.png
+Loading resource: res://.godot/imported/frame_0070.png-04604494bdf4efd1121ae5526188fb1f.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0071.png
+Loading resource: res://.godot/imported/frame_0071.png-fdb946755d2c2cb03e149c62f9e69fd3.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0072.png
+Loading resource: res://.godot/imported/frame_0072.png-59e9e07e2f0cbfc025ed71ec8654e038.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0073.png
+Loading resource: res://.godot/imported/frame_0073.png-e4890a7c68abf9eb7b66e790cde70fa7.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0074.png
+Loading resource: res://.godot/imported/frame_0074.png-34c730c60cab8243cc75f1f8a0766790.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0075.png
+Loading resource: res://.godot/imported/frame_0075.png-355714881197dd20005bfd8e2058e1b7.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0076.png
+Loading resource: res://.godot/imported/frame_0076.png-528266dcb1cb89d789229b3c83ddfb58.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0077.png
+Loading resource: res://.godot/imported/frame_0077.png-ec9330a33c9dcd1586d271841296308f.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0078.png
+Loading resource: res://.godot/imported/frame_0078.png-4107cb4a7c634e366c044d515ca90ff1.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0079.png
+Loading resource: res://.godot/imported/frame_0079.png-90de52ad05628808a5676038d9150f86.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0080.png
+Loading resource: res://.godot/imported/frame_0080.png-4dacaa0f94e0291a63c1f24828711fb7.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0081.png
+Loading resource: res://.godot/imported/frame_0081.png-e0f31796e15cea92a6fc0306d8e7d36c.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0082.png
+Loading resource: res://.godot/imported/frame_0082.png-e84f397fe04bed1c79a8ed1db842c152.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0083.png
+Loading resource: res://.godot/imported/frame_0083.png-37b7aa8b99b3e66208a33f9ef21b9253.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0084.png
+Loading resource: res://.godot/imported/frame_0084.png-17f123f10f63451b11030cdc93d8558e.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0085.png
+Loading resource: res://.godot/imported/frame_0085.png-f776786e024d830bbffaa1ffc2c92de5.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0086.png
+Loading resource: res://.godot/imported/frame_0086.png-cf7e37f4c7dfdb19e51ccefd79ff5016.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0087.png
+Loading resource: res://.godot/imported/frame_0087.png-307f32cba45b70905d4349ac3097b247.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0088.png
+Loading resource: res://.godot/imported/frame_0088.png-321be95bd5fc6a3f3444098f6f81924a.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0089.png
+Loading resource: res://.godot/imported/frame_0089.png-33bc11410931e386462bc670ed1440a8.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0090.png
+Loading resource: res://.godot/imported/frame_0090.png-284d7b84eacf928cb656f5c2f1790551.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0091.png
+Loading resource: res://.godot/imported/frame_0091.png-b8339c99db7cf70bf5b806073a73098b.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0092.png
+Loading resource: res://.godot/imported/frame_0092.png-116e6c02c6abcb5f60b289e5c18e78f3.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0093.png
+Loading resource: res://.godot/imported/frame_0093.png-f7688ca8811484c55ee3a72c7f5fc11c.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0094.png
+Loading resource: res://.godot/imported/frame_0094.png-20596c380b263cb8ec6b21bae9409b2f.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0095.png
+Loading resource: res://.godot/imported/frame_0095.png-8ec41f7f35318fd263b10fff0150cb34.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0096.png
+Loading resource: res://.godot/imported/frame_0096.png-50eb3bd4ef5faf6cbd245aae37d59f0f.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0097.png
+Loading resource: res://.godot/imported/frame_0097.png-96fa3d496abb1d0e560ba0d7ecaeeac6.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0098.png
+Loading resource: res://.godot/imported/frame_0098.png-0843ed1e28202ba28aaeaf7383bf449a.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0099.png
+Loading resource: res://.godot/imported/frame_0099.png-147d97ce24b42bc29dcc559ce19e3ec5.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0100.png
+Loading resource: res://.godot/imported/frame_0100.png-0bb00298d461880deaba660b257d33bb.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0101.png
+Loading resource: res://.godot/imported/frame_0101.png-14f7d511ad32e9d8e50a381248ae9d70.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0102.png
+Loading resource: res://.godot/imported/frame_0102.png-5333cf1eebd54f09eb8a45a26a1b6437.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0103.png
+Loading resource: res://.godot/imported/frame_0103.png-7e76095c8d3f211fe254ff2c94b296b1.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0104.png
+Loading resource: res://.godot/imported/frame_0104.png-7958a75568dfe5ba913f33fb8a3f97cf.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0105.png
+Loading resource: res://.godot/imported/frame_0105.png-5850931100ed7c07316017864f17e603.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0106.png
+Loading resource: res://.godot/imported/frame_0106.png-a1a5224ac6f95348f62dfd23cce53545.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0107.png
+Loading resource: res://.godot/imported/frame_0107.png-12d7ff422b2d22a6509fff1c616ecd0c.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0108.png
+Loading resource: res://.godot/imported/frame_0108.png-e8e597e4ce541d7f4696139fe3f3573d.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0109.png
+Loading resource: res://.godot/imported/frame_0109.png-bd21855c541d4e5cb829089191c060eb.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0110.png
+Loading resource: res://.godot/imported/frame_0110.png-73987290b3ac9abf27ccf30e0d5bb80b.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0111.png
+Loading resource: res://.godot/imported/frame_0111.png-54913c77d403237c52e9829a7f1ebcf8.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0112.png
+Loading resource: res://.godot/imported/frame_0112.png-e416e3a00efa769686fdbc636f99cec8.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0113.png
+Loading resource: res://.godot/imported/frame_0113.png-f3efa11cb1d074c69996a3e08403216e.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0114.png
+Loading resource: res://.godot/imported/frame_0114.png-2ee1972cf47b4d7d3e18a90079a5f4c4.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0115.png
+Loading resource: res://.godot/imported/frame_0115.png-f01b053e6ab0e80451b0c42bcd8f4761.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0116.png
+Loading resource: res://.godot/imported/frame_0116.png-86015dd8e859c827906f71aaef7a1a3b.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0117.png
+Loading resource: res://.godot/imported/frame_0117.png-6acf80473b5ba30d17afd31e2f5e859c.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0118.png
+Loading resource: res://.godot/imported/frame_0118.png-639ee616f237a5ba78a51d6ab471c50b.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0119.png
+Loading resource: res://.godot/imported/frame_0119.png-65b0d82dd92aa68c0b0c091c33f9336f.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0120.png
+Loading resource: res://.godot/imported/frame_0120.png-fe2d721fb31b906136f8b9d608367d11.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0121.png
+Loading resource: res://.godot/imported/frame_0121.png-e2fb1a379342553b1826bdb11a4089bf.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0122.png
+Loading resource: res://.godot/imported/frame_0122.png-c13f27d421d1995654e121f5d29f28f2.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0123.png
+Loading resource: res://.godot/imported/frame_0123.png-1e16a16e09c994307fce97064e31a562.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0124.png
+Loading resource: res://.godot/imported/frame_0124.png-a879c5c05d02a592b09fb698959c6bb9.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0125.png
+Loading resource: res://.godot/imported/frame_0125.png-e37613b75f46a5c311d6ff7d72301ecd.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0126.png
+Loading resource: res://.godot/imported/frame_0126.png-41e629402c4dfac58d8ff6b6da1b2369.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0127.png
+Loading resource: res://.godot/imported/frame_0127.png-675070e60b06fda1bfa4b795fec1e206.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0128.png
+Loading resource: res://.godot/imported/frame_0128.png-b9153d29bdb17d57a5c31c7e165a75b8.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0129.png
+Loading resource: res://.godot/imported/frame_0129.png-81ae1e2abe5027f88e74c7978fd969ce.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0130.png
+Loading resource: res://.godot/imported/frame_0130.png-dfd265d4fac50c54de582c057247bb3e.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0131.png
+Loading resource: res://.godot/imported/frame_0131.png-8ec469c0b816da48541dfa246cfb6248.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0132.png
+Loading resource: res://.godot/imported/frame_0132.png-a9dfe89848a3b66d262cc3caec76d596.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0133.png
+Loading resource: res://.godot/imported/frame_0133.png-ac72b38eabd5e2df446fa92e82af0d51.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0134.png
+Loading resource: res://.godot/imported/frame_0134.png-b8228d31d130b31ffd5fcf02fa85ccde.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0135.png
+Loading resource: res://.godot/imported/frame_0135.png-37c197926b56c5ff3c52b9fc085c627f.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0136.png
+Loading resource: res://.godot/imported/frame_0136.png-5b3e7286811316f734bb34ce6d929fb5.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0137.png
+Loading resource: res://.godot/imported/frame_0137.png-3d4b833983bd43785d98e196b4183eb2.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0138.png
+Loading resource: res://.godot/imported/frame_0138.png-427bb8d8e1c5682626dfdcb1fd31c4c0.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0139.png
+Loading resource: res://.godot/imported/frame_0139.png-4c54a004c243300b3b4ef8bde6c0ec9e.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0140.png
+Loading resource: res://.godot/imported/frame_0140.png-0fd9a2327de5e803ea7f0c171bdc30f3.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0141.png
+Loading resource: res://.godot/imported/frame_0141.png-1f0e69240c6e49cf6e8119915b495e6d.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0142.png
+Loading resource: res://.godot/imported/frame_0142.png-63327c1123e29397149fc37725e4c5fa.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0143.png
+Loading resource: res://.godot/imported/frame_0143.png-ca95bed93e3484a5743a677c257615b4.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0144.png
+Loading resource: res://.godot/imported/frame_0144.png-1010fc45510da537b8515ea98a1bd7aa.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0145.png
+Loading resource: res://.godot/imported/frame_0145.png-8568ed3cc48ef50426be3ae56a26addf.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0146.png
+Loading resource: res://.godot/imported/frame_0146.png-201e83061af2cc6b6fe59e8f99ea1354.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0147.png
+Loading resource: res://.godot/imported/frame_0147.png-690d13dfe029ebaa9fc56a5e17cb8955.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0148.png
+Loading resource: res://.godot/imported/frame_0148.png-17b0a588cbc259528c8bc19cdc7eddeb.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0149.png
+Loading resource: res://.godot/imported/frame_0149.png-40ad570ec0b816044a4ebd45f2010e50.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0150.png
+Loading resource: res://.godot/imported/frame_0150.png-463b9f97ac1e1225d4f28adc1e4761c8.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0151.png
+Loading resource: res://.godot/imported/frame_0151.png-d28552adaf17fe39af00e128944dc597.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0152.png
+Loading resource: res://.godot/imported/frame_0152.png-d927b0101f4e86a749e7b303408d3c4d.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0153.png
+Loading resource: res://.godot/imported/frame_0153.png-8b71c383fa7310faff35d15546890498.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0154.png
+Loading resource: res://.godot/imported/frame_0154.png-cca36394999af7f0eafdc716def77bee.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0155.png
+Loading resource: res://.godot/imported/frame_0155.png-54edc8fd0fe71ccdaea386f194c4348b.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0156.png
+Loading resource: res://.godot/imported/frame_0156.png-aa2e7cde878bfcc398f64cda854a2045.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0157.png
+Loading resource: res://.godot/imported/frame_0157.png-24459b121babdb79f44b168358779124.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0158.png
+Loading resource: res://.godot/imported/frame_0158.png-504381120987b95c0f59c11e60b90b3f.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0159.png
+Loading resource: res://.godot/imported/frame_0159.png-abef7c2102e0dba5976a6e5d34334697.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0160.png
+Loading resource: res://.godot/imported/frame_0160.png-934574983711f33545fddcb06bd6b088.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0161.png
+Loading resource: res://.godot/imported/frame_0161.png-fb295c485b08818d44203faea1444289.ctex
+Loading resource: res://assets/sprites/trading_hub/animation_frames/frame_0162.png
+Loading resource: res://.godot/imported/frame_0162.png-71c277c2225fac6c3a24299e6135520f.ctex
+[2025-07-19T15:34:32] TradingHub3D: Loaded 162/162 trading hub animation textures
+[2025-07-19T15:34:32] TradingHub3D: Setting up hub configuration
+[2025-07-19T15:34:32] TradingHub3D: Sprite3D configured with billboard mode and animation support
+[2025-07-19T15:34:32] TradingHub3D: Label3D configured
+[2025-07-19T15:34:32] TradingHub3D: Interaction radius set to 15.0
+[2025-07-19T15:34:32] TradingHub3D: Added to npc_hub group
+[2025-07-19T15:34:32] TradingHub3D: Setting up continuous animation system
+[2025-07-19T15:34:32] TradingHub3D: Continuous animation active - Frame rate: 20.0 FPS, Starting frame: 106
+[2025-07-19T15:34:32] TradingHub3D: Interaction signals connected
+[2025-07-19T15:34:32] TradingHub3D: Initializing Upgrade Station with 162-frame animation
+[2025-07-19T15:34:32] TradingHub3D: Loading trading hub animation textures...
+[2025-07-19T15:34:32] TradingHub3D: Loaded 162/162 trading hub animation textures
+[2025-07-19T15:34:32] TradingHub3D: Setting up hub configuration
+[2025-07-19T15:34:32] TradingHub3D: Sprite3D configured with billboard mode and animation support
+[2025-07-19T15:34:32] TradingHub3D: Label3D configured
+[2025-07-19T15:34:32] TradingHub3D: Interaction radius set to 15.0
+[2025-07-19T15:34:32] TradingHub3D: Added to npc_hub group
+[2025-07-19T15:34:32] TradingHub3D: Setting up continuous animation system
+[2025-07-19T15:34:32] TradingHub3D: Continuous animation active - Frame rate: 20.0 FPS, Starting frame: 115
+[2025-07-19T15:34:32] TradingHub3D: Interaction signals connected
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Initializing screen-space border system
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Creating border frame element
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Created border frame element
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Updating border frame for viewport size: (2151.0, 1080.0)
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Border texture original size: (2750.0, 1237.0)
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Target window size: (2151.0, 1080.0)
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Applied scale transformation - X: 0.782, Y: 0.873
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: === BORDER SCALE VERIFICATION ===
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Viewport size: (2151.0, 1080.0)
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: TextureRect natural size: (0.0, 0.0)
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Applied scale: (0.782182, 0.87308)
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Final scaled size: (0.0, 0.0)
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Size matches viewport? false
+[2025-07-19T15:34:32] ScreenSpaceBorderManager: Screen-space border system initialized
+🔴 ZoneMain3D._ready() CALLED - Scene is initializing!
+🔴 ZoneMain3D: Current scene tree node count: 125
+🔴 ZoneMain3D: Starting initialization...
+[2025-07-19T15:34:32] ZoneMain3D: Initializing 3D zone controller
+[2025-07-19T15:34:32] ZoneMain3D: Setting up 3D zone environment
+[2025-07-19T15:34:32] ZoneMain3D: Player ship positioned at spawn point: (0.0, 2.0, 0.0)
+[2025-07-19T15:34:32] CameraController3D: Target set to PlayerShip3D
+[2025-07-19T15:34:32] ZoneMain3D: CameraController3D configured to follow player
+[2025-07-19T15:34:32] ZoneMain3D: DirectionalLight3D configured with shadows
+[2025-07-19T15:34:32] ZoneMain3D: Player ship signals connected
+[2025-07-19T15:34:32] ZoneMain3D: API client signals connected
+[2025-07-19T15:34:32] ZoneMain3D: Upgrade system signals connected
+[2025-07-19T15:34:32] ZoneMain3D: Initializing enhanced trading interface with selective selling
+[2025-07-19T15:34:32] ZoneMain3D: Trading interface hidden initially
+[2025-07-19T15:34:32] ZoneMain3D: Creating selective trading UI elements
+[2025-07-19T15:34:32] ZoneMain3D: Selective trading UI structure created
+[2025-07-19T15:34:32] ZoneMain3D: Sell all button connected
+[2025-07-19T15:34:32] ZoneMain3D: Dump inventory button connected
+[2025-07-19T15:34:32] ZoneMain3D: Clear upgrades button connected
+[2025-07-19T15:34:32] ZoneMain3D: Trading close button connected
+[2025-07-19T15:34:32] ZoneMain3D: Initializing upgrade interface
+[2025-07-19T15:34:32] ZoneMain3D: Confirm purchase button connected
+[2025-07-19T15:34:32] ZoneMain3D: Cancel purchase button connected
+[2025-07-19T15:34:32] ZoneMain3D: Main purchase button connected
+[2025-07-19T15:34:32] ZoneMain3D: Upgrade interface initialized
+[2025-07-19T15:34:32] ZoneMain3D: Smart loading - checking data source priority...
+[2025-07-19T15:34:32] ZoneMain3D: FOUND VALID LOCAL DATA - Skipping backend loading to preserve local progress
+[2025-07-19T15:34:32] ZoneMain3D: Local data summary - Credits: 25, Upgrades: { "cargo_magnet": 0.0, "collection_efficiency": 0.0, "inventory_expansion": 0.0, "speed_boost": 0.0 }
+[2025-07-19T15:34:32] ZoneMain3D: Refreshing UI with loaded player data...
+[2025-07-19T15:34:32] ZoneMain3D: PlayerShip3D current state - Credits: 25, Upgrades: { "cargo_magnet": 0.0, "collection_efficiency": 0.0, "inventory_expansion": 0.0, "speed_boost": 0.0 }
+[2025-07-19T15:34:32] ZoneMain3D: Credits display updated - 25 credits
+[2025-07-19T15:34:32] ZoneMain3D: Upgrade status display updated - 0 upgrades shown
+[2025-07-19T15:34:32] ZoneMain3D: Updating grouped inventory display with 0 items
+[2025-07-19T15:34:32] ZoneMain3D: Grouped 0 individual items into 0 types
+[2025-07-19T15:34:32] ZoneMain3D: Inventory displays updated - 0/10 items
+[2025-07-19T15:34:32] ZoneMain3D: UI refresh complete - Credits: 25, Upgrades shown: 0
+[2025-07-19T15:34:32] ZoneMain3D: Initializing 3D debris manager
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Player reference set to: PlayerShip3D
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Initializing 3D debris manager
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Debris3D scene loaded successfully
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Loading debris textures
+Loading resource: res://assets/sprites/debris/scrap_metal.png
+Loading resource: res://.godot/imported/scrap_metal.png-9c2894eb0d76ab7a683d2e0fae9437fa.ctex
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Successfully loaded texture for scrap_metal from res://assets/sprites/debris/scrap_metal.png (size: (1024.0, 1024.0))
+Loading resource: res://assets/sprites/debris/broken_satellite.png
+Loading resource: res://.godot/imported/broken_satellite.png-7a68799aec76453b3cf9c916e8537b11.ctex
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Successfully loaded texture for broken_satellite from res://assets/sprites/debris/broken_satellite.png (size: (1024.0, 1024.0))
+Loading resource: res://assets/sprites/debris/bio_waste.png
+Loading resource: res://.godot/imported/bio_waste.png-5897636b32e971e8d5c8056d140e7d78.ctex
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Successfully loaded texture for bio_waste from res://assets/sprites/debris/bio_waste.png (size: (1024.0, 1024.0))
+Loading resource: res://assets/sprites/debris/ai_component.png
+Loading resource: res://.godot/imported/ai_component.png-b9a865e282c78ec45e231cdc46214894.ctex
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Successfully loaded texture for ai_component from res://assets/sprites/debris/ai_component.png (size: (1024.0, 1024.0))
+Loading resource: res://assets/sprites/debris/unknown_artifact.png
+Loading resource: res://.godot/imported/unknown_artifact.png-7a9bdb037e63eaee4a5900ffc299da9e.ctex
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Successfully loaded texture for unknown_artifact from res://assets/sprites/debris/unknown_artifact.png (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Loaded 5 debris textures total
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Weighted spawn table built with 81 entries
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawning initial debris in 3D space
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: broken_satellite, Value: 150
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: broken_satellite (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: broken_satellite (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: broken_satellite
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: broken_satellite (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: broken_satellite, Value: 150
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: broken_satellite, Position: (199.5361, 1.904028, 127.2653)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 1
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned broken_satellite at 3D position (199.5361, 1.904028, 127.2653)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: broken_satellite, Value: 150
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: broken_satellite (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: broken_satellite (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: broken_satellite
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: broken_satellite (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: broken_satellite, Value: 150
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: broken_satellite, Position: (-167.5656, 2.432685, 0.443849)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 2
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned broken_satellite at 3D position (-167.5656, 2.432685, 0.443849)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: broken_satellite, Value: 150
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: broken_satellite (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: broken_satellite (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: broken_satellite
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: broken_satellite (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: broken_satellite, Value: 150
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: broken_satellite, Position: (-114.5877, 1.939446, -23.30524)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 3
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned broken_satellite at 3D position (-114.5877, 1.939446, -23.30524)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: ai_component, Value: 500
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: ai_component (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: ai_component (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: ai_component
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: ai_component (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: ai_component, Value: 500
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: ai_component, Position: (170.7002, 1.999481, -26.94676)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 4
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned ai_component at 3D position (170.7002, 1.999481, -26.94676)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (73.86723, 1.643291, -104.6871)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 5
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (73.86723, 1.643291, -104.6871)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (25.87122, 1.778335, -85.41831)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 6
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (25.87122, 1.778335, -85.41831)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (-37.05532, 1.873025, 69.26559)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 7
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (-37.05532, 1.873025, 69.26559)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (47.9481, 2.008029, 137.9705)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 8
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (47.9481, 2.008029, 137.9705)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (-109.5754, 2.301562, 4.206322)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 9
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (-109.5754, 2.301562, 4.206322)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (-139.089, 2.269743, -196.9205)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 10
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (-139.089, 2.269743, -196.9205)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: bio_waste (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: bio_waste (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: bio_waste
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: bio_waste (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: bio_waste, Position: (-127.6922, 2.32827, 110.4523)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 11
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned bio_waste at 3D position (-127.6922, 2.32827, 110.4523)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (-163.443, 1.730321, -117.8546)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 12
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (-163.443, 1.730321, -117.8546)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: bio_waste (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: bio_waste (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: bio_waste
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: bio_waste (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: bio_waste, Position: (-196.1538, 1.674122, 64.46661)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 13
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned bio_waste at 3D position (-196.1538, 1.674122, 64.46661)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (26.1155, 2.412782, -59.26894)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 14
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (26.1155, 2.412782, -59.26894)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (105.4767, 2.422858, -7.47078)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 15
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (105.4767, 2.422858, -7.47078)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (-110.9862, 2.131951, -160.618)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 16
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (-110.9862, 2.131951, -160.618)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (156.9444, 1.810912, -28.82288)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 17
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (156.9444, 1.810912, -28.82288)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: bio_waste (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: bio_waste (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: bio_waste
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: bio_waste (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: bio_waste, Position: (-58.27381, 1.624234, -58.94)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 18
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned bio_waste at 3D position (-58.27381, 1.624234, -58.94)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (190.2154, 2.144213, 92.58881)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 19
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (190.2154, 2.144213, 92.58881)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (18.09762, 1.80279, 198.1636)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 20
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (18.09762, 1.80279, 198.1636)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: bio_waste (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: bio_waste (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: bio_waste
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: bio_waste (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: bio_waste, Position: (88.92146, 1.945103, 80.8948)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 21
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned bio_waste at 3D position (88.92146, 1.945103, 80.8948)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: bio_waste (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: bio_waste (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: bio_waste
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: bio_waste (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: bio_waste, Position: (135.1488, 1.983248, -94.39882)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 22
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned bio_waste at 3D position (135.1488, 1.983248, -94.39882)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (179.2927, 2.131796, 68.46841)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 23
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (179.2927, 2.131796, 68.46841)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (-82.37685, 2.215174, -64.33024)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 24
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (-82.37685, 2.215174, -64.33024)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (-29.88989, 2.219198, -131.4077)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 25
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (-29.88989, 2.219198, -131.4077)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: bio_waste (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: bio_waste (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: bio_waste
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: bio_waste (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: bio_waste, Position: (-108.1685, 2.325301, -2.239872)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 26
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned bio_waste at 3D position (-108.1685, 2.325301, -2.239872)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (-114.1987, 1.776447, -97.17213)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 27
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (-114.1987, 1.776447, -97.17213)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: bio_waste (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: bio_waste (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: bio_waste
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: bio_waste (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: bio_waste, Position: (-114.8354, 2.127468, 91.73048)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 28
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned bio_waste at 3D position (-114.8354, 2.127468, 91.73048)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: bio_waste (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: bio_waste (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: bio_waste
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: bio_waste (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: bio_waste, Value: 25
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: bio_waste, Position: (99.03249, 1.563036, 39.13609)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 29
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned bio_waste at 3D position (99.03249, 1.563036, 39.13609)
+[2025-07-19T15:34:32] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:32] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:32] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:32] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:32] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:32] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:32] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:32] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:32] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:32] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:32] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:32] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (-73.69637, 1.776088, 174.2725)
+[2025-07-19T15:34:32] ZoneMain3D: Debris count changed - Current: 30
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (-73.69637, 1.776088, 174.2725)
+[2025-07-19T15:34:32] ZoneDebrisManager3D: Spawned 30 initial debris in 3D
+[2025-07-19T15:34:32] ZoneDebrisManager3D: 3D debris manager initialized
+[2025-07-19T15:34:32] ZoneMain3D: 3D debris manager initialized and ready
+[2025-07-19T15:34:32] ZoneMain3D: Initializing 3D space station and trading hub systems with proper separation
+[2025-07-19T15:34:32] ZoneMain3D: Removing old static hubs positioned far from player
+[2025-07-19T15:34:32] ZoneMain3D: Removing old TradingHub at position: (20.0, 0.0, 20.0)
+[2025-07-19T15:34:32] ZoneMain3D: Removing old UpgradeHub at position: (-20.0, 0.0, -20.0)
+[2025-07-19T15:34:32] ZoneMain3D: Old static hubs removed
+[2025-07-19T15:34:32] ZoneMain3D: Creating SpaceStationManager3D system for single space station
+[2025-07-19T15:34:32] SpaceStationManager3D: Initializing modular space station system
+[2025-07-19T15:34:32] SpaceStationManager3D: Calculating station positions near player spawn
+[2025-07-19T15:34:32] SpaceStationManager3D: Station 0 positioned near player spawn at: (17.17215, 2.476864, 6.719079) (distance from player: 18.4)
+[2025-07-19T15:34:32] SpaceStationManager3D: Generating space stations
+[2025-07-19T15:34:32] SpaceStationModule3D: Initializing module type COMMAND with spinning animation
+[2025-07-19T15:34:32] SpaceStationModule3D: Loading station animation textures...
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_001.png
+Loading resource: res://.godot/imported/station_frame_001.png-258d716307cbddff2c6a96d9322f087a.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_002.png
+Loading resource: res://.godot/imported/station_frame_002.png-99fcaf0c9116ec99f80277def51cac72.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_003.png
+Loading resource: res://.godot/imported/station_frame_003.png-3803b93bf5df5a92a472000139f64f63.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_004.png
+Loading resource: res://.godot/imported/station_frame_004.png-751372048556162d599b4ba465558627.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_005.png
+Loading resource: res://.godot/imported/station_frame_005.png-fc4e37683dd8460bd6d3c177eeebe426.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_006.png
+Loading resource: res://.godot/imported/station_frame_006.png-13ca0c3dccfff181a69196aa8393c609.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_007.png
+Loading resource: res://.godot/imported/station_frame_007.png-ddcf6c7dbe020474e9944d265ca756f1.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_008.png
+Loading resource: res://.godot/imported/station_frame_008.png-6454c484cc4b3f1a38c812d339234799.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_009.png
+Loading resource: res://.godot/imported/station_frame_009.png-5066e6579f8b334d1548323f0ce8780a.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_010.png
+Loading resource: res://.godot/imported/station_frame_010.png-5e1828b4af074a05066eb75039a39698.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_011.png
+Loading resource: res://.godot/imported/station_frame_011.png-e20e117927571e710944da22c99cc5de.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_012.png
+Loading resource: res://.godot/imported/station_frame_012.png-f7ca8ca59d7ce96a1eafb9d3f024201b.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_013.png
+Loading resource: res://.godot/imported/station_frame_013.png-595be6cf4044ee701b040c6aa053415f.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_014.png
+Loading resource: res://.godot/imported/station_frame_014.png-d078b14157e6ee55c110e1cf97989da5.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_015.png
+Loading resource: res://.godot/imported/station_frame_015.png-1ebe8d4a053c80d8ed4c62b40dbe2d97.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_016.png
+Loading resource: res://.godot/imported/station_frame_016.png-e3e9e3b5c72edbea1bbc14e75aac74a6.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_017.png
+Loading resource: res://.godot/imported/station_frame_017.png-74adb5a15ff8df6da5bc80d7b8973c4f.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_018.png
+Loading resource: res://.godot/imported/station_frame_018.png-c3791c9c9e2f504b2cf9c95c69f765a8.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_019.png
+Loading resource: res://.godot/imported/station_frame_019.png-5a5723032020608a89f48bfb3fe34e8f.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_020.png
+Loading resource: res://.godot/imported/station_frame_020.png-29e96c11f612fbbacf1e17a474d253be.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_021.png
+Loading resource: res://.godot/imported/station_frame_021.png-9fcdec8925b82ca9f1ad89c64bd82c64.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_022.png
+Loading resource: res://.godot/imported/station_frame_022.png-9977ae989eaaaa563213c68169ae8aca.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_023.png
+Loading resource: res://.godot/imported/station_frame_023.png-406724462652db390c00ca6f1d4e46ca.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_024.png
+Loading resource: res://.godot/imported/station_frame_024.png-d2f32de4690e595c9c5a233fbe8174b7.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_025.png
+Loading resource: res://.godot/imported/station_frame_025.png-d9cab1eaf9a437748feea3ee40077b1b.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_026.png
+Loading resource: res://.godot/imported/station_frame_026.png-34b74b5d936f213042f923545307851b.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_027.png
+Loading resource: res://.godot/imported/station_frame_027.png-9a743d66461cf08e564ffceb03b2f219.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_028.png
+Loading resource: res://.godot/imported/station_frame_028.png-8c6d7680d636d05509cbeeb30cadc06a.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_029.png
+Loading resource: res://.godot/imported/station_frame_029.png-5918abfe67937b13bbd4d5487a745ed4.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_030.png
+Loading resource: res://.godot/imported/station_frame_030.png-293ed6a6c751699b3af76cb453d0d10f.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_031.png
+Loading resource: res://.godot/imported/station_frame_031.png-06229b8cf5a4a465ea9b958e43faf9f9.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_032.png
+Loading resource: res://.godot/imported/station_frame_032.png-8a578ca9c4f96039f8f3e3b55b63bead.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_033.png
+Loading resource: res://.godot/imported/station_frame_033.png-1aed7e1fbc41f2751d5276fa2360c969.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_034.png
+Loading resource: res://.godot/imported/station_frame_034.png-54d8b482db615cbd134e1a9eebf2e2ce.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_035.png
+Loading resource: res://.godot/imported/station_frame_035.png-1f29a1f122d48acf9bc1a936aefc7ed6.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_036.png
+Loading resource: res://.godot/imported/station_frame_036.png-6ce85e81d6e7c2635d29dd852b0813a6.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_037.png
+Loading resource: res://.godot/imported/station_frame_037.png-af81d88484d7cb3313118f0b4539ca2e.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_038.png
+Loading resource: res://.godot/imported/station_frame_038.png-22898772df36570ef56d869e7a9567a5.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_039.png
+Loading resource: res://.godot/imported/station_frame_039.png-90d7df3f0dbc884b08f15f8ac0655400.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_040.png
+Loading resource: res://.godot/imported/station_frame_040.png-c807d79017ef7e8560cb5b1448bfdd06.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_041.png
+Loading resource: res://.godot/imported/station_frame_041.png-a02711a9f31226b96888be7c08346cb9.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_042.png
+Loading resource: res://.godot/imported/station_frame_042.png-1614fd7f42590a042f67f9475f8bc626.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_043.png
+Loading resource: res://.godot/imported/station_frame_043.png-510c2aee113bb247072e03957eafabcb.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_044.png
+Loading resource: res://.godot/imported/station_frame_044.png-34c6635933fd6d31414092534dd6bd52.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_045.png
+Loading resource: res://.godot/imported/station_frame_045.png-c166deb9572acfbf0f196dfc28f9329e.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_046.png
+Loading resource: res://.godot/imported/station_frame_046.png-af637436af55035d83e2050d83bb2ac3.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_047.png
+Loading resource: res://.godot/imported/station_frame_047.png-d4ac07ddd22e3bd0e5bb74c2c533f239.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_048.png
+Loading resource: res://.godot/imported/station_frame_048.png-e5afd9c15058534f11b782305a98d497.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_049.png
+Loading resource: res://.godot/imported/station_frame_049.png-68ae0ff25dad8247871f8279757a539e.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_050.png
+Loading resource: res://.godot/imported/station_frame_050.png-aeea02d4a39c4a025d9b2c7469ff0425.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_051.png
+Loading resource: res://.godot/imported/station_frame_051.png-d6fde260c93ca73fc18ea8fc73fca017.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_052.png
+Loading resource: res://.godot/imported/station_frame_052.png-26d0e54293fb9e0dd9f6d3f4cd14c421.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_053.png
+Loading resource: res://.godot/imported/station_frame_053.png-b25a33b278b23581fbed1707d95474d8.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_054.png
+Loading resource: res://.godot/imported/station_frame_054.png-774ad7dc8d92b53e23c553660f8a677e.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_055.png
+Loading resource: res://.godot/imported/station_frame_055.png-8018f3769d60a3dcde3fffea4bd8d460.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_056.png
+Loading resource: res://.godot/imported/station_frame_056.png-98a96b988ff19e51e29ad4da92050149.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_057.png
+Loading resource: res://.godot/imported/station_frame_057.png-1a6beac3af26a0ec557d8ee0c0899321.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_058.png
+Loading resource: res://.godot/imported/station_frame_058.png-de391ab430a1dd5c4de32eb688e0f208.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_059.png
+Loading resource: res://.godot/imported/station_frame_059.png-8f553e7fffffbe8d601b39327e72b28e.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_060.png
+Loading resource: res://.godot/imported/station_frame_060.png-5614faacd9aaba438447071e53eea110.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_061.png
+Loading resource: res://.godot/imported/station_frame_061.png-a42e2a15980f071a95e8bb81d80a10aa.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_062.png
+Loading resource: res://.godot/imported/station_frame_062.png-3b81702ab7a2478c568391b554299395.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_063.png
+Loading resource: res://.godot/imported/station_frame_063.png-c566173a1f2004620849d92b391f09cc.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_064.png
+Loading resource: res://.godot/imported/station_frame_064.png-300006f38ac0825835708bc52c99db80.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_065.png
+Loading resource: res://.godot/imported/station_frame_065.png-ecb3ebd3c85c1f19ffb8ebf52704c9f0.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_066.png
+Loading resource: res://.godot/imported/station_frame_066.png-edc89c3d2be66daa19b38a1d5fbfd2f5.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_067.png
+Loading resource: res://.godot/imported/station_frame_067.png-3452991ac30d74ec028b2637beb0a255.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_068.png
+Loading resource: res://.godot/imported/station_frame_068.png-7c856b7060193d67a92a6e4d68544978.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_069.png
+Loading resource: res://.godot/imported/station_frame_069.png-48f4e0176306ee4df9101e833d7261e5.ctex
+Loading resource: res://assets/sprites/space_station/animation_frames/station_frame_070.png
+Loading resource: res://.godot/imported/station_frame_070.png-24e786e925371440e20cf6d8e0069c30.ctex
+[2025-07-19T15:34:33] SpaceStationModule3D: Loaded 70/70 station animation textures
+[2025-07-19T15:34:33] SpaceStationModule3D: Setting up sprite billboard with animation support
+[2025-07-19T15:34:33] SpaceStationModule3D: Created new Sprite3D node
+[2025-07-19T15:34:33] SpaceStationModule3D: Set initial frame 1
+[2025-07-19T15:34:33] SpaceStationModule3D: Sprite billboard configured for animation
+[2025-07-19T15:34:33] SpaceStationModule3D: Collision shape configured - Size: (16.65873, 12.49405, 16.65873)
+[2025-07-19T15:34:33] SpaceStationModule3D: Interaction area configured with radius 15.0
+[2025-07-19T15:34:33] SpaceStationModule3D: Configuring module appearance for type COMMAND
+[2025-07-19T15:34:33] SpaceStationModule3D: Applied COMMAND appearance - Blue tint
+[2025-07-19T15:34:33] SpaceStationModule3D: Updated collision size to (20.82341, 16.65873, 20.82341)
+[2025-07-19T15:34:33] SpaceStationModule3D: Configured COMMAND module with scale (0.999524, 1.082817, 0.999524) and color (0.6, 0.8, 1.0, 1.0)
+[2025-07-19T15:34:33] SpaceStationModule3D: Setting up continuous spinning animation
+[2025-07-19T15:34:33] SpaceStationModule3D: Continuous spinning animation active - Frame rate: 10.0 FPS, Starting frame: 62
+[2025-07-19T15:34:33] SpaceStationModule3D: Module COMMAND ready with spinning animation - ID: module_command_1752957272
+[2025-07-19T15:34:33] ZoneMain3D: SpaceStationManager3D initialized - 1 space station will spawn near player at (0, 2, 0)
+[2025-07-19T15:34:33] ZoneMain3D: Creating TradingHubManager3D system for single trading hub
+[2025-07-19T15:34:33] TradingHubManager3D: Initializing trading hub management system
+[2025-07-19T15:34:33] TradingHubManager3D: Calculating random trading hub positions within floor boundaries
+[2025-07-19T15:34:33] TradingHubManager3D: Floor boundaries: X(-395.0 to 395.0), Z(-395.0 to 395.0)
+[2025-07-19T15:34:33] TradingHubManager3D: Max attempts reached, using fallback position
+[2025-07-19T15:34:33] TradingHubManager3D: Trading hub 0 positioned randomly at: (-30.0, 2.5, -30.0) (distance from player: 42.4)
+[2025-07-19T15:34:33] TradingHubManager3D: Generating trading hubs
+[2025-07-19T15:34:33] TradingHub3D: Initializing Trading Hub with 162-frame animation
+[2025-07-19T15:34:33] TradingHub3D: Loading trading hub animation textures...
+[2025-07-19T15:34:33] TradingHub3D: Loaded 162/162 trading hub animation textures
+[2025-07-19T15:34:33] TradingHub3D: Setting up hub configuration
+[2025-07-19T15:34:33] TradingHub3D: Sprite3D configured with billboard mode and animation support
+[2025-07-19T15:34:33] TradingHub3D: Label3D configured
+[2025-07-19T15:34:33] TradingHub3D: Interaction radius set to 15.0
+[2025-07-19T15:34:33] TradingHub3D: Added to npc_hub group
+[2025-07-19T15:34:33] TradingHub3D: Setting up continuous animation system
+[2025-07-19T15:34:33] TradingHub3D: Continuous animation active - Frame rate: 20.0 FPS, Starting frame: 28
+[2025-07-19T15:34:33] TradingHub3D: Interaction signals connected
+[2025-07-19T15:34:33] ZoneMain3D: Trading hub created at (-30.0, 2.5, -30.0)
+[2025-07-19T15:34:33] TradingHubManager3D: Created trading hub 'Trading Hub Alpha' at (-30.0, 2.5, -30.0)
+[2025-07-19T15:34:33] TradingHubManager3D: Generated 1 trading hubs
+[2025-07-19T15:34:33] ZoneMain3D: TradingHubManager3D initialized - 1 trading hub will spawn near player at (0, 2, 0)
+[2025-07-19T15:34:33] ZoneMain3D: Both space station (UFO) and trading hub (mechanical) systems initialized with proper separation
+[2025-07-19T15:34:33] ZoneMain3D: Initializing 3D zone boundary system
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Player reference set to: PlayerShip3D
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Initializing 3D zone boundary system
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Boundary container created
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Creating boundary collision walls
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Created NorthWall wall at (0.0, 0.0, 0.0) with size (410.0, 30.0, 5.0)
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Created SouthWall wall at (0.0, 0.0, 0.0) with size (410.0, 30.0, 5.0)
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Created EastWall wall at (0.0, 0.0, 0.0) with size (5.0, 30.0, 400.0)
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Created WestWall wall at (0.0, 0.0, 0.0) with size (5.0, 30.0, 400.0)
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Created TopWall wall at (0.0, 0.0, 0.0) with size (410.0, 5.0, 410.0)
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Created BottomWall wall at (0.0, 0.0, 0.0) with size (410.0, 5.0, 410.0)
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Created 6 boundary walls (N/S/E/W/Top/Bottom)
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Zone boundary system initialized - Zone size: (400.0, 50.0, 400.0)
+[2025-07-19T15:34:33] ZoneMain3D: Zone boundary system initialized - Invisible walls created around zone bounds: (400.0, 50.0, 400.0)
+[2025-07-19T15:34:33] ZoneMain3D: 3D zone initialization complete
+[2025-07-19T15:34:33] ZoneMain3D: 3D Zone ready for gameplay
+🔴 ZoneMain3D._ready() COMPLETED - Scene fully initialized!
+[2025-07-19T15:34:33] TradingHub3D: Animation resources cleaned up
+[2025-07-19T15:34:33] TradingHub3D: Animation resources cleaned up
+[2025-07-19T15:34:33] ZoneMain3D: Space station positioned at (17.17215, 2.476864, 6.719079) (18.4 units from player spawn)
+[2025-07-19T15:34:33] ZoneMain3D: Trading hub positioned at (-30.0, 2.5, -30.0) (42.4 units from player spawn)
+[2025-07-19T15:34:33] ZoneMain3D: BOUNDARY WARNING - 1.9 units from bottom boundary
+[2025-07-19T15:34:33] ZoneMain3D: Warning displayed to player: WARNING: Approaching zone boundary (BOTTOM) - 1.9 units remaining
+[2025-07-19T15:34:33] ZoneBoundaryManager3D: Boundary warning - 1.9 units from bottom boundary
+LoadingScreen: Post-transition check - Current scene: ZoneMain3D:<Node3D#89070241288>
+LoadingScreen: ✅ ZoneMain3D scene active - Connecting to zone_ready signal
+LoadingScreen: ✅ ZoneMain3D found - Attempting instant transition
+LoadingScreen: Zone already ready - INSTANT transition!
+LoadingScreen: 🎯 ZoneMain3D is ready! INSTANT transition to gameplay!
+LoadingScreen: Hiding loading screen instantly
+LoadingScreen: Cleaning up loading system
+LoadingScreen: Cleaning up loading system
+LoadingScreen: ✅ INSTANT transition complete - No overlap!
+[2025-07-19T15:34:33] SpaceStationModule3D: Initializing module type COMMAND with spinning animation
+[2025-07-19T15:34:33] SpaceStationModule3D: Loading station animation textures...
+[2025-07-19T15:34:33] SpaceStationModule3D: Loaded 70/70 station animation textures
+[2025-07-19T15:34:33] SpaceStationModule3D: Setting up sprite billboard with animation support
+[2025-07-19T15:34:33] SpaceStationModule3D: Set initial frame 63
+[2025-07-19T15:34:33] SpaceStationModule3D: Sprite billboard configured for animation
+[2025-07-19T15:34:33] SpaceStationModule3D: Collision shape configured - Size: (16.65873, 12.49405, 16.65873)
+[2025-07-19T15:34:33] SpaceStationModule3D: Interaction area configured with radius 15.0
+[2025-07-19T15:34:33] SpaceStationModule3D: Configuring module appearance for type COMMAND
+[2025-07-19T15:34:33] SpaceStationModule3D: Applied COMMAND appearance - Blue tint
+[2025-07-19T15:34:33] SpaceStationModule3D: Updated collision size to (20.82341, 16.65873, 20.82341)
+[2025-07-19T15:34:33] SpaceStationModule3D: Configured COMMAND module with scale (0.999524, 1.082817, 0.999524) and color (0.6, 0.8, 1.0, 1.0)
+[2025-07-19T15:34:33] SpaceStationModule3D: Setting up continuous spinning animation
+[2025-07-19T15:34:33] SpaceStationModule3D: Continuous spinning animation active - Frame rate: 10.0 FPS, Starting frame: 38
+[2025-07-19T15:34:33] SpaceStationModule3D: Module COMMAND ready with spinning animation - ID: module_command_1752957273
+[2025-07-19T15:34:33] SpaceStationManager3D: Created COMMAND module at (0.0, 0.0, 0.0)
+[2025-07-19T15:34:33] ZoneMain3D: Space station module created at (17.17215, 2.476864, 6.719079)
+[2025-07-19T15:34:33] SpaceStationManager3D: Created station 'Space Station Alpha' at (17.17215, 2.476864, 6.719079) with 1 modules
+[2025-07-19T15:34:33] SpaceStationManager3D: Generated 1 modular space stations with 1 total modules
+[2025-07-19T15:34:34] PlayerShip3D: Jump/float activated
+[2025-07-19T15:34:34] PlayerShip3D: No debris in collection range
+[2025-07-19T15:34:34] ZoneMain3D: Debris count changed - Current: 29
+[2025-07-19T15:34:34] ZoneDebrisManager3D: Removed debris, count now: 29
+[2025-07-19T15:34:34] ZoneMain3D: Debris count changed - Current: 28
+[2025-07-19T15:34:34] ZoneDebrisManager3D: Removed debris, count now: 28
+[2025-07-19T15:34:34] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:34] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:34] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:34] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:34] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:34] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:34] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:34] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:34] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:35] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:35] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:35] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:35] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:35] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:35] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:35] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:35] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:35] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:35] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:35] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:35] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:35] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:35] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (-56.1053, 1.869033, 4.822591)
+[2025-07-19T15:34:35] ZoneMain3D: Debris count changed - Current: 29
+[2025-07-19T15:34:35] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (-56.1053, 1.869033, 4.822591)
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:35] PlayerShip3D: Left turn animation - Steer: -1.00, Frame: 98
+[2025-07-19T15:34:36] ZoneMain3D: Debris count changed - Current: 28
+[2025-07-19T15:34:36] ZoneDebrisManager3D: Removed debris, count now: 28
+[2025-07-19T15:34:37] DebrisObject3D: Setting debris data - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:37] DebrisObject3D: Setting texture for debris type: scrap_metal (valid: true)
+[2025-07-19T15:34:37] DebrisObject3D: Texture loaded - size: (1024.0, 1024.0), class: CompressedTexture2D
+[2025-07-19T15:34:37] DebrisObject3D: Texture stored as pending for debris type: scrap_metal (size: (1024.0, 1024.0))
+[2025-07-19T15:34:37] ZoneDebrisManager3D: Assigned texture to debris type: scrap_metal
+[2025-07-19T15:34:37] DebrisObject3D: Initializing 3D debris object
+[2025-07-19T15:34:37] DebrisObject3D: Setting up 3D physics
+[2025-07-19T15:34:37] DebrisObject3D: Setting up 3D sprite with billboard configuration
+[2025-07-19T15:34:37] DebrisObject3D: Sprite3D configured - pixel_size: 0.0055000000, billboard: 1, filter: 0
+[2025-07-19T15:34:37] DebrisObject3D: Auto-adjusted pixel_size from 0.0055000000 to 0.0029296875 for texture size (1024.0, 1024.0)
+[2025-07-19T15:34:37] DebrisObject3D: Applied pending texture for debris type: scrap_metal (size: (1024.0, 1024.0), world size: (5.632, 5.632))
+[2025-07-19T15:34:37] DebrisObject3D: Setting up collection area
+[2025-07-19T15:34:37] DebrisObject3D: Setting up initial animation
+[2025-07-19T15:34:37] DebrisObject3D: 3D debris object ready - Type: scrap_metal, Value: 5
+[2025-07-19T15:34:37] ZoneMain3D: Debris spawned - Type: scrap_metal, Position: (-110.0826, 1.977041, -42.82339)
+[2025-07-19T15:34:37] ZoneMain3D: Debris count changed - Current: 29
+[2025-07-19T15:34:37] ZoneDebrisManager3D: Spawned scrap_metal at 3D position (-110.0826, 1.977041, -42.82339)
+[2025-07-19T15:34:37] ZoneMain3D: Debris count changed - Current: 28
+[2025-07-19T15:34:37] ZoneDebrisManager3D: Removed debris, count now: 28
+[2025-07-19T15:34:37] PlayerShip3D: Entered NPC hub in 3D - trading
+[2025-07-19T15:34:37] ZoneMain3D: Player entered NPC hub - trading
+[2025-07-19T15:34:37] PlayerShip3D: Interacting with trading hub in 3D
+[2025-07-19T15:34:37] ZoneMain3D: Player pressed F at trading hub - redirecting to 2D lobby
+[2025-07-19T15:34:37] LocalPlayerData: Player data saved
+[2025-07-19T15:34:37] ZoneMain3D: Player data saved before lobby transition
+[2025-07-19T15:34:37] LocalPlayerData: Set setting last_interacted_hub_type = trading
+[2025-07-19T15:34:37] LocalPlayerData: Settings saved
+[2025-07-19T15:34:37] ZoneMain3D: Stored hub type for lobby context: trading
+[2025-07-19T15:34:37] ZoneMain3D: Transitioning to 2D lobby scene...
+Loading resource: res://scenes/zones/LobbyZone2D.tscn
+Loading resource: res://scripts/LobbyPlayer2D.gd
+Loading resource: res://assets/schlorp_guy_sprite.png
+Loading resource: res://.godot/imported/schlorp_guy_sprite.png-8fe58c69c5a9cd4482a6e195d5724114.ctex
+Loading resource: res://assets/trading_hub_pixel_horizontal.png
+Loading resource: res://.godot/imported/trading_hub_pixel_horizontal.png-e175907178485f417ec750b4727779fb.ctex
+Loading resource: res://assets/computer_trading_hub_sprite.png
+Loading resource: res://.godot/imported/computer_trading_hub_sprite.png-4459a096b24e432d17ad95592dc34c1c.ctex
+[2025-07-19T15:34:37] TradingHub3D: Animation resources cleaned up
+[2025-07-19T15:34:37] PlayerShip3D: Exited NPC hub in 3D
+[2025-07-19T15:34:37] ZoneMain3D: Player exited NPC hub
+[2025-07-19T15:34:37] SpaceStationModule3D: Animation resources cleaned up
+[2025-07-19T15:34:37] PlayerShip3D: Animation resources cleaned up
+[LobbyPlayer2D] Initializing 2D lobby player
+[LobbyPlayer2D] Setting up player sprite
+[LobbyPlayer2D] Player sprite loaded with editor scale: (0.1, 0.1)
+[LobbyPlayer2D] Setting up collision shape
+[LobbyPlayer2D] Collision shape created: (32.0, 48.0)
+[LobbyPlayer2D] Setting up interaction area
+[LobbyPlayer2D] Interaction area created with radius: 64.0
+[LobbyPlayer2D] Interaction signals connected
+[LobbyPlayer2D] Player initialized at position: (400.0, 300.0)
+
+[1;33mShutting down development environment...[0m
+[1;33mStopping Godot game (PID: 90804)...[0m
+[0;32mDevelopment environment stopped.[0m
+
+[1;33mShutting down development environment...[0m
+[1;33mStopping Godot game (PID: 90804)...[0m
+[0;32mDevelopment environment stopped.[0m
