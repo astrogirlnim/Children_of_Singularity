@@ -540,8 +540,18 @@ func _on_sell_all_pressed() -> void:
 	LocalPlayerData.add_credits(total_value)
 	print("[LobbyZone2D] Sale completed - inventory cleared, credits added")
 
-	# Update UI immediately
+	# Update UI immediately with forced refresh
 	_update_lobby_ui_with_player_data()
+
+	# CRITICAL FIX: Force inventory display refresh immediately
+	var current_inventory = LocalPlayerData.get_inventory()
+	var current_capacity = _get_inventory_capacity_from_upgrades(LocalPlayerData.get_all_upgrades())
+	_update_inventory_display(current_inventory, current_capacity)
+	last_inventory_size = current_inventory.size()  # Update tracking variable
+
+	# CRITICAL FIX: Refresh the selective trading UI after selling all items
+	_populate_debris_selection_ui()
+	_update_selection_summary()
 
 	# Populate upgrade catalog after credit update (so player can see what they can now afford)
 	if trading_interface.visible:
@@ -573,8 +583,18 @@ func _on_dump_inventory_pressed() -> void:
 	# Clear inventory without adding credits
 	LocalPlayerData.clear_inventory()
 
-	# Update UI immediately
+	# Update UI immediately with forced refresh
 	_update_lobby_ui_with_player_data()
+
+	# CRITICAL FIX: Force inventory display refresh immediately
+	var current_inventory = LocalPlayerData.get_inventory()
+	var current_capacity = _get_inventory_capacity_from_upgrades(LocalPlayerData.get_all_upgrades())
+	_update_inventory_display(current_inventory, current_capacity)
+	last_inventory_size = current_inventory.size()  # Update tracking variable
+
+	# CRITICAL FIX: Refresh the selective trading UI after dumping all items
+	_populate_debris_selection_ui()
+	_update_selection_summary()
 
 	# Show warning message
 	var warning_message = "WARNING!\nDumped %d items without selling\nNo credits gained!" % item_count
@@ -1814,8 +1834,14 @@ func _on_sell_selected_pressed() -> void:
 	# Clear selections
 	selected_debris.clear()
 
-	# Update UI immediately
+	# Update UI immediately with forced refresh
 	_update_lobby_ui_with_player_data()
+
+	# CRITICAL FIX: Force inventory display refresh immediately
+	var current_inventory = LocalPlayerData.get_inventory()
+	var current_capacity = _get_inventory_capacity_from_upgrades(LocalPlayerData.get_all_upgrades())
+	_update_inventory_display(current_inventory, current_capacity)
+	last_inventory_size = current_inventory.size()  # Update tracking variable
 
 	# Refresh the selection UI with new inventory
 	_populate_debris_selection_ui()
