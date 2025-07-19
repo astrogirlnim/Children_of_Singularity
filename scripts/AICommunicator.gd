@@ -252,7 +252,7 @@ func get_message_stats() -> Dictionary:
 
 	return stats
 
-func broadcast_ai_message_with_voice(message: String, priority: int = 2, voice_clip: String = "") -> void:
+func broadcast_ai_message_with_voice(message: String, priority: int = 2, _voice_clip: String = "") -> void:
 	##Enhanced message broadcast with voice clip support
 	_log_message("AICommunicator: Broadcasting AI message with voice: %s" % message)
 

@@ -84,7 +84,7 @@ func post_listing(item_name: String, quantity: int, price_per_unit: int, descrip
 		return
 
 ## Purchase an item from another player with concurrency protection
-func purchase_item(listing_id: String, seller_id: String, item_name: String, quantity: int, total_price: int) -> void:
+func purchase_item(listing_id: String, _seller_id: String, item_name: String, quantity: int, total_price: int) -> void:
 	print("[TradingMarketplace] Attempting to purchase: %s x%d for %d credits (listing %s)" % [item_name, quantity, total_price, listing_id])
 
 	# Validate player has enough credits locally
@@ -145,7 +145,7 @@ func get_player_trade_history() -> void:
 
 # HTTP REQUEST HANDLER
 
-func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray):
+func _on_request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray):
 	var response_text = body.get_string_from_utf8()
 	print("[TradingMarketplace] API Response - Code: %d, Body: %s" % [response_code, response_text])
 
@@ -171,7 +171,7 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 	# Route response based on endpoint
 	_handle_api_response(data, response_code)
 
-func _handle_api_response(data: Dictionary, response_code: int):
+func _handle_api_response(data: Dictionary, _response_code: int):
 	print("[TradingMarketplace] Handling API response: %s" % str(data))
 
 	# Handle listings response (GET /listings)
@@ -201,7 +201,7 @@ func _handle_api_response(data: Dictionary, response_code: int):
 
 	# Handle successful purchase (POST /listings/{id}/buy)
 	if data.has("success") and data.get("success", false) and data.has("trade"):
-		var trade = data.get("trade", {})
+		var _trade = data.get("trade", {})
 		var item = data.get("item", {})
 		var item_name = item.get("item_name", "")
 		var quantity = item.get("quantity", 0)

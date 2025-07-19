@@ -52,7 +52,7 @@ signal npc_hub_entered()
 # Upgrade interface UI elements
 @onready var upgrade_content: VBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent
 @onready var upgrade_catalog: ScrollContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog
-@onready var upgrade_grid: GridContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog/UpgradeGrid
+@onready var upgrade_grid: GridContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog/CenterContainer/UpgradeGrid
 @onready var upgrade_details: Panel = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails
 @onready var upgrade_details_label: Label = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails/UpgradeDetailsLabel
 @onready var purchase_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls/PurchaseButton
@@ -652,9 +652,9 @@ func _on_boundary_warning(distance: float, direction: String) -> void:
 		# This could be expanded to show a visual warning in the UI
 		_log_message("ZoneMain3D: Warning displayed to player: %s" % warning_message)
 
-func _on_boundary_collision(collision_position: Vector3, boundary_type: String) -> void:
+func _on_boundary_collision(collision_pos: Vector3, boundary_type: String) -> void:
 	##Handle boundary collision when player hits zone wall
-	_log_message("ZoneMain3D: BOUNDARY COLLISION - Player hit %s at position %s" % [boundary_type, collision_position])
+	_log_message("ZoneMain3D: BOUNDARY COLLISION - Player hit %s at position %s" % [boundary_type, collision_pos])
 
 	# Optional: Add camera shake or other feedback
 	if camera_controller and camera_controller.has_method("shake"):
@@ -692,10 +692,10 @@ func get_boundary_info() -> Dictionary:
 		return zone_boundary_manager.get_boundary_info()
 	return {}
 
-func is_position_in_bounds(check_position: Vector3) -> bool:
+func is_position_in_bounds(check_pos: Vector3) -> bool:
 	##Check if a position is within zone boundaries
 	if zone_boundary_manager:
-		return zone_boundary_manager.is_position_in_bounds(check_position)
+		return zone_boundary_manager.is_position_in_bounds(check_pos)
 	return true
 
 func enable_visual_boundaries(enabled: bool) -> void:
@@ -973,10 +973,48 @@ func open_trading_interface(hub_type: String) -> void:
 	##Redirect to 2D lobby instead of opening trading interface overlay
 	_log_message("ZoneMain3D: Player pressed F at %s hub - redirecting to 2D lobby" % hub_type)
 
-	# Save current player data before scene transition
-	if LocalPlayerData:
+	# CRITICAL FIX: Sync complete player ship state to LocalPlayerData before scene transition
+	if LocalPlayerData and player_ship:
+		_log_message("ZoneMain3D: === SYNCING COMPLETE PLAYER STATE TO LOCAL DATA ===")
+
+		# Sync current inventory from player ship - FIXED: Convert structure properly
+		_log_message("ZoneMain3D: Syncing inventory - %d items from PlayerShip3D" % player_ship.current_inventory.size())
+
+		# Clear existing inventory and re-add items with proper structure
+		LocalPlayerData.player_inventory.clear()
+		for item in player_ship.current_inventory:
+			# Convert 3D inventory structure to LocalPlayerData structure
+			var converted_item = {
+				"type": item.get("type", "unknown"),
+				"item_id": item.get("id", ""),  # Convert "id" → "item_id"
+				"quantity": 1,  # 3D items are individual, so quantity is always 1
+				"value": item.get("value", 0),
+				"acquired_at": Time.get_datetime_string_from_system()
+			}
+			LocalPlayerData.player_inventory.append(converted_item)
+
+		LocalPlayerData.save_inventory()
+		_log_message("ZoneMain3D: Inventory converted and synced to LocalPlayerData - %d items" % LocalPlayerData.player_inventory.size())
+
+		# Sync current credits from player ship
+		_log_message("ZoneMain3D: Syncing credits - %d from PlayerShip3D" % player_ship.credits)
+		LocalPlayerData.set_credits(player_ship.credits)
+		_log_message("ZoneMain3D: Credits synced to LocalPlayerData - %d" % LocalPlayerData.get_credits())
+
+		# Sync current upgrades from player ship
+		_log_message("ZoneMain3D: Syncing upgrades - %s from PlayerShip3D" % player_ship.upgrades)
+		LocalPlayerData.player_upgrades = player_ship.upgrades.duplicate()
+		LocalPlayerData.save_upgrades()
+		_log_message("ZoneMain3D: Upgrades synced to LocalPlayerData - %s" % LocalPlayerData.player_upgrades)
+
+		# Save all player data
 		LocalPlayerData.save_player_data()
-		_log_message("ZoneMain3D: Player data saved before lobby transition")
+		_log_message("ZoneMain3D: === PLAYER STATE SYNC COMPLETE ===")
+
+	elif not LocalPlayerData:
+		_log_message("ZoneMain3D: ERROR - LocalPlayerData not available for sync!")
+	elif not player_ship:
+		_log_message("ZoneMain3D: ERROR - PlayerShip3D not available for sync!")
 
 	# Store hub type for lobby context (optional)
 	if LocalPlayerData:
@@ -1099,7 +1137,7 @@ func _on_dump_inventory_confirmed(dialog: ConfirmationDialog) -> void:
 	var item_count = inventory.size()
 
 	# Clear inventory locally (no credits gained)
-	var dumped_items = player_ship.clear_inventory()
+	var _dumped_items = player_ship.clear_inventory()
 
 	# Clear inventory on backend
 	if api_client and api_client.has_method("clear_inventory"):
@@ -1238,7 +1276,7 @@ func _update_trading_result(message: String, color: Color = Color.WHITE) -> void
 		trading_result.modulate = color
 		_log_message("ZoneMain3D: Trading result updated: %s" % message)
 
-func _sync_sale_with_backend(sold_items: Array, total_value: int) -> void:
+func _sync_sale_with_backend(_sold_items: Array, total_value: int) -> void:
 	##Sync the sale transaction with the backend API
 	if not api_client:
 		_log_message("ZoneMain3D: Warning - No API client available for backend sync")
