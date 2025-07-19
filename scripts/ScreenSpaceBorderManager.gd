@@ -157,16 +157,16 @@ func set_border_tint(tint: Color) -> void:
 
 	_log_message("ScreenSpaceBorderManager: Border tint set to %s" % tint)
 
-func set_border_visible(is_visible: bool) -> void:
+func set_border_visible(show_border: bool) -> void:
 	##Show or hide border frame
-	if border_frame: border_frame.visible = is_visible
+	if border_frame: border_frame.visible = show_border
 
-	_log_message("ScreenSpaceBorderManager: Border visibility set to %s" % is_visible)
+	_log_message("ScreenSpaceBorderManager: Border visibility set to %s" % show_border)
 
-func set_individual_border_visible(_border_name: String, is_visible: bool) -> void:
+func set_individual_border_visible(_border_name: String, show_border: bool) -> void:
 	##Show or hide border frame (individual control not available in full-frame mode)
 	_log_message("ScreenSpaceBorderManager: Individual border control not available in full-frame mode")
-	set_border_visible(is_visible)
+	set_border_visible(show_border)
 
 func set_stretch_mode(stretch_mode: TextureRect.StretchMode) -> void:
 	##Set the stretch mode for border scaling
