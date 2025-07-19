@@ -198,7 +198,8 @@ def buy_listing(listing_id: str, buyer_data: Dict[str, Any]) -> Dict[str, Any]:
                         400, {"error": "Cannot buy your own listing"}
                     )
 
-                # Validate expected price if provided (prevents price changes during purchase)
+                # Validate expected price if provided (prevents price changes)
+                # during purchase
                 if "expected_price" in buyer_data:
                     if target_listing["asking_price"] != buyer_data["expected_price"]:
                         return create_response(
@@ -228,7 +229,8 @@ def buy_listing(listing_id: str, buyer_data: Dict[str, Any]) -> Dict[str, Any]:
                 if e.response["Error"]["Code"] == "PreconditionFailed":
                     if attempt < max_retries - 1:
                         print(
-                            f"Concurrent purchase detected, retrying attempt {attempt + 1}"
+                            f"Concurrent purchase detected, "
+                            f"retrying attempt {attempt + 1}"
                         )
                         continue
                     else:
