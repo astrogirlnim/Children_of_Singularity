@@ -909,7 +909,7 @@ func _create_thrust_particles(level: int) -> void:
 	var blend_factor = min(level / 5.0, 1.0)
 	material.color = base_color.lerp(boost_color, blend_factor)
 
-	material.emission = 50 + (level * 20)  # More particles at higher levels
+	material.emission_rate_hz = 50 + (level * 20)  # More particles at higher levels
 	particles.process_material = material
 	particles.lifetime = 1.0
 
@@ -1002,7 +1002,7 @@ func _show_inventory_expansion_effects(old_capacity: int, new_capacity: int) -> 
 	# Create capacity indicator
 	_update_inventory_capacity_indicator(new_capacity)
 
-func _create_inventory_expansion_visual(capacity: int) -> void:
+func _create_inventory_expansion_visual(_capacity: int) -> void:
 	##Create visual effect for inventory expansion
 	var expansion_effect = MeshInstance3D.new()
 	expansion_effect.name = "InventoryExpansionEffect"
@@ -1375,17 +1375,17 @@ func _auto_collect_debris() -> void:
 	if not is_magnet_active:
 		return
 
-	var debris_collected = 0
+	var debris_count = 0
 	var max_per_cycle = 2 + (int(magnet_range / 15.0))  # More collection at higher levels
 	for body in collection_area.get_overlapping_bodies():
-		if body.is_in_group("debris_3d") and debris_collected < max_per_cycle:
+		if body.is_in_group("debris_3d") and debris_count < max_per_cycle:
 			var distance = global_position.distance_to(body.global_position)
 			if distance <= magnet_range:
 				_collect_debris_object(body)
-				debris_collected += 1
+				debris_count += 1
 
-	if debris_collected > 0:
-		_log_message("PlayerShip3D: Magnet auto-collected %d debris objects" % debris_collected)
+	if debris_count > 0:
+		_log_message("PlayerShip3D: Magnet auto-collected %d debris objects" % debris_count)
 
 # Utility methods
 func get_debris_in_range() -> Array[RigidBody3D]:

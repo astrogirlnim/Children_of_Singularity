@@ -104,7 +104,7 @@ func save_player_data(player_data: Dictionary) -> void:
 	_log_message("APIClient: Player data saved to local storage")
 
 ## Load inventory (local-only)
-func load_inventory(target_player_id: String = "") -> void:
+func load_inventory(_target_player_id: String = "") -> void:
 	_log_message("APIClient: === LOADING INVENTORY FROM LOCAL STORAGE ===")
 	_log_message("APIClient: Loading inventory from local storage")
 
@@ -168,7 +168,7 @@ func check_backend_health() -> void:
 	# Local storage is always "healthy"
 
 ## Local upgrade purchase
-func purchase_upgrade(upgrade_type: String, expected_cost: int, target_player_id: String = "") -> void:
+func purchase_upgrade(upgrade_type: String, expected_cost: int, _target_player_id: String = "") -> void:
 	_log_message("APIClient: Processing local upgrade purchase - Type: %s, Cost: %d" % [upgrade_type, expected_cost])
 
 	# Check if player has enough credits

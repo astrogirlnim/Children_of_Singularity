@@ -652,9 +652,9 @@ func _on_boundary_warning(distance: float, direction: String) -> void:
 		# This could be expanded to show a visual warning in the UI
 		_log_message("ZoneMain3D: Warning displayed to player: %s" % warning_message)
 
-func _on_boundary_collision(collision_position: Vector3, boundary_type: String) -> void:
+func _on_boundary_collision(collision_pos: Vector3, boundary_type: String) -> void:
 	##Handle boundary collision when player hits zone wall
-	_log_message("ZoneMain3D: BOUNDARY COLLISION - Player hit %s at position %s" % [boundary_type, collision_position])
+	_log_message("ZoneMain3D: BOUNDARY COLLISION - Player hit %s at position %s" % [boundary_type, collision_pos])
 
 	# Optional: Add camera shake or other feedback
 	if camera_controller and camera_controller.has_method("shake"):
@@ -692,10 +692,10 @@ func get_boundary_info() -> Dictionary:
 		return zone_boundary_manager.get_boundary_info()
 	return {}
 
-func is_position_in_bounds(check_position: Vector3) -> bool:
+func is_position_in_bounds(check_pos: Vector3) -> bool:
 	##Check if a position is within zone boundaries
 	if zone_boundary_manager:
-		return zone_boundary_manager.is_position_in_bounds(check_position)
+		return zone_boundary_manager.is_position_in_bounds(check_pos)
 	return true
 
 func enable_visual_boundaries(enabled: bool) -> void:
@@ -1137,7 +1137,7 @@ func _on_dump_inventory_confirmed(dialog: ConfirmationDialog) -> void:
 	var item_count = inventory.size()
 
 	# Clear inventory locally (no credits gained)
-	var dumped_items = player_ship.clear_inventory()
+	var _dumped_items = player_ship.clear_inventory()
 
 	# Clear inventory on backend
 	if api_client and api_client.has_method("clear_inventory"):
@@ -1276,7 +1276,7 @@ func _update_trading_result(message: String, color: Color = Color.WHITE) -> void
 		trading_result.modulate = color
 		_log_message("ZoneMain3D: Trading result updated: %s" % message)
 
-func _sync_sale_with_backend(sold_items: Array, total_value: int) -> void:
+func _sync_sale_with_backend(_sold_items: Array, total_value: int) -> void:
 	##Sync the sale transaction with the backend API
 	if not api_client:
 		_log_message("ZoneMain3D: Warning - No API client available for backend sync")
