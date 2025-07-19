@@ -209,6 +209,14 @@ jobs:
           if [ "${{ vars.USE_S3_STORAGE }}" = "true" ]; then
             echo "📦 S3 storage enabled, downloading assets..."
 
+            # Install dependencies and AWS CLI
+            echo "📋 Installing AWS CLI..."
+            apt-get update
+            apt-get install -y curl unzip
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            ./aws/install
+
             # Check if S3 manager script exists
             if [ -f "./scripts/s3-manager.sh" ]; then
               chmod +x ./scripts/s3-manager.sh
