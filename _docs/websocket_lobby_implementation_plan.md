@@ -100,6 +100,357 @@ MODIFY: scripts/TradingHub3D.gd              # Add scene transition
 
 ---
 
+### Phase 1.5: AWS Infrastructure Prerequisites
+**Duration**: 1 day
+**Goal**: Set up all required AWS resources with detailed commands and templates
+
+#### 📋 Required AWS Resources
+1. **DynamoDB Table**: `LobbyConnections` with TTL
+2. **WebSocket API Gateway**: Different from existing REST API
+3. **Lambda Function**: `trading_lobby_ws.py`
+4. **IAM Permissions**: WebSocket-specific permissions
+5. **Environment Configuration**: WebSocket endpoint configuration
+
+#### 🔧 Detailed AWS CLI Commands
+
+**Prerequisites Check:**
+```bash
+# Verify existing AWS setup
+aws sts get-caller-identity
+aws s3 ls s3://children-of-singularity-releases  # Verify existing bucket
+
+# Load existing environment (reuse patterns)
+source infrastructure_setup.env  # If it exists
+export AWS_REGION=${AWS_REGION:-us-east-2}
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+```
+
+**Step 1: Create DynamoDB Table**
+```bash
+# Create LobbyConnections table with TTL
+aws dynamodb create-table \
+    --table-name LobbyConnections \
+    --attribute-definitions \
+        AttributeName=connectionId,AttributeType=S \
+    --key-schema \
+        AttributeName=connectionId,KeyType=HASH \
+    --billing-mode PAY_PER_REQUEST \
+    --region $AWS_REGION
+
+# Enable TTL for automatic cleanup
+aws dynamodb update-time-to-live \
+    --table-name LobbyConnections \
+    --time-to-live-specification Enabled=true,AttributeName=ttl \
+    --region $AWS_REGION
+
+# Verify table creation
+aws dynamodb describe-table --table-name LobbyConnections --region $AWS_REGION
+```
+
+**Step 2: Create WebSocket API Gateway**
+```bash
+# Create WebSocket API (different from existing REST API)
+export WEBSOCKET_API_ID=$(aws apigatewayv2 create-api \
+    --name children-singularity-lobby-websocket \
+    --protocol-type WEBSOCKET \
+    --route-selection-expression "\$request.body.action" \
+    --query 'ApiId' --output text)
+
+echo "Created WebSocket API: $WEBSOCKET_API_ID"
+
+# Create Lambda integration
+export LAMBDA_ARN="arn:aws:lambda:$AWS_REGION:$AWS_ACCOUNT_ID:function:children-singularity-lobby-ws"
+
+aws apigatewayv2 create-integration \
+    --api-id $WEBSOCKET_API_ID \
+    --integration-type AWS_PROXY \
+    --integration-uri $LAMBDA_ARN \
+    --integration-method POST
+
+export INTEGRATION_ID=$(aws apigatewayv2 get-integrations \
+    --api-id $WEBSOCKET_API_ID \
+    --query 'Items[0].IntegrationId' --output text)
+
+# Create routes
+aws apigatewayv2 create-route \
+    --api-id $WEBSOCKET_API_ID \
+    --route-key '$connect' \
+    --target integrations/$INTEGRATION_ID
+
+aws apigatewayv2 create-route \
+    --api-id $WEBSOCKET_API_ID \
+    --route-key '$disconnect' \
+    --target integrations/$INTEGRATION_ID
+
+aws apigatewayv2 create-route \
+    --api-id $WEBSOCKET_API_ID \
+    --route-key 'pos' \
+    --target integrations/$INTEGRATION_ID
+
+aws apigatewayv2 create-route \
+    --api-id $WEBSOCKET_API_ID \
+    --route-key '$default' \
+    --target integrations/$INTEGRATION_ID
+
+# Deploy WebSocket API
+aws apigatewayv2 create-deployment \
+    --api-id $WEBSOCKET_API_ID \
+    --stage-name prod
+
+# Your WebSocket endpoint
+export WEBSOCKET_URL="wss://$WEBSOCKET_API_ID.execute-api.$AWS_REGION.amazonaws.com/prod"
+echo "WebSocket endpoint: $WEBSOCKET_URL"
+```
+
+**Step 3: Create IAM Role for Lambda**
+```bash
+# Create trust policy for Lambda
+cat > /tmp/lobby-lambda-trust-policy.json << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+
+# Create IAM role (reuse existing pattern but for lobby)
+aws iam create-role \
+    --role-name children-singularity-lobby-lambda-role \
+    --assume-role-policy-document file:///tmp/lobby-lambda-trust-policy.json
+
+# Attach basic Lambda execution policy
+aws iam attach-role-policy \
+    --role-name children-singularity-lobby-lambda-role \
+    --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+# Create DynamoDB access policy
+cat > /tmp/lobby-dynamodb-policy.json << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:GetItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Scan"
+      ],
+      "Resource": "arn:aws:dynamodb:$AWS_REGION:$AWS_ACCOUNT_ID:table/LobbyConnections"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "execute-api:ManageConnections"
+      ],
+      "Resource": "arn:aws:execute-api:$AWS_REGION:$AWS_ACCOUNT_ID:$WEBSOCKET_API_ID/*"
+    }
+  ]
+}
+EOF
+
+# Create and attach DynamoDB policy
+aws iam create-policy \
+    --policy-name children-singularity-lobby-dynamodb-policy \
+    --policy-document file:///tmp/lobby-dynamodb-policy.json
+
+aws iam attach-role-policy \
+    --role-name children-singularity-lobby-lambda-role \
+    --policy-arn arn:aws:iam::$AWS_ACCOUNT_ID:policy/children-singularity-lobby-dynamodb-policy
+```
+
+**Step 4: Deploy Lambda Function**
+```bash
+# Package Lambda function
+cd backend
+zip -r trading_lobby_ws.zip trading_lobby_ws.py
+
+# Create Lambda function
+aws lambda create-function \
+    --function-name children-singularity-lobby-ws \
+    --runtime python3.12 \
+    --role arn:aws:iam::$AWS_ACCOUNT_ID:role/children-singularity-lobby-lambda-role \
+    --handler trading_lobby_ws.lambda_handler \
+    --zip-file fileb://trading_lobby_ws.zip \
+    --timeout 30 \
+    --memory-size 256 \
+    --environment Variables='{
+        "TABLE_NAME": "LobbyConnections",
+        "WSS_URL": "https://'$WEBSOCKET_API_ID'.execute-api.'$AWS_REGION'.amazonaws.com/prod"
+    }' \
+    --region $AWS_REGION
+
+# Grant API Gateway permission to invoke Lambda
+aws lambda add-permission \
+    --function-name children-singularity-lobby-ws \
+    --statement-id allow-websocket-api-gateway \
+    --action lambda:InvokeFunction \
+    --principal apigateway.amazonaws.com \
+    --source-arn "arn:aws:execute-api:$AWS_REGION:$AWS_ACCOUNT_ID:$WEBSOCKET_API_ID/*"
+
+cd ..
+```
+
+**Step 5: Environment Configuration**
+```bash
+# Create lobby configuration for Godot (similar to trading_config.json pattern)
+cat > infrastructure/lobby_config.json << EOF
+{
+  "websocket_url": "wss://$WEBSOCKET_API_ID.execute-api.$AWS_REGION.amazonaws.com/prod",
+  "connection_timeout": 10,
+  "position_broadcast_interval": 0.2,
+  "enable_debug_logs": true
+}
+EOF
+
+# Update infrastructure setup environment
+echo "" >> infrastructure_setup.env
+echo "# Lobby WebSocket Configuration" >> infrastructure_setup.env
+echo "WEBSOCKET_API_ID=$WEBSOCKET_API_ID" >> infrastructure_setup.env
+echo "WEBSOCKET_URL=wss://$WEBSOCKET_API_ID.execute-api.$AWS_REGION.amazonaws.com/prod" >> infrastructure_setup.env
+echo "DYNAMODB_TABLE_NAME=LobbyConnections" >> infrastructure_setup.env
+```
+
+#### 📋 Infrastructure as Code Templates
+
+**CloudFormation Template (Optional):**
+```yaml
+# infrastructure/lobby-cloudformation.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'WebSocket Lobby Infrastructure for Children of the Singularity'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: children-singularity
+
+Resources:
+  # DynamoDB Table
+  LobbyConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: LobbyConnections
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # WebSocket API Gateway
+  WebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${ProjectName}-lobby-websocket'
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.action
+
+  # Lambda Function
+  LobbyLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-lobby-ws'
+      Runtime: python3.12
+      Handler: trading_lobby_ws.lambda_handler
+      Role: !GetAtt LobbyLambdaRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref LobbyConnectionsTable
+          WSS_URL: !Sub 'https://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+
+Outputs:
+  WebSocketEndpoint:
+    Description: 'WebSocket API Gateway endpoint'
+    Value: !Sub 'wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+    Export:
+      Name: !Sub '${ProjectName}-websocket-endpoint'
+```
+
+#### 🧪 Testing and Validation
+
+**Test DynamoDB Access:**
+```bash
+# Test DynamoDB table
+aws dynamodb put-item \
+    --table-name LobbyConnections \
+    --item '{
+        "connectionId": {"S": "test-connection-123"},
+        "player_id": {"S": "test-player"},
+        "x": {"N": "100"},
+        "y": {"N": "200"},
+        "ttl": {"N": "'$(date -d '+1 hour' +%s)'"}
+    }'
+
+# Verify item was created
+aws dynamodb scan --table-name LobbyConnections --limit 5
+
+# Clean up test item
+aws dynamodb delete-item \
+    --table-name LobbyConnections \
+    --key '{"connectionId": {"S": "test-connection-123"}}'
+```
+
+**Test Lambda Function:**
+```bash
+# Test Lambda function directly
+aws lambda invoke \
+    --function-name children-singularity-lobby-ws \
+    --payload '{
+        "requestContext": {
+            "connectionId": "test123",
+            "routeKey": "$connect"
+        },
+        "queryStringParameters": {"pid": "player_test"}
+    }' \
+    response.json
+
+cat response.json
+```
+
+**Test WebSocket Connection:**
+```bash
+# Install wscat for testing (if not installed)
+npm install -g wscat
+
+# Test WebSocket connection
+wscat -c wss://$WEBSOCKET_API_ID.execute-api.$AWS_REGION.amazonaws.com/prod
+
+# Send test position update (in wscat)
+{"action": "pos", "x": 150, "y": 200}
+```
+
+#### 🎯 Success Metrics for Phase 1.5
+- [ ] DynamoDB table created and accessible
+- [ ] WebSocket API Gateway deployed successfully  
+- [ ] Lambda function can read/write to DynamoDB
+- [ ] WebSocket connections accepted and routed to Lambda
+- [ ] Position messages broadcast between connections
+- [ ] TTL cleanup working (test with short TTL)
+- [ ] Environment configuration files created
+
+#### 🔧 Files Created in Phase 1.5
+```
+NEW: infrastructure/lobby_config.json           # Godot WebSocket configuration
+NEW: infrastructure/lobby-cloudformation.yaml   # Infrastructure as Code  
+NEW: backend/trading_lobby_ws.py                # Lambda function
+MODIFY: infrastructure_setup.env                # Add lobby environment variables
+NEW: infrastructure/lobby-setup.sh             # Automated setup script
+```
+
+---
+
 ### Phase 2: AWS WebSocket Infrastructure  
 **Duration**: 1-2 days
 **Goal**: Set up serverless WebSocket for 2D lobby positions only
@@ -429,3 +780,275 @@ func _ready():
 ---
 
 *"From 3D depths to 2D trading floors, connection across dimensions you will build. Retro and real-time, the perfect balance it is."*
+
+---
+
+## 📝 Additional Implementation Requirements
+
+### **Local Development Setup**
+
+**WebSocket Testing without AWS:**
+```bash
+# Install local WebSocket testing tools
+npm install -g wscat ws
+
+# Create local WebSocket mock server for development
+# File: scripts/local-websocket-server.js
+node scripts/local-websocket-server.js
+
+# Test local WebSocket in Godot
+# Update user://lobby_config.json to use ws://localhost:8080 for development
+```
+
+**Development Environment Configuration:**
+```gdscript
+# In LobbyController.gd - Development mode detection
+func _get_websocket_url() -> String:
+    if OS.is_debug_build():
+        return "ws://localhost:8080"  # Local development
+    else:
+        return LobbyConfig.get_websocket_url()  # Production AWS
+```
+
+### **Rollback Procedures**
+
+**If AWS Deployment Fails:**
+```bash
+# 1. Delete failed resources
+aws dynamodb delete-table --table-name LobbyConnections
+aws apigatewayv2 delete-api --api-id $WEBSOCKET_API_ID  
+aws lambda delete-function --function-name children-singularity-lobby-ws
+aws iam delete-role --role-name children-singularity-lobby-lambda-role
+
+# 2. Clean up policies
+aws iam delete-policy --policy-arn arn:aws:iam::$AWS_ACCOUNT_ID:policy/children-singularity-lobby-dynamodb-policy
+
+# 3. Revert environment configuration
+git checkout infrastructure_setup.env
+```
+
+**If Godot Integration Fails:**
+```bash
+# Disable WebSocket lobby feature
+# In LobbyController.gd
+const LOBBY_ENABLED = false  # Emergency disable
+
+# Fallback to existing trading interface overlay
+# In TradingHub3D.gd - revert to original trading interface
+```
+
+### **Cost Monitoring and Alerts**
+
+**Set Up Cost Alerts:**
+```bash
+# Create billing alarm for lobby costs
+aws cloudwatch put-metric-alarm \
+    --alarm-name "LobbyWebSocketCosts" \
+    --alarm-description "Alert when lobby WebSocket costs exceed $5" \
+    --metric-name EstimatedCharges \
+    --namespace AWS/Billing \
+    --statistic Maximum \
+    --period 86400 \
+    --threshold 5.0 \
+    --comparison-operator GreaterThanThreshold \
+    --dimensions Name=Currency,Value=USD \
+    --evaluation-periods 1
+
+# Monitor DynamoDB usage
+aws logs create-log-group --log-group-name /aws/dynamodb/LobbyConnections
+```
+
+**Daily Cost Tracking:**
+```bash
+# Add to monitoring script
+aws ce get-cost-and-usage \
+    --time-period Start=2024-01-01,End=2024-02-01 \
+    --granularity DAILY \
+    --metrics UnblendedCost \
+    --group-by Type=DIMENSION,Key=SERVICE \
+    --filter '{"Dimensions":{"Key":"SERVICE","Values":["Amazon DynamoDB","Amazon API Gateway","AWS Lambda"]}}'
+```
+
+### **Security Considerations**
+
+**Rate Limiting:**
+```bash
+# Set up API Gateway throttling
+aws apigatewayv2 update-stage \
+    --api-id $WEBSOCKET_API_ID \
+    --stage-name prod \
+    --throttle-settings BurstLimit=100,RateLimit=50
+```
+
+**DDoS Protection:**
+```python
+# In trading_lobby_ws.py - Add rate limiting per connection
+import time
+from collections import defaultdict
+
+connection_rates = defaultdict(list)
+RATE_LIMIT = 10  # messages per minute
+
+def check_rate_limit(connection_id):
+    now = time.time()
+    # Remove old entries
+    connection_rates[connection_id] = [
+        timestamp for timestamp in connection_rates[connection_id]
+        if now - timestamp < 60
+    ]
+
+    if len(connection_rates[connection_id]) >= RATE_LIMIT:
+        return False
+
+    connection_rates[connection_id].append(now)
+    return True
+```
+
+**Input Validation:**
+```python
+# Enhanced input validation in Lambda
+def validate_position(x, y):
+    if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
+        return False
+    if x < 0 or x > 1920 or y < 0 or y > 1080:  # Screen bounds
+        return False
+    return True
+```
+
+### **CI/CD Integration**
+
+**GitHub Secrets Configuration:**
+```bash
+# Required GitHub repository secrets:
+LOBBY_AWS_ACCESS_KEY_ID          # Different from trading secrets for isolation
+LOBBY_AWS_SECRET_ACCESS_KEY      # Lobby-specific IAM user
+AWS_REGION                       # Reuse existing
+WEBSOCKET_API_ID                 # Set after AWS deployment
+DYNAMODB_TABLE_NAME              # LobbyConnections
+```
+
+**GitHub Actions Integration:**
+```yaml
+# Add to .github/workflows/deploy-lobby.yml
+name: Deploy Lobby Infrastructure
+
+on:
+  push:
+    paths:
+      - 'backend/trading_lobby_ws.py'
+      - 'infrastructure/lobby-*.json'
+
+jobs:
+  deploy-lobby:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.LOBBY_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.LOBBY_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy Lambda Function
+        run: |
+          cd backend
+          zip -r trading_lobby_ws.zip trading_lobby_ws.py
+          aws lambda update-function-code \
+            --function-name children-singularity-lobby-ws \
+            --zip-file fileb://trading_lobby_ws.zip
+```
+
+**Environment Variable Management:**
+```bash
+# Update existing environment patterns
+# In infrastructure_setup.env
+ENABLE_LOBBY_WEBSOCKET=true
+LOBBY_AWS_ACCESS_KEY_ID=""       # Separate from trading credentials
+LOBBY_AWS_SECRET_ACCESS_KEY=""   # Lobby-specific permissions
+WEBSOCKET_API_ID=""              # Set during deployment
+LOBBY_ENVIRONMENT="production"   # or "development"
+```
+
+### **Production Monitoring**
+
+**CloudWatch Dashboard:**
+```bash
+# Create dashboard for lobby metrics
+aws cloudwatch put-dashboard \
+    --dashboard-name "LobbyWebSocketMetrics" \
+    --dashboard-body '{
+        "widgets": [
+            {
+                "type": "metric",
+                "properties": {
+                    "metrics": [
+                        ["AWS/Lambda", "Invocations", "FunctionName", "children-singularity-lobby-ws"],
+                        ["AWS/Lambda", "Errors", "FunctionName", "children-singularity-lobby-ws"],
+                        ["AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", "LobbyConnections"],
+                        ["AWS/DynamoDB", "ConsumedWriteCapacityUnits", "TableName", "LobbyConnections"]
+                    ],
+                    "period": 300,
+                    "stat": "Sum",
+                    "region": "'$AWS_REGION'",
+                    "title": "Lobby WebSocket Metrics"
+                }
+            }
+        ]
+    }'
+```
+
+**Log Analysis:**
+```bash
+# Set up log insights queries
+aws logs put-query-definition \
+    --name "LobbyErrorAnalysis" \
+    --log-group-names "/aws/lambda/children-singularity-lobby-ws" \
+    --query-string 'fields @timestamp, @message | filter @message like /ERROR/ | sort @timestamp desc'
+```
+
+### **Automated Setup Script**
+
+**Create Complete Setup Script:**
+```bash
+#!/bin/bash
+# infrastructure/lobby-setup.sh - Complete automated setup
+
+set -e
+
+echo "🚀 Setting up WebSocket Lobby Infrastructure..."
+
+# Source existing environment
+source infrastructure_setup.env
+
+# Run all setup steps
+./scripts/create-dynamodb-table.sh
+./scripts/create-websocket-api.sh  
+./scripts/create-lobby-lambda.sh
+./scripts/setup-iam-permissions.sh
+./scripts/deploy-lambda-function.sh
+./scripts/test-deployment.sh
+
+echo "✅ Lobby infrastructure deployment complete!"
+echo "📝 Next steps:"
+echo "   1. Update user://lobby_config.json in Godot"
+echo "   2. Test WebSocket connection from game"
+echo "   3. Monitor costs and performance"
+```
+
+### **Missing Files Summary**
+
+**New Required Files:**
+```
+NEW: infrastructure/lobby-setup.sh              # Automated setup script
+NEW: scripts/local-websocket-server.js          # Local development server  
+NEW: scripts/lobby-cost-monitor.sh              # Cost tracking script
+NEW: .github/workflows/deploy-lobby.yml         # CI/CD pipeline
+NEW: infrastructure/lobby-security-config.json  # Security policies
+NEW: scripts/lobby-rollback.sh                  # Emergency rollback script
+NEW: monitoring/lobby-dashboard.json            # CloudWatch dashboard config
+NEW: scripts/validate-lobby-deployment.sh       # Deployment validation
+```
+
+---
