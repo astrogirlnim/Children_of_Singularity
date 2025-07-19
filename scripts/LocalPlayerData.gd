@@ -15,6 +15,12 @@ signal save_failed(data_type: String, error: String)
 ## Signal emitted when player data is loaded
 signal player_data_loaded()
 
+# File operation locks to prevent concurrency issues
+var _inventory_lock: bool = false
+var _credits_lock: bool = false
+var _upgrades_lock: bool = false
+var _save_operation_in_progress: bool = false
+
 # File paths for different data types
 var save_file_path: String = "user://player_save.json"
 var settings_file_path: String = "user://player_settings.json"
@@ -226,19 +232,41 @@ func load_inventory() -> bool:
 	return true
 
 func save_inventory() -> bool:
-	##Save player inventory to JSON file
-	var file = FileAccess.open(inventory_file_path, FileAccess.WRITE)
+	##Save player inventory to JSON file with concurrency protection
+	if _inventory_lock or _save_operation_in_progress:
+		_log_message("LocalPlayerData: Inventory save blocked - operation in progress")
+		return false
+
+	_inventory_lock = true
+	_save_operation_in_progress = true
+
+	# Use atomic temp file write to prevent corruption
+	var temp_file_path = inventory_file_path + ".tmp"
+	var file = FileAccess.open(temp_file_path, FileAccess.WRITE)
 	if not file:
-		_log_message("LocalPlayerData: ERROR - Could not open inventory file for writing")
-		save_failed.emit("inventory", "Could not open file")
+		_inventory_lock = false
+		_save_operation_in_progress = false
+		_log_message("LocalPlayerData: ERROR - Could not open inventory temp file for writing")
+		save_failed.emit("inventory", "Could not open temp file")
 		return false
 
 	var json_string = JSON.stringify(player_inventory, "\t")
 	file.store_string(json_string)
 	file.close()
 
+	# Atomic move from temp to final file
+	var dir = DirAccess.open("user://")
+	if dir.rename(temp_file_path, inventory_file_path) != OK:
+		_inventory_lock = false
+		_save_operation_in_progress = false
+		_log_message("LocalPlayerData: ERROR - Could not rename temp inventory file")
+		save_failed.emit("inventory", "Could not complete atomic write")
+		return false
+
+	_inventory_lock = false
+	_save_operation_in_progress = false
 	data_saved.emit("inventory")
-	_log_message("LocalPlayerData: Inventory saved - %d items" % player_inventory.size())
+	_log_message("LocalPlayerData: Inventory saved atomically - %d items" % player_inventory.size())
 	return true
 
 ## Upgrades operations
@@ -344,7 +372,11 @@ func get_inventory() -> Array[Dictionary]:
 	return player_inventory.duplicate()
 
 func add_inventory_item(item_type: String, item_id: String = "", quantity: int = 1, value: int = 0) -> bool:
-	##Add item to inventory
+	##Add item to inventory with concurrency protection
+	if _inventory_lock:
+		_log_message("LocalPlayerData: Add item blocked - inventory operation in progress")
+		return false
+
 	var new_item = {
 		"type": item_type,
 		"item_id": item_id if item_id != "" else _generate_item_id(),
@@ -365,7 +397,11 @@ func add_inventory_item(item_type: String, item_id: String = "", quantity: int =
 	return save_inventory()
 
 func remove_inventory_item(item_id: String) -> bool:
-	##Remove specific item from inventory
+	##Remove specific item from inventory with concurrency protection
+	if _inventory_lock:
+		_log_message("LocalPlayerData: Remove item blocked - inventory operation in progress")
+		return false
+
 	for i in range(player_inventory.size()):
 		if player_inventory[i].get("item_id") == item_id:
 			player_inventory.remove_at(i)

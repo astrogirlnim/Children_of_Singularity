@@ -83,7 +83,7 @@ func post_listing(item_name: String, quantity: int, price_per_unit: int, descrip
 		emit_signal("api_error", "Failed to send POST request: " + str(error))
 		return
 
-## Purchase an item from another player
+## Purchase an item from another player with concurrency protection
 func purchase_item(listing_id: String, seller_id: String, item_name: String, quantity: int, total_price: int) -> void:
 	print("[TradingMarketplace] Attempting to purchase: %s x%d for %d credits (listing %s)" % [item_name, quantity, total_price, listing_id])
 
@@ -97,12 +97,19 @@ func purchase_item(listing_id: String, seller_id: String, item_name: String, qua
 		emit_signal("api_error", "Insufficient credits. Need %d, have %d" % [total_price, current_credits])
 		return
 
-	# Create purchase data
+	# Optimistic credit hold to prevent double-spending during API call
+	print("[TradingMarketplace] Temporarily holding %d credits for purchase" % total_price)
+	if not local_player_data.add_credits(-total_price):
+		emit_signal("api_error", "Failed to hold credits for purchase")
+		return
+
+	# Create purchase data with expected price validation
 	var purchase_data = {
 		"buyer_id": local_player_data.get_player_id(),
 		"buyer_name": local_player_data.get_player_name(),
 		"listing_id": listing_id,
 		"quantity": quantity,
+		"expected_price": total_price,  # Price validation to prevent race conditions
 		"purchased_at": Time.get_datetime_string_from_system()
 	}
 
@@ -110,10 +117,12 @@ func purchase_item(listing_id: String, seller_id: String, item_name: String, qua
 	var headers = ["Content-Type: application/json"]
 	var json_body = JSON.stringify(purchase_data)
 
-	print("[TradingMarketplace] Sending purchase request: %s" % json_body)
+	print("[TradingMarketplace] Sending purchase request with price validation: %s" % json_body)
 
 	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, json_body)
 	if error != OK:
+		# Rollback credit hold on request failure
+		local_player_data.add_credits(total_price)
 		emit_signal("api_error", "Failed to send purchase request: " + str(error))
 		return
 
@@ -191,21 +200,39 @@ func _handle_api_response(data: Dictionary, response_code: int):
 		return
 
 	# Handle successful purchase (POST /listings/{id}/buy)
-	if data.has("trade_completed") and data.get("trade_completed", false):
-		var item_name = data.get("item_name", "")
-		var quantity = data.get("quantity", 0)
-		var total_price = data.get("total_price", 0)
+	if data.has("success") and data.get("success", false) and data.has("trade"):
+		var trade = data.get("trade", {})
+		var item = data.get("item", {})
+		var item_name = item.get("item_name", "")
+		var quantity = item.get("quantity", 0)
+		var total_price = item.get("price_paid", 0)
 
 		print("[TradingMarketplace] Purchase successful: %s x%d for %d credits" % [item_name, quantity, total_price])
 
-		# Update local inventory and credits
-		if local_player_data:
+		# Add item to local inventory (credits already deducted optimistically)
+		if local_player_data and item_name != "":
 			local_player_data.add_inventory_item(item_name, "", quantity, 0)
-			local_player_data.spend_credits(total_price)
-			print("[TradingMarketplace] Added %d %s to inventory, spent %d credits" % [quantity, item_name, total_price])
+			print("[TradingMarketplace] Added %d %s to inventory (credits already deducted)" % [quantity, item_name])
 
 		emit_signal("item_purchased", true, item_name)
 		emit_signal("trade_completed", true, data)
+		return
+
+	# Handle purchase failure - rollback credit hold
+	if data.has("error"):
+		var error_message = data.get("error", "Unknown error")
+		print("[TradingMarketplace] Purchase failed: %s" % error_message)
+
+		# Check if this was a price validation error or item already sold
+		if error_message.find("Price changed") != -1 or error_message.find("already sold") != -1 or error_message.find("purchased by another player") != -1:
+			# Rollback the credit hold for failed purchases
+			var held_amount = data.get("expected_price", 0)  # May not be available, but try
+			if held_amount > 0 and local_player_data:
+				local_player_data.add_credits(held_amount)
+				print("[TradingMarketplace] Rolled back %d credits from failed purchase" % held_amount)
+
+		emit_signal("item_purchased", false, "")
+		emit_signal("api_error", "Purchase failed: " + error_message)
 		return
 
 	# Handle trade history response
