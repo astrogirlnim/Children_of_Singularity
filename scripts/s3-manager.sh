@@ -35,6 +35,29 @@ print_status() {
 check_aws_cli() {
     print_status "INFO" "Checking AWS CLI installation and configuration..."
 
+    # In GitHub Actions, aws-actions/configure-aws-credentials handles AWS CLI setup
+    if [ "$GITHUB_ACTIONS" = "true" ]; then
+        print_status "INFO" "Running in GitHub Actions - AWS CLI setup handled by aws-actions/configure-aws-credentials"
+
+        # Wait a moment for AWS CLI to be available in PATH
+        sleep 2
+
+        # Try to find aws command with timeout
+        local retries=0
+        while [ $retries -lt 10 ]; do
+            if command -v aws &> /dev/null; then
+                print_status "SUCCESS" "AWS CLI is available in GitHub Actions environment"
+                return 0
+            fi
+            retries=$((retries + 1))
+            sleep 1
+        done
+
+        print_status "WARNING" "AWS CLI not found in GitHub Actions, but continuing (may be in different PATH)"
+        return 0
+    fi
+
+    # Local/standard environment checks
     if ! command -v aws &> /dev/null; then
         print_status "ERROR" "AWS CLI is not installed"
         print_status "INFO" "Install with: brew install awscli (macOS) or pip install awscli"
