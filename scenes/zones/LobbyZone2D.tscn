@@ -61,6 +61,13 @@ texture = ExtResource("5_computer_sprite")
 scale = Vector2(0.2, 0.2)
 shape = SubResource("computer_collision_shape")
 
+[node name="ComputerSolidBody" type="StaticBody2D" parent="."]
+position = Vector2(1076, 297)
+
+[node name="ComputerSolidCollision" type="CollisionShape2D" parent="ComputerSolidBody"]
+scale = Vector2(0.2, 0.2)
+shape = SubResource("computer_collision_shape")
+
 [node name="UILayer" type="CanvasLayer" parent="."]
 layer = 10
 
