@@ -202,6 +202,8 @@ jobs:
         uses: chickensoft-games/setup-godot@v1
         with:
           version: 4.4.1
+          use-dotnet: false
+          include-templates: true
 
       - name: ☁️ Download Assets from S3
         run: |

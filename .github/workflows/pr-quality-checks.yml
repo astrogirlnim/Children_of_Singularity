@@ -69,6 +69,8 @@ jobs:
       uses: chickensoft-games/setup-godot@v1
       with:
         version: 4.4.1
+        use-dotnet: false
+        include-templates: true
 
     - name: Validate Godot Project
       run: |
@@ -477,6 +479,8 @@ jobs:
       uses: chickensoft-games/setup-godot@v1
       with:
         version: 4.4.1
+        use-dotnet: false
+        include-templates: true
 
     - name: Local-Only Integration Test
       run: |

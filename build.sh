@@ -108,7 +108,20 @@ run_debug() {
 check_export_templates() {
     print_status "INFO" "Checking export templates..."
 
-    TEMPLATE_PATH="$HOME/Library/Application Support/Godot/export_templates/4.4.1.stable"
+    # Determine the correct template path based on OS
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        TEMPLATE_PATH="$HOME/Library/Application Support/Godot/export_templates/4.4.1.stable"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux
+        TEMPLATE_PATH="$HOME/.local/share/godot/export_templates/4.4.1.stable"
+    elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+        # Windows (Git Bash/Cygwin)
+        TEMPLATE_PATH="$APPDATA/Godot/export_templates/4.4.1.stable"
+    else
+        # Default to Linux path
+        TEMPLATE_PATH="$HOME/.local/share/godot/export_templates/4.4.1.stable"
+    fi
 
     if [ ! -d "$TEMPLATE_PATH" ]; then
         print_status "WARNING" "Export templates not found at: $TEMPLATE_PATH"
