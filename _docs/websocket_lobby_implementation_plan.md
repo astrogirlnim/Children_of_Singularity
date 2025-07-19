@@ -1052,3 +1052,39 @@ NEW: scripts/validate-lobby-deployment.sh       # Deployment validation
 ```
 
 ---
+
+### **Key Clarification: Existing Trading Interface Integration**
+
+**Important**: The 2D lobby will **reuse the existing `TradingInterface`** currently shown as an overlay in the 3D world. This interface already has:
+- ✅ **Tab 1 (SELL)**: Sell debris to the system (existing functionality)
+- ✅ **Tab 2 (BUY)**: Buy upgrades from the system (existing functionality)  
+- 🆕 **Tab 3 (MARKETPLACE)**: Player-to-player trading (new tab to be added)
+
+**Current Implementation**:
+- `TradingInterface` is a Panel overlay in both `ZoneMain.tscn` and `ZoneMain3D.tscn`
+- Uses `TabContainer` with SELL and BUY tabs
+- Connected to `TradingMarketplace.gd`, `UpgradeSystem.gd`, and `LocalPlayerData.gd`
+
+**New Implementation**:
+- Move `TradingInterface` from 3D overlay → 2D lobby scene  
+- Trigger interface when interacting with computer in 2D lobby
+- Add third "MARKETPLACE" tab leveraging existing `TradingMarketplace.gd` for player-to-player trades
+
+---
+
+### 🎯 **Revised Architecture Flow**
+
+```
+3D World → Press F at TradingHub3D → Scene.change_scene_to_file("LobbyZone2D.tscn")
+    ↓                                        ↓
+Remove TradingInterface overlay      →    2D Lobby Scene
+                                           ↓
+                                    Walk to computer_trading_hub_sprite.png
+                                           ↓  
+                                    Press F → Show TradingInterface with 3 tabs:
+                                    - SELL debris (existing)
+                                    - BUY upgrades (existing)  
+                                    - MARKETPLACE (new player-to-player)
+```
+
+---

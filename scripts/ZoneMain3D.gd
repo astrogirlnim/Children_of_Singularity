@@ -967,45 +967,22 @@ func _create_selective_trading_ui() -> void:
 ## Trading Interface Methods
 
 func open_trading_interface(hub_type: String) -> void:
-	##Open the trading interface when player presses F at a trading hub
-	_log_message("ZoneMain3D: Opening enhanced trading interface for %s hub" % hub_type)
+	##Redirect to 2D lobby instead of opening trading interface overlay
+	_log_message("ZoneMain3D: Player pressed F at %s hub - redirecting to 2D lobby" % hub_type)
 
-	if not trading_interface:
-		_log_message("ZoneMain3D: ERROR - Trading interface not found!")
-		return
+	# Save current player data before scene transition
+	if LocalPlayerData:
+		LocalPlayerData.save_player_data()
+		_log_message("ZoneMain3D: Player data saved before lobby transition")
 
-	# Lock player ship movement while trading interface is open
-	if player_ship and player_ship.has_method("lock_movement"):
-		player_ship.lock_movement()
-		_log_message("ZoneMain3D: Player ship movement locked for trading")
+	# Store hub type for lobby context (optional)
+	if LocalPlayerData:
+		LocalPlayerData.set_data("last_interacted_hub_type", hub_type)
+		_log_message("ZoneMain3D: Stored hub type for lobby context: %s" % hub_type)
 
-	# Clear previous selections
-	selected_debris.clear()
-
-	# Show the trading interface
-	trading_interface.visible = true
-
-	# Update title
-	if trading_title:
-		trading_title.text = "TRADING TERMINAL - %s" % hub_type.to_upper()
-
-	# Update basic info
-	if trading_result and player_ship:
-		var inventory_count = player_ship.current_inventory.size()
-		var inventory_value = _calculate_inventory_total_value()
-		trading_result.text = "Total Inventory: %d items worth %d credits\nSelect items below to sell individually, or use 'SELL ALL'" % [inventory_count, inventory_value]
-		_log_message("ZoneMain3D: Trading interface updated - %d items worth %d credits" % [inventory_count, inventory_value])
-
-	# Populate selective trading UI
-	_populate_debris_selection_ui()
-
-	# Update selection summary
-	_update_selection_summary()
-
-	# Populate upgrade catalog
-	_populate_upgrade_catalog()
-
-	_log_message("ZoneMain3D: Enhanced trading interface opened successfully")
+	# Transition to 2D lobby scene
+	_log_message("ZoneMain3D: Transitioning to 2D lobby scene...")
+	get_tree().change_scene_to_file("res://scenes/zones/LobbyZone2D.tscn")
 
 func close_trading_interface() -> void:
 	##Close the trading interface

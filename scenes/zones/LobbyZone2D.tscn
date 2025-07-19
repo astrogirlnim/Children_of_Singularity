@@ -1,0 +1,254 @@
+[gd_scene load_steps=7 format=3 uid="uid://b8r7x5jy4h2l6"]
+
+[ext_resource type="Script" path="res://scripts/LobbyZone2D.gd" id="1_lobby_script"]
+[ext_resource type="Script" path="res://scripts/LobbyPlayer2D.gd" id="2_player_script"]
+[ext_resource type="Texture2D" path="res://assets/trading_hub_pixel_horizontal.png" id="3_background"]
+[ext_resource type="Texture2D" path="res://assets/schlorp_guy_sprite.png" id="4_player_sprite"]
+[ext_resource type="Texture2D" path="res://assets/computer_trading_hub_sprite.png" id="5_computer_sprite"]
+[ext_resource type="Theme" path="res://resources/themes/SpaceCustomTheme.tres" id="6_ui_theme"]
+
+[sub_resource type="RectangleShape2D" id="player_collision_shape"]
+size = Vector2(32, 48)
+
+[sub_resource type="CircleShape2D" id="interaction_collision_shape"]
+radius = 64.0
+
+[sub_resource type="RectangleShape2D" id="computer_collision_shape"]
+size = Vector2(64, 64)
+
+[node name="LobbyZone2D" type="Node2D"]
+script = ExtResource("1_lobby_script")
+
+[node name="Background" type="Sprite2D" parent="."]
+texture = ExtResource("3_background")
+centered = true
+
+[node name="LobbyPlayer2D" type="CharacterBody2D" parent="."]
+position = Vector2(200, 300)
+script = ExtResource("2_player_script")
+
+[node name="PlayerSprite2D" type="Sprite2D" parent="LobbyPlayer2D"]
+texture = ExtResource("4_player_sprite")
+scale = Vector2(1.0, 1.0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LobbyPlayer2D"]
+shape = SubResource("player_collision_shape")
+
+[node name="InteractionArea2D" type="Area2D" parent="LobbyPlayer2D"]
+collision_layer = 0
+collision_mask = 2
+
+[node name="InteractionCollision" type="CollisionShape2D" parent="LobbyPlayer2D/InteractionArea2D"]
+shape = SubResource("interaction_collision_shape")
+
+[node name="TradingComputer" type="Area2D" parent="."]
+position = Vector2(600, 300)
+collision_layer = 2
+collision_mask = 0
+
+[node name="ComputerSprite2D" type="Sprite2D" parent="TradingComputer"]
+texture = ExtResource("5_computer_sprite")
+scale = Vector2(1.0, 1.0)
+
+[node name="ComputerCollisionShape2D" type="CollisionShape2D" parent="TradingComputer"]
+shape = SubResource("computer_collision_shape")
+
+[node name="ExitBoundaries" type="Node2D" parent="."]
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="HUD" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource("6_ui_theme")
+
+[node name="LobbyStatus" type="Label" parent="UILayer/HUD"]
+layout_mode = 0
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -100.0
+offset_right = 300.0
+offset_bottom = -50.0
+text = "Welcome to the Trading Lobby"
+vertical_alignment = 1
+
+[node name="InteractionPrompt" type="Label" parent="UILayer/HUD"]
+layout_mode = 0
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -100.0
+offset_right = 200.0
+offset_bottom = -50.0
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
+visible = false
+
+[node name="TradingInterface" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+color = Color(0.1, 0.1, 0.1, 0.9)
+visible = false
+
+[node name="TradingTitle" type="Label" parent="UILayer/HUD/TradingInterface"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.1
+text = "TRADING TERMINAL"
+horizontal_alignment = 1
+
+[node name="TradingTabs" type="TabContainer" parent="UILayer/HUD/TradingInterface"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.1
+anchor_right = 0.95
+anchor_bottom = 0.85
+
+[node name="SELL" type="Control" parent="UILayer/HUD/TradingInterface/TradingTabs"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="TradingContent" type="VBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="TradingResult" type="Label" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent"]
+layout_mode = 2
+text = "Select 'Sell All' to convert your debris into credits."
+horizontal_alignment = 1
+
+[node name="SellAllButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent"]
+layout_mode = 2
+text = "SELL ALL DEBRIS"
+
+[node name="DumpInventoryButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent"]
+layout_mode = 2
+text = "DUMP ALL INVENTORY"
+modulate = Color(1, 0.5, 0.5, 1)
+
+[node name="BUY" type="Control" parent="UILayer/HUD/TradingInterface/TradingTabs"]
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="UpgradeContent" type="VBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="UpgradeCatalog" type="ScrollContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="UpgradeGrid" type="GridContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 1
+
+[node name="UpgradeDetails" type="Panel" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+
+[node name="UpgradeDetailsLabel" type="Label" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "Select an upgrade above to see details"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="PurchaseControls" type="HBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+
+[node name="PurchaseButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "PURCHASE UPGRADE"
+disabled = true
+
+[node name="PurchaseResult" type="Label" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ClearUpgradesContainer" type="HBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+
+[node name="ClearUpgradesButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CLEAR ALL UPGRADES"
+modulate = Color(1, 0.5, 0.5, 1)
+
+[node name="MARKETPLACE" type="Control" parent="UILayer/HUD/TradingInterface/TradingTabs"]
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="MarketplaceContent" type="VBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="MarketplaceStatus" type="Label" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent"]
+layout_mode = 2
+text = "Player-to-Player Marketplace"
+horizontal_alignment = 1
+
+[node name="MarketplaceListings" type="ScrollContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MarketplaceGrid" type="GridContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceListings"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 1
+
+[node name="MarketplaceControls" type="HBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent"]
+layout_mode = 2
+
+[node name="RefreshButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "REFRESH LISTINGS"
+
+[node name="SellItemButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "SELL ITEM"
+
+[node name="TradingCloseButton" type="Button" parent="UILayer/HUD/TradingInterface"]
+layout_mode = 0
+anchor_left = 0.85
+anchor_top = 0.05
+anchor_right = 0.95
+anchor_bottom = 0.1
+text = "X"
+
+[connection signal="area_entered" from="TradingComputer" to="." method="_on_trading_computer_area_entered"]
+[connection signal="area_exited" from="TradingComputer" to="." method="_on_trading_computer_area_exited"]
+[connection signal="pressed" from="UILayer/HUD/TradingInterface/TradingCloseButton" to="." method="close_trading_interface"]
