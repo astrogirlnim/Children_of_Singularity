@@ -63,6 +63,8 @@ signal lobby_exit_requested()
 @onready var purchase_controls: HBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls
 @onready var purchase_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls/PurchaseButton
 @onready var purchase_result: Label = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseResult
+@onready var clear_upgrades_container: HBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer
+@onready var clear_upgrades_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer/ClearUpgradesButton
 
 # MARKETPLACE Tab UI references (future feature)
 @onready var marketplace_tab: Control = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE
@@ -384,6 +386,11 @@ func _connect_trading_interface_buttons() -> void:
 			purchase_button.pressed.connect(_on_purchase_button_pressed)
 			print("[LobbyZone2D] Connected purchase_button")
 
+	if clear_upgrades_button:
+		if not clear_upgrades_button.pressed.is_connected(_on_clear_upgrades_pressed):
+			clear_upgrades_button.pressed.connect(_on_clear_upgrades_pressed)
+			print("[LobbyZone2D] Connected clear_upgrades_button")
+
 	# Trading interface control buttons
 	if trading_close_button:
 		if not trading_close_button.pressed.is_connected(_on_trading_close_pressed):
@@ -537,6 +544,75 @@ func _update_trading_result(message: String, color: Color) -> void:
 		trading_result.text = message
 		trading_result.modulate = color
 		print("[LobbyZone2D] Trading result updated: %s" % message)
+
+func _on_clear_upgrades_pressed() -> void:
+	##Handle clear upgrades button press - reset all upgrades to defaults
+	print("[LobbyZone2D] Clear upgrades button pressed")
+
+	if not LocalPlayerData or not LocalPlayerData.is_initialized:
+		print("[LobbyZone2D] ERROR - LocalPlayerData not available!")
+		return
+
+	# Show confirmation dialog
+	var confirmation_text = "Are you sure you want to CLEAR ALL upgrades?\n\nThis will reset all upgrades to default levels:\n• Speed Boost: Level 0\n• Inventory Expansion: Level 0\n• Collection Efficiency: Level 0\n• Zone Access: Level 1 (minimum)\n• Debris Scanner: Level 0\n• Cargo Magnet: Level 0\n\nYou will NOT receive any credit refunds!\nThis action cannot be undone."
+
+	# Create confirmation dialog
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Confirm Clear All Upgrades"
+	dialog.dialog_text = confirmation_text
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_PRIMARY_SCREEN
+
+	# Add to scene temporarily
+	add_child(dialog)
+
+	# Connect signals
+	dialog.confirmed.connect(_on_clear_upgrades_confirmed.bind(dialog))
+	dialog.canceled.connect(_on_clear_upgrades_canceled.bind(dialog))
+
+	# Show dialog
+	dialog.popup_centered(Vector2i(600, 400))
+	print("[LobbyZone2D] Clear upgrades confirmation dialog shown")
+
+func _on_clear_upgrades_confirmed(dialog: ConfirmationDialog) -> void:
+	##Handle confirmed clear upgrades action
+	print("[LobbyZone2D] Clear upgrades confirmed by user")
+
+	if not LocalPlayerData or not LocalPlayerData.is_initialized:
+		print("[LobbyZone2D] ERROR - LocalPlayerData not available!")
+		dialog.queue_free()
+		return
+
+	# Reset all upgrades to default values in LocalPlayerData
+	LocalPlayerData.player_upgrades = {
+		"speed_boost": 0,
+		"inventory_expansion": 0,
+		"collection_efficiency": 0,
+		"zone_access": 1,  # Minimum level 1
+		"debris_scanner": 0,
+		"cargo_magnet": 0
+	}
+
+	# Save the cleared upgrades
+	LocalPlayerData.save_upgrades()
+
+	# Reset current selected upgrade
+	current_selected_upgrade = ""
+	current_upgrade_cost = 0
+
+	# Update UI immediately
+	_update_purchase_result("ALL UPGRADES CLEARED", Color.RED)
+	_populate_upgrade_catalog()  # Refresh catalog to show Level 0
+	_update_lobby_ui_with_player_data()  # Update all UI elements
+
+	print("[LobbyZone2D] All upgrades reset to defaults - UI refreshed")
+
+	# Clean up dialog
+	dialog.queue_free()
+
+func _on_clear_upgrades_canceled(dialog: ConfirmationDialog) -> void:
+	##Handle canceled clear upgrades action
+	print("[LobbyZone2D] Clear upgrades canceled by user")
+	dialog.queue_free()
 
 ## UPGRADE CATALOG AND PURCHASE FUNCTIONALITY - CRITICAL MISSING IMPLEMENTATION
 
