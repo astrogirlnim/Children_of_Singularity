@@ -41,11 +41,43 @@ signal lobby_exit_requested()
 @onready var upgrade_status_text: Label = $UILayer/HUD/UpgradeStatusPanel/UpgradeStatusText
 @onready var controls_panel: Panel = $UILayer/HUD/ControlsPanel
 
+# Trading Interface UI references - CRITICAL MISSING CONNECTIONS
+@onready var trading_title: Label = $UILayer/HUD/TradingInterface/TradingTitle
+@onready var trading_tabs: TabContainer = $UILayer/HUD/TradingInterface/TradingTabs
+@onready var trading_close_button: Button = $UILayer/HUD/TradingInterface/TradingCloseButton
+
+# SELL Tab UI references
+@onready var sell_tab: Control = $UILayer/HUD/TradingInterface/TradingTabs/SELL
+@onready var trading_content: VBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent
+@onready var trading_result: Label = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent/TradingResult
+@onready var sell_all_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent/SellAllButton
+@onready var dump_inventory_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent/DumpInventoryButton
+
+# BUY Tab UI references - CRITICAL MISSING CONNECTIONS
+@onready var buy_tab: Control = $UILayer/HUD/TradingInterface/TradingTabs/BUY
+@onready var upgrade_content: VBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent
+@onready var upgrade_catalog: ScrollContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog
+@onready var upgrade_grid: GridContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog/UpgradeGrid
+@onready var upgrade_details: Panel = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails
+@onready var upgrade_details_label: Label = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails/UpgradeDetailsLabel
+@onready var purchase_controls: HBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls
+@onready var purchase_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls/PurchaseButton
+@onready var purchase_result: Label = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseResult
+
+# MARKETPLACE Tab UI references (future feature)
+@onready var marketplace_tab: Control = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE
+
 # System references - will be set from LocalPlayerData
 var inventory_manager: Node
 var upgrade_system: Node
 var api_client: Node
 var network_manager: Node
+
+# Trading interface state - CRITICAL MISSING VARIABLES
+var current_selected_upgrade: String = ""
+var current_upgrade_cost: int = 0
+var upgrade_buttons: Dictionary = {}  # Store upgrade button references
+var trading_interface_open: bool = false
 
 # Lobby state
 var player_can_interact: bool = false
@@ -316,35 +348,558 @@ func _setup_ui_elements() -> void:
 
 func _setup_trading_interface() -> void:
 	##Setup the trading interface that was moved from 3D overlay
-	print("[LobbyZone2D] Setting up trading interface")
+	print("[LobbyZone2D] Setting up trading interface with full button connections")
 
 	if trading_interface:
 		# Hide initially - positioning is handled by scene anchors
 		trading_interface.visible = false
 		print("[LobbyZone2D] Trading interface configured with scene-defined anchoring")
 
+	# CRITICAL FIX: Connect all trading interface buttons
+	_connect_trading_interface_buttons()
+
+	# Initialize upgrade interface components
+	_initialize_upgrade_interface()
+
+	print("[LobbyZone2D] Trading interface setup complete with all button connections")
+
+func _connect_trading_interface_buttons() -> void:
+	##Connect all trading interface button signals - CRITICAL MISSING FUNCTIONALITY
+	print("[LobbyZone2D] Connecting trading interface buttons")
+
+	# SELL Tab button connections
+	if sell_all_button:
+		if not sell_all_button.pressed.is_connected(_on_sell_all_pressed):
+			sell_all_button.pressed.connect(_on_sell_all_pressed)
+			print("[LobbyZone2D] Connected sell_all_button")
+
+	if dump_inventory_button:
+		if not dump_inventory_button.pressed.is_connected(_on_dump_inventory_pressed):
+			dump_inventory_button.pressed.connect(_on_dump_inventory_pressed)
+			print("[LobbyZone2D] Connected dump_inventory_button")
+
+	# BUY Tab button connections
+	if purchase_button:
+		if not purchase_button.pressed.is_connected(_on_purchase_button_pressed):
+			purchase_button.pressed.connect(_on_purchase_button_pressed)
+			print("[LobbyZone2D] Connected purchase_button")
+
+	# Trading interface control buttons
+	if trading_close_button:
+		if not trading_close_button.pressed.is_connected(_on_trading_close_pressed):
+			trading_close_button.pressed.connect(_on_trading_close_pressed)
+			print("[LobbyZone2D] Connected trading_close_button")
+
+	print("[LobbyZone2D] All trading interface buttons connected successfully")
+
+func _initialize_upgrade_interface() -> void:
+	##Initialize upgrade interface components - CRITICAL MISSING FUNCTIONALITY
+	print("[LobbyZone2D] Initializing upgrade interface")
+
+	# Clear current selection
+	current_selected_upgrade = ""
+	current_upgrade_cost = 0
+	upgrade_buttons.clear()
+
+	# Initially disable purchase button
+	if purchase_button:
+		purchase_button.disabled = true
+		purchase_button.text = "PURCHASE UPGRADE"
+
+	# Set default upgrade details text
+	if upgrade_details_label:
+		upgrade_details_label.text = "Select an upgrade above to see details"
+
+	# Clear purchase result
+	if purchase_result:
+		purchase_result.text = ""
+
+	print("[LobbyZone2D] Upgrade interface initialized")
+
+## TRADING INTERFACE BUTTON HANDLERS - CRITICAL MISSING FUNCTIONALITY
+
+func _on_sell_all_pressed() -> void:
+	##Handle sell all button press - CRITICAL FIXED IMPLEMENTATION
+	print("[LobbyZone2D] === SELL ALL BUTTON PRESSED ===")
+
+	# CRITICAL FIX: Comprehensive validation and debugging
+	if not LocalPlayerData:
+		print("[LobbyZone2D] CRITICAL ERROR - LocalPlayerData not available!")
+		_update_trading_result("System Error: Player data not available!", Color.RED)
+		return
+
+	if not LocalPlayerData.is_initialized:
+		print("[LobbyZone2D] CRITICAL ERROR - LocalPlayerData not initialized!")
+		_update_trading_result("System Error: Player data not ready!", Color.RED)
+		return
+
+	# Get inventory with detailed logging
+	var inventory = LocalPlayerData.get_inventory()
+	print("[LobbyZone2D] Retrieved inventory from LocalPlayerData:")
+	print("[LobbyZone2D] - Inventory size: %d" % inventory.size())
+	if inventory.size() > 0:
+		print("[LobbyZone2D] - Sample items: %s" % inventory.slice(0, min(3, inventory.size())))
+
+	# Check if inventory is empty with detailed feedback
+	if inventory.is_empty():
+		print("[LobbyZone2D] No debris in inventory to sell")
+		_update_trading_result("No debris to sell!\n\nTip: Collect debris in the 3D world first,\nthen return to this lobby to sell items.", Color.YELLOW)
+		return
+
+	# Calculate total value with item-by-item logging
+	var total_value = 0
+	var item_count = inventory.size()
+	var item_breakdown = {}
+
+	for item in inventory:
+		var item_type = item.get("type", "unknown")
+		var item_value = item.get("value", 0)
+		total_value += item_value
+
+		if not item_breakdown.has(item_type):
+			item_breakdown[item_type] = {"count": 0, "value": 0}
+		item_breakdown[item_type].count += 1
+		item_breakdown[item_type].value += item_value
+
+	print("[LobbyZone2D] Sale breakdown:")
+	for item_type in item_breakdown:
+		var data = item_breakdown[item_type]
+		print("[LobbyZone2D] - %s: %d items, %d credits" % [item_type, data.count, data.value])
+	print("[LobbyZone2D] Total: %d items for %d credits" % [item_count, total_value])
+
+	# Process the sale
+	print("[LobbyZone2D] Processing sale transaction...")
+	LocalPlayerData.clear_inventory()
+	LocalPlayerData.add_credits(total_value)
+	print("[LobbyZone2D] Sale completed - inventory cleared, credits added")
+
+	# Update UI immediately
+	_update_lobby_ui_with_player_data()
+
+	# Populate upgrade catalog after credit update (so player can see what they can now afford)
+	if trading_interface.visible:
+		_populate_upgrade_catalog()
+		print("[LobbyZone2D] Upgrade catalog refreshed after sale")
+
+	# Show detailed success message
+	var success_message = "SALE SUCCESSFUL!\n\nSold: %d items\nEarned: %d credits\nTotal Credits: %d\n\nYou can now purchase upgrades!" % [item_count, total_value, LocalPlayerData.get_credits()]
+	_update_trading_result(success_message, Color.GREEN)
+
+	print("[LobbyZone2D] === SALE COMPLETED SUCCESSFULLY ===")
+	print("[LobbyZone2D] Final state - Credits: %d, Inventory: %d items" % [LocalPlayerData.get_credits(), LocalPlayerData.get_inventory().size()])
+
+func _on_dump_inventory_pressed() -> void:
+	##Handle dump inventory button press (clear without selling)
+	print("[LobbyZone2D] Dump inventory button pressed")
+
+	if not LocalPlayerData or not LocalPlayerData.is_initialized:
+		_update_trading_result("Player data not available!", Color.RED)
+		return
+
+	var inventory = LocalPlayerData.get_inventory()
+	if inventory.is_empty():
+		_update_trading_result("No inventory to dump!", Color.YELLOW)
+		return
+
+	var item_count = inventory.size()
+
+	# Clear inventory without adding credits
+	LocalPlayerData.clear_inventory()
+
+	# Update UI immediately
+	_update_lobby_ui_with_player_data()
+
+	# Show warning message
+	var warning_message = "WARNING!\nDumped %d items without selling\nNo credits gained!" % item_count
+	_update_trading_result(warning_message, Color.ORANGE)
+
+	print("[LobbyZone2D] Dumped %d items without selling" % item_count)
+
+func _on_purchase_button_pressed() -> void:
+	##Handle purchase button press - CRITICAL MISSING IMPLEMENTATION
+	if current_selected_upgrade.is_empty():
+		print("[LobbyZone2D] No upgrade selected for purchase")
+		return
+
+	print("[LobbyZone2D] Purchase button pressed for %s" % current_selected_upgrade)
+
+	# Attempt to purchase the upgrade
+	_purchase_upgrade(current_selected_upgrade)
+
+func _on_trading_close_pressed() -> void:
+	##Handle trading close button press
+	print("[LobbyZone2D] Trading close button pressed")
+	close_trading_interface()
+
+func _update_trading_result(message: String, color: Color) -> void:
+	##Update trading result display with message and color
+	if trading_result:
+		trading_result.text = message
+		trading_result.modulate = color
+		print("[LobbyZone2D] Trading result updated: %s" % message)
+
+## UPGRADE CATALOG AND PURCHASE FUNCTIONALITY - CRITICAL MISSING IMPLEMENTATION
+
+func _populate_upgrade_catalog() -> void:
+	##Populate the upgrade catalog with available upgrades - CRITICAL FIXED FUNCTIONALITY
+	print("[LobbyZone2D] === POPULATING UPGRADE CATALOG ===")
+
+	# CRITICAL FIX: Comprehensive validation before proceeding
+	if not upgrade_grid:
+		print("[LobbyZone2D] CRITICAL ERROR - upgrade_grid not found!")
+		return
+
+	if not LocalPlayerData:
+		print("[LobbyZone2D] CRITICAL ERROR - LocalPlayerData not available!")
+		return
+
+	if not LocalPlayerData.is_initialized:
+		print("[LobbyZone2D] CRITICAL ERROR - LocalPlayerData not initialized!")
+		return
+
+	# Clear existing upgrade buttons
+	for child in upgrade_grid.get_children():
+		child.queue_free()
+	upgrade_buttons.clear()
+	print("[LobbyZone2D] Cleared existing upgrade buttons")
+
+	# CRITICAL FIX: Ensure upgrade_system is available (should be created by _setup_system_references)
+	if not upgrade_system:
+		print("[LobbyZone2D] upgrade_system missing - calling _setup_system_references()")
+		_setup_system_references()
+
+	if not upgrade_system:
+		print("[LobbyZone2D] CRITICAL ERROR - Could not create upgrade_system!")
+		return
+
+	# Get current player data with detailed logging
+	var player_credits = LocalPlayerData.get_credits()
+	var player_upgrades = LocalPlayerData.get_all_upgrades()
+
+	print("[LobbyZone2D] Player data loaded:")
+	print("[LobbyZone2D] - Credits: %d" % player_credits)
+	print("[LobbyZone2D] - Upgrades: %s" % player_upgrades)
+
+	# Get upgrade definitions from system
+	var upgrade_definitions = upgrade_system.upgrade_definitions
+	if not upgrade_definitions or upgrade_definitions.is_empty():
+		print("[LobbyZone2D] WARNING - UpgradeSystem has no upgrade definitions, using fallback")
+		upgrade_definitions = _get_basic_upgrade_definitions()
+
+	print("[LobbyZone2D] Creating upgrade buttons for %d upgrade types: %s" % [upgrade_definitions.size(), upgrade_definitions.keys()])
+
+	# Create upgrade buttons for each type
+	var buttons_created = 0
+	for upgrade_type in upgrade_definitions:
+		var upgrade_data = upgrade_definitions[upgrade_type]
+		var current_level = player_upgrades.get(upgrade_type, 0)
+		var max_level = upgrade_data.get("max_level", 5)
+		var cost = _calculate_upgrade_cost(upgrade_type, current_level)
+
+		print("[LobbyZone2D] Creating button for %s - Level %d/%d, Cost: %d" % [upgrade_type, current_level, max_level, cost])
+
+		# Create upgrade button for this type
+		var upgrade_button = _create_upgrade_button(upgrade_type, upgrade_data, current_level, max_level, player_credits)
+		if upgrade_button:
+			upgrade_grid.add_child(upgrade_button)
+			upgrade_buttons[upgrade_type] = upgrade_button
+			buttons_created += 1
+			print("[LobbyZone2D] Successfully created button for %s" % upgrade_type)
+		else:
+			print("[LobbyZone2D] ERROR - Failed to create button for %s" % upgrade_type)
+
+	print("[LobbyZone2D] === UPGRADE CATALOG POPULATED - %d buttons created ===" % buttons_created)
+
+func _create_upgrade_button(upgrade_type: String, upgrade_data: Dictionary, current_level: int, max_level: int, player_credits: int) -> Button:
+	##Create an upgrade button with appropriate styling and functionality
+	var upgrade_button = Button.new()
+	upgrade_button.name = "UpgradeButton_" + upgrade_type
+
+	# Calculate upgrade cost
+	var cost = _calculate_upgrade_cost(upgrade_type, current_level)
+	var can_afford = player_credits >= cost
+	var is_maxed = current_level >= max_level
+
+	# Set button text and styling
+	var upgrade_name = upgrade_data.get("name", upgrade_type.capitalize().replace("_", " "))
+	var button_text = ""
+
+	if is_maxed:
+		button_text = "%s - MAXED (Level %d)" % [upgrade_name, current_level]
+		upgrade_button.disabled = true
+		upgrade_button.modulate = Color.GRAY
+	else:
+		var next_level = current_level + 1
+		button_text = "%s - Level %d → %d (%d credits)" % [upgrade_name, current_level, next_level, cost]
+		upgrade_button.disabled = not can_afford
+
+		if can_afford:
+			upgrade_button.modulate = Color.WHITE
+		else:
+			upgrade_button.modulate = Color.DARK_GRAY
+
+	upgrade_button.text = button_text
+	upgrade_button.custom_minimum_size = Vector2(300, 50)
+
+	# Connect button press signal
+	upgrade_button.pressed.connect(_on_upgrade_selected.bind(upgrade_type, upgrade_data, current_level, cost, can_afford, is_maxed))
+
+	return upgrade_button
+
+func _calculate_upgrade_cost(upgrade_type: String, current_level: int) -> int:
+	##Calculate the cost for the next level of an upgrade
+	if upgrade_system and upgrade_system.has_method("calculate_upgrade_cost"):
+		return upgrade_system.calculate_upgrade_cost(upgrade_type, current_level)
+
+	# Fallback cost calculation if upgrade system not available
+	var base_costs = {
+		"speed_boost": 50,
+		"inventory_expansion": 75,
+		"collection_efficiency": 100,
+		"cargo_magnet": 150
+	}
+
+	var base_cost = base_costs.get(upgrade_type, 100)
+	return base_cost + (current_level * base_cost)
+
+func _on_upgrade_selected(upgrade_type: String, upgrade_data: Dictionary, current_level: int, cost: int, can_afford: bool, is_maxed: bool) -> void:
+	##Handle upgrade selection - CRITICAL MISSING FUNCTIONALITY
+	print("[LobbyZone2D] Upgrade selected: %s (level %d, cost %d)" % [upgrade_type, current_level, cost])
+
+	current_selected_upgrade = upgrade_type
+	current_upgrade_cost = cost
+
+	# Update upgrade details panel
+	if upgrade_details_label:
+		var details_text = ""
+		if is_maxed:
+			details_text = "UPGRADE MAXED OUT\n\n%s\nCurrent Level: %d/%d\n\nThis upgrade has reached its maximum level." % [
+				upgrade_data.get("description", "No description available"),
+				current_level,
+				upgrade_data.get("max_level", 5)
+			]
+		else:
+			var next_level = current_level + 1
+			var effect_per_level = upgrade_data.get("effect_per_level", "Unknown effect")
+			details_text = "%s\n\nCurrent Level: %d/%d\nNext Level: %d\nCost: %d credits\nEffect per level: %s\nCategory: %s" % [
+				upgrade_data.get("description", "No description available"),
+				current_level,
+				upgrade_data.get("max_level", 5),
+				next_level,
+				cost,
+				str(effect_per_level),
+				upgrade_data.get("category", "Unknown")
+			]
+
+		upgrade_details_label.text = details_text
+
+	# Update purchase button
+	if purchase_button:
+		if is_maxed:
+			purchase_button.text = "UPGRADE MAXED OUT"
+			purchase_button.disabled = true
+		elif can_afford:
+			purchase_button.text = "PURCHASE UPGRADE (%d credits)" % cost
+			purchase_button.disabled = false
+		else:
+			purchase_button.text = "INSUFFICIENT CREDITS (%d credits)" % cost
+			purchase_button.disabled = true
+
+	# Clear any previous purchase result
+	if purchase_result:
+		purchase_result.text = ""
+
+func _purchase_upgrade(upgrade_type: String) -> void:
+	##Purchase the selected upgrade - CRITICAL MISSING FUNCTIONALITY
+	print("[LobbyZone2D] Attempting to purchase upgrade: %s" % upgrade_type)
+
+	if not LocalPlayerData or not LocalPlayerData.is_initialized:
+		_update_purchase_result("Player data not available!", Color.RED)
+		return
+
+	# Get current state
+	var player_credits = LocalPlayerData.get_credits()
+	var current_upgrades = LocalPlayerData.get_all_upgrades()
+	var current_level = current_upgrades.get(upgrade_type, 0)
+	var cost = _calculate_upgrade_cost(upgrade_type, current_level)
+
+	# Validate purchase
+	if player_credits < cost:
+		_update_purchase_result("INSUFFICIENT CREDITS\nNeed: %d, Have: %d" % [cost, player_credits], Color.RED)
+		print("[LobbyZone2D] Purchase failed - insufficient credits")
+		return
+
+	# Get upgrade definitions for max level check
+	var upgrade_definitions = upgrade_system.upgrade_definitions if upgrade_system else _get_basic_upgrade_definitions()
+	var upgrade_data = upgrade_definitions.get(upgrade_type, {})
+	var max_level = upgrade_data.get("max_level", 5)
+
+	if current_level >= max_level:
+		_update_purchase_result("UPGRADE ALREADY AT MAX LEVEL", Color.RED)
+		print("[LobbyZone2D] Purchase failed - already at max level")
+		return
+
+	# CRITICAL FIX: Use APIClient for server-backed purchases when available
+	if api_client and api_client.has_method("purchase_upgrade"):
+		print("[LobbyZone2D] Using APIClient for server-backed upgrade purchase")
+		_update_purchase_result("Processing purchase...", Color.YELLOW)
+
+		# Use APIClient for purchase (will trigger signals for success/failure)
+		api_client.purchase_upgrade(upgrade_type, cost, LocalPlayerData.get_player_id())
+
+		# The purchase result will be handled by signal handlers
+		return
+
+	# Fallback to local-only purchase if APIClient not available
+	print("[LobbyZone2D] Using local-only upgrade purchase")
+	_process_local_upgrade_purchase(upgrade_type, cost, current_level, upgrade_data)
+
+func _process_local_upgrade_purchase(upgrade_type: String, cost: int, current_level: int, upgrade_data: Dictionary) -> void:
+	##Process upgrade purchase locally when APIClient is not available
+	# Deduct credits and apply upgrade locally
+	LocalPlayerData.add_credits(-cost)
+	var new_level = current_level + 1
+	LocalPlayerData.set_upgrade_level(upgrade_type, new_level)
+
+	print("[LobbyZone2D] Local purchase successful - %s level %d for %d credits" % [upgrade_type, new_level, cost])
+
+	# Apply upgrade effects if upgrade system is available
+	if upgrade_system and upgrade_system.has_method("apply_upgrade_effects"):
+		upgrade_system.apply_upgrade_effects(upgrade_type, new_level, null)  # No player ship in lobby
+		print("[LobbyZone2D] Applied upgrade effects for %s level %d" % [upgrade_type, new_level])
+
+	# Update UI immediately
+	_update_lobby_ui_with_player_data()
+	_populate_upgrade_catalog()  # Refresh catalog with new levels
+
+	# Show success message
+	var upgrade_name = upgrade_data.get("name", upgrade_type.capitalize().replace("_", " "))
+	var success_message = "SUCCESS!\nPurchased %s level %d\nCost: %d credits\nRemaining: %d credits" % [upgrade_name, new_level, cost, LocalPlayerData.get_credits()]
+	_update_purchase_result(success_message, Color.GREEN)
+
+	# Clear selection to reset the interface
+	current_selected_upgrade = ""
+	current_upgrade_cost = 0
+
+	# Reset upgrade details panel
+	if upgrade_details_label:
+		upgrade_details_label.text = "Select an upgrade above to see details"
+
+	# Reset purchase button
+	if purchase_button:
+		purchase_button.text = "PURCHASE UPGRADE"
+		purchase_button.disabled = true
+
+func _update_purchase_result(message: String, color: Color) -> void:
+	##Update the purchase result display
+	if purchase_result:
+		purchase_result.text = message
+		purchase_result.modulate = color
+		print("[LobbyZone2D] Purchase result updated: %s" % message)
+
+func _get_basic_upgrade_definitions() -> Dictionary:
+	##Get basic upgrade definitions if UpgradeSystem is not available
+	return {
+		"speed_boost": {
+			"name": "Speed Boost",
+			"description": "Increases movement speed",
+			"max_level": 5,
+			"effect_per_level": "+20 speed",
+			"category": "Movement"
+		},
+		"inventory_expansion": {
+			"name": "Inventory Expansion",
+			"description": "Increases inventory capacity",
+			"max_level": 5,
+			"effect_per_level": "+5 slots",
+			"category": "Storage"
+		},
+		"collection_efficiency": {
+			"name": "Collection Efficiency",
+			"description": "Improves debris collection range and speed",
+			"max_level": 5,
+			"effect_per_level": "+2 range",
+			"category": "Collection"
+		},
+		"cargo_magnet": {
+			"name": "Cargo Magnet",
+			"description": "Automatically collects nearby debris",
+			"max_level": 3,
+			"effect_per_level": "+5 range",
+			"category": "Automation"
+		}
+	}
+
+func _create_basic_upgrade_definitions() -> void:
+	##Create a basic upgrade system if one doesn't exist
+	print("[LobbyZone2D] Creating basic upgrade definitions for lobby")
+	# This is handled by _get_basic_upgrade_definitions() method
+
 func _setup_system_references() -> void:
 	##Setup references to game systems from singletons/autoloads
-	print("[LobbyZone2D] Setting up system references")
+	print("[LobbyZone2D] === SETTING UP SYSTEM REFERENCES ===")
 
-	# LocalPlayerData is available as a singleton - no need for inventory_manager property
+	# CRITICAL FIX: Create UpgradeSystem instance if singleton not available
+	if not upgrade_system:
+		upgrade_system = get_node_or_null("/root/UpgradeSystem")
+		if upgrade_system:
+			print("[LobbyZone2D] Connected to UpgradeSystem singleton")
+		else:
+			print("[LobbyZone2D] UpgradeSystem singleton not found - creating local instance")
+			# Create local UpgradeSystem instance for lobby
+			var upgrade_script = preload("res://scripts/UpgradeSystem.gd")
+			upgrade_system = upgrade_script.new()
+			upgrade_system.name = "LobbyUpgradeSystem"
+			add_child(upgrade_system)
+			print("[LobbyZone2D] Created local UpgradeSystem instance")
+	else:
+		print("[LobbyZone2D] UpgradeSystem already available")
+
+	# Setup APIClient reference for upgrade purchases
+	if not api_client:
+		api_client = get_node_or_null("/root/APIClient")
+		if api_client:
+			print("[LobbyZone2D] Connected to APIClient singleton")
+		else:
+			print("[LobbyZone2D] WARNING - APIClient not found, using local-only mode")
+
+	# Setup InventoryManager reference (optional)
+	if not inventory_manager:
+		inventory_manager = get_node_or_null("/root/InventoryManager")
+		if inventory_manager:
+			print("[LobbyZone2D] Connected to InventoryManager")
+		else:
+			print("[LobbyZone2D] InventoryManager not found - using LocalPlayerData directly")
+
+	# Setup NetworkManager reference (optional)
+	if not network_manager:
+		network_manager = get_node_or_null("/root/NetworkManager")
+		if network_manager:
+			print("[LobbyZone2D] Connected to NetworkManager")
+		else:
+			print("[LobbyZone2D] NetworkManager not found - local mode only")
+
+	# CRITICAL: Verify LocalPlayerData is available and ready
 	if LocalPlayerData:
-		print("[LobbyZone2D] Connected to LocalPlayerData singleton")
+		if LocalPlayerData.is_initialized:
+			print("[LobbyZone2D] LocalPlayerData verified and initialized")
+			print("[LobbyZone2D] - Credits: %d" % LocalPlayerData.get_credits())
+			print("[LobbyZone2D] - Inventory items: %d" % LocalPlayerData.get_inventory().size())
+			print("[LobbyZone2D] - Upgrades: %s" % LocalPlayerData.get_all_upgrades())
+		else:
+			print("[LobbyZone2D] WARNING - LocalPlayerData exists but not initialized")
+	else:
+		print("[LobbyZone2D] CRITICAL ERROR - LocalPlayerData not available!")
 
-	# Get UpgradeSystem reference
-	upgrade_system = get_node_or_null("/root/UpgradeSystem")
-	if upgrade_system:
-		print("[LobbyZone2D] Connected to UpgradeSystem")
+	# Verify critical systems for trading functionality
+	var systems_ready = {
+		"LocalPlayerData": LocalPlayerData != null and LocalPlayerData.is_initialized,
+		"UpgradeSystem": upgrade_system != null,
+		"APIClient": api_client != null
+	}
 
-	# Get APIClient reference
-	api_client = get_node_or_null("/root/APIClient")
-	if api_client:
-		print("[LobbyZone2D] Connected to APIClient")
-
-	# Get NetworkManager reference
-	network_manager = get_node_or_null("/root/NetworkManager")
-	if network_manager:
-		print("[LobbyZone2D] Connected to NetworkManager")
+	print("[LobbyZone2D] System status: %s" % systems_ready)
+	print("[LobbyZone2D] === SYSTEM REFERENCES SETUP COMPLETE ===")
 
 func _setup_boundaries() -> void:
 	##Setup exit boundaries for the lobby
@@ -383,13 +938,32 @@ func _interact_with_computer() -> void:
 	if not computer_in_range:
 		return
 
+	print("[LobbyZone2D] Interacting with trading computer - opening trading interface")
+
 	# Show the trading interface
 	if trading_interface:
 		trading_interface.visible = true
+		trading_interface_open = true
+
+		# CRITICAL FIX: Populate upgrade catalog when interface opens
+		_populate_upgrade_catalog()
+
+		# Set trading interface title
+		if trading_title:
+			trading_title.text = "TRADING TERMINAL - LOBBY"
+
+		# Clear any previous results
+		if trading_result:
+			trading_result.text = "Select 'Sell All' to convert your debris into credits."
+
+		if purchase_result:
+			purchase_result.text = ""
 
 		# Pause player movement while trading
 		if lobby_player and lobby_player.has_method("set_movement_enabled"):
 			lobby_player.set_movement_enabled(false)
+
+		print("[LobbyZone2D] Trading interface opened with upgrade catalog populated")
 
 	trading_computer_accessed.emit()
 
@@ -399,10 +973,17 @@ func close_trading_interface() -> void:
 
 	if trading_interface:
 		trading_interface.visible = false
+		trading_interface_open = false
+
+	# Clear trading interface state
+	current_selected_upgrade = ""
+	current_upgrade_cost = 0
 
 	# Resume player movement
 	if lobby_player and lobby_player.has_method("set_movement_enabled"):
 		lobby_player.set_movement_enabled(true)
+
+	print("[LobbyZone2D] Trading interface closed and player movement resumed")
 
 func _on_trading_computer_area_entered(area: Area2D) -> void:
 	##Handle player entering trading computer interaction area
@@ -485,16 +1066,60 @@ func _setup_ui_data_connections() -> void:
 	else:
 		print("[LobbyZone2D] WARNING - LocalPlayerData not available")
 
+	# CRITICAL FIX: Connect to APIClient signals for upgrade purchases
+	if api_client:
+		if api_client.has_signal("upgrade_purchased") and not api_client.upgrade_purchased.is_connected(_on_upgrade_purchase_success):
+			api_client.upgrade_purchased.connect(_on_upgrade_purchase_success)
+			print("[LobbyZone2D] Connected to APIClient upgrade_purchased signal")
+
+		if api_client.has_signal("upgrade_purchase_failed") and not api_client.upgrade_purchase_failed.is_connected(_on_upgrade_purchase_failed):
+			api_client.upgrade_purchase_failed.connect(_on_upgrade_purchase_failed)
+			print("[LobbyZone2D] Connected to APIClient upgrade_purchase_failed signal")
+
+		if api_client.has_signal("credits_updated") and not api_client.credits_updated.is_connected(_on_credits_updated):
+			api_client.credits_updated.connect(_on_credits_updated)
+			print("[LobbyZone2D] Connected to APIClient credits_updated signal")
+
+	# Connect to UpgradeSystem signals for upgrade effects
+	if upgrade_system:
+		if upgrade_system.has_signal("upgrade_effects_applied") and not upgrade_system.upgrade_effects_applied.is_connected(_on_upgrade_effects_applied):
+			upgrade_system.upgrade_effects_applied.connect(_on_upgrade_effects_applied)
+			print("[LobbyZone2D] Connected to UpgradeSystem upgrade_effects_applied signal")
+
 func _load_and_display_player_data() -> void:
 	##Load current player data and update all UI displays
-	print("[LobbyZone2D] Loading and displaying current player data")
+	print("[LobbyZone2D] === LOADING AND DISPLAYING PLAYER DATA ===")
 
-	if not LocalPlayerData or not LocalPlayerData.is_initialized:
-		print("[LobbyZone2D] LocalPlayerData not ready, skipping initial display")
+	if not LocalPlayerData:
+		print("[LobbyZone2D] CRITICAL ERROR - LocalPlayerData not available!")
 		return
+
+	if not LocalPlayerData.is_initialized:
+		print("[LobbyZone2D] WARNING - LocalPlayerData not ready, skipping initial display")
+		return
+
+	# CRITICAL FIX: Display comprehensive data status for debugging
+	var player_credits = LocalPlayerData.get_credits()
+	var player_inventory = LocalPlayerData.get_inventory()
+	var player_upgrades = LocalPlayerData.get_all_upgrades()
+
+	print("[LobbyZone2D] Player data status:")
+	print("[LobbyZone2D] - Credits: %d" % player_credits)
+	print("[LobbyZone2D] - Inventory items: %d" % player_inventory.size())
+	print("[LobbyZone2D] - Upgrades: %s" % player_upgrades)
+
+	if player_inventory.size() > 0:
+		print("[LobbyZone2D] - Sample inventory items: %s" % player_inventory.slice(0, min(3, player_inventory.size())))
+
+	# Check if this looks like freshly synced data from 3D scene
+	if player_inventory.size() > 0 or player_credits > 100 or player_upgrades.values().any(func(level): return level > 0):
+		print("[LobbyZone2D] ✅ Data appears to be synced from 3D scene successfully!")
+	else:
+		print("[LobbyZone2D] ⚠️  Data appears to be default values - may need to collect items in 3D first")
 
 	# Force UI update with current data
 	_update_lobby_ui_with_player_data()
+	print("[LobbyZone2D] === PLAYER DATA LOADING COMPLETE ===")
 
 func _process(delta: float) -> void:
 	# Handle input for interaction and exit
@@ -679,9 +1304,77 @@ func _get_inventory_capacity_from_upgrades(upgrades: Dictionary) -> int:
 	var bonus_capacity = expansion_level * 5  # Each level adds 5 slots
 	return base_capacity + bonus_capacity
 
+## SIGNAL HANDLERS FOR UPGRADE SYSTEM AND API CLIENT - CRITICAL MISSING FUNCTIONALITY
+
+func _on_upgrade_purchase_success(result: Dictionary) -> void:
+	##Handle successful upgrade purchase from API
+	print("[LobbyZone2D] Upgrade purchase successful: %s" % result)
+
+	var upgrade_type = result.get("upgrade_type", "")
+	var new_level = result.get("new_level", 0)
+	var cost = result.get("cost", 0)
+	var remaining_credits = result.get("remaining_credits", 0)
+
+	# Update LocalPlayerData with the purchase result
+	if LocalPlayerData:
+		LocalPlayerData.set_credits(remaining_credits)
+		LocalPlayerData.set_upgrade_level(upgrade_type, new_level)
+		print("[LobbyZone2D] Updated LocalPlayerData with purchase - %s level %d, credits: %d" % [upgrade_type, new_level, remaining_credits])
+
+	# Apply upgrade effects if upgrade system is available
+	if upgrade_system and upgrade_system.has_method("apply_upgrade_effects"):
+		upgrade_system.apply_upgrade_effects(upgrade_type, new_level, null)  # No player ship in lobby
+		print("[LobbyZone2D] Applied upgrade effects for %s level %d" % [upgrade_type, new_level])
+
+	# Update UI immediately
+	_update_lobby_ui_with_player_data()
+	_populate_upgrade_catalog()  # Refresh catalog with new levels
+
+	# Show success message
+	var upgrade_name = upgrade_type.capitalize().replace("_", " ")
+	var success_message = "SUCCESS!\nPurchased %s level %d\nCost: %d credits\nRemaining: %d credits" % [upgrade_name, new_level, cost, remaining_credits]
+	_update_purchase_result(success_message, Color.GREEN)
+
+	# Clear selection
+	current_selected_upgrade = ""
+	current_upgrade_cost = 0
+
+func _on_upgrade_purchase_failed(reason: String, upgrade_type: String) -> void:
+	##Handle failed upgrade purchase from API
+	print("[LobbyZone2D] Upgrade purchase failed: %s - %s" % [upgrade_type, reason])
+
+	# Show error message
+	_update_purchase_result("PURCHASE FAILED\n%s\nReason: %s" % [upgrade_type, reason], Color.RED)
+
+func _on_credits_updated(new_credits: int) -> void:
+	##Handle credits update from API
+	print("[LobbyZone2D] Credits updated via API: %d" % new_credits)
+
+	# Update LocalPlayerData
+	if LocalPlayerData:
+		LocalPlayerData.set_credits(new_credits)
+
+	# Update UI
+	_update_lobby_ui_with_player_data()
+
+	# Refresh upgrade catalog to show affordability changes
+	if trading_interface_open:
+		_populate_upgrade_catalog()
+
+func _on_upgrade_effects_applied(effects: Dictionary) -> void:
+	##Handle upgrade effects being applied
+	print("[LobbyZone2D] Upgrade effects applied: %s" % effects)
+
+	# Update UI to reflect any changes (like inventory capacity)
+	_update_lobby_ui_with_player_data()
+
 func _on_player_data_updated(data_type: String) -> void:
 	##Handle player data update signals from LocalPlayerData
 	print("[LobbyZone2D] Player data updated: %s" % data_type)
 
 	# Force UI update when data changes
 	_update_lobby_ui_with_player_data()
+
+	# If trading interface is open and credits/upgrades changed, refresh catalog
+	if trading_interface_open and (data_type == "credits" or data_type == "upgrades"):
+		_populate_upgrade_catalog()

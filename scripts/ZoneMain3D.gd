@@ -973,10 +973,35 @@ func open_trading_interface(hub_type: String) -> void:
 	##Redirect to 2D lobby instead of opening trading interface overlay
 	_log_message("ZoneMain3D: Player pressed F at %s hub - redirecting to 2D lobby" % hub_type)
 
-	# Save current player data before scene transition
-	if LocalPlayerData:
+	# CRITICAL FIX: Sync complete player ship state to LocalPlayerData before scene transition
+	if LocalPlayerData and player_ship:
+		_log_message("ZoneMain3D: === SYNCING COMPLETE PLAYER STATE TO LOCAL DATA ===")
+
+		# Sync current inventory from player ship
+		_log_message("ZoneMain3D: Syncing inventory - %d items from PlayerShip3D" % player_ship.current_inventory.size())
+		LocalPlayerData.player_inventory = player_ship.current_inventory.duplicate()
+		LocalPlayerData.save_inventory()
+		_log_message("ZoneMain3D: Inventory synced to LocalPlayerData - %d items" % LocalPlayerData.player_inventory.size())
+
+		# Sync current credits from player ship
+		_log_message("ZoneMain3D: Syncing credits - %d from PlayerShip3D" % player_ship.credits)
+		LocalPlayerData.set_credits(player_ship.credits)
+		_log_message("ZoneMain3D: Credits synced to LocalPlayerData - %d" % LocalPlayerData.get_credits())
+
+		# Sync current upgrades from player ship
+		_log_message("ZoneMain3D: Syncing upgrades - %s from PlayerShip3D" % player_ship.upgrades)
+		LocalPlayerData.player_upgrades = player_ship.upgrades.duplicate()
+		LocalPlayerData.save_upgrades()
+		_log_message("ZoneMain3D: Upgrades synced to LocalPlayerData - %s" % LocalPlayerData.player_upgrades)
+
+		# Save all player data
 		LocalPlayerData.save_player_data()
-		_log_message("ZoneMain3D: Player data saved before lobby transition")
+		_log_message("ZoneMain3D: === PLAYER STATE SYNC COMPLETE ===")
+
+	elif not LocalPlayerData:
+		_log_message("ZoneMain3D: ERROR - LocalPlayerData not available for sync!")
+	elif not player_ship:
+		_log_message("ZoneMain3D: ERROR - PlayerShip3D not available for sync!")
 
 	# Store hub type for lobby context (optional)
 	if LocalPlayerData:
