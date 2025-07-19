@@ -977,11 +977,24 @@ func open_trading_interface(hub_type: String) -> void:
 	if LocalPlayerData and player_ship:
 		_log_message("ZoneMain3D: === SYNCING COMPLETE PLAYER STATE TO LOCAL DATA ===")
 
-		# Sync current inventory from player ship
+		# Sync current inventory from player ship - FIXED: Convert structure properly
 		_log_message("ZoneMain3D: Syncing inventory - %d items from PlayerShip3D" % player_ship.current_inventory.size())
-		LocalPlayerData.player_inventory = player_ship.current_inventory.duplicate()
+
+		# Clear existing inventory and re-add items with proper structure
+		LocalPlayerData.player_inventory.clear()
+		for item in player_ship.current_inventory:
+			# Convert 3D inventory structure to LocalPlayerData structure
+			var converted_item = {
+				"type": item.get("type", "unknown"),
+				"item_id": item.get("id", ""),  # Convert "id" → "item_id"
+				"quantity": 1,  # 3D items are individual, so quantity is always 1
+				"value": item.get("value", 0),
+				"acquired_at": Time.get_datetime_string_from_system()
+			}
+			LocalPlayerData.player_inventory.append(converted_item)
+
 		LocalPlayerData.save_inventory()
-		_log_message("ZoneMain3D: Inventory synced to LocalPlayerData - %d items" % LocalPlayerData.player_inventory.size())
+		_log_message("ZoneMain3D: Inventory converted and synced to LocalPlayerData - %d items" % LocalPlayerData.player_inventory.size())
 
 		# Sync current credits from player ship
 		_log_message("ZoneMain3D: Syncing credits - %d from PlayerShip3D" % player_ship.credits)
