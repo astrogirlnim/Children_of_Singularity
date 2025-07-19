@@ -364,10 +364,13 @@ anchor_bottom = 1.0
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="UpgradeGrid" type="GridContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog"]
+[node name="CenterContainer" type="CenterContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+
+[node name="UpgradeGrid" type="GridContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog/CenterContainer"]
+layout_mode = 2
 columns = 1
 
 [node name="UpgradeDetails" type="Panel" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]

@@ -94,7 +94,7 @@ func _setup_components() -> void:
 		ui_manager.trading_tabs = $UILayer/HUD/TradingInterface/TradingTabs
 		ui_manager.upgrade_content = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent
 		ui_manager.upgrade_catalog = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog
-		ui_manager.upgrade_grid = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog/UpgradeGrid
+		ui_manager.upgrade_grid = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog/CenterContainer/UpgradeGrid
 		ui_manager.upgrade_details = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails
 		ui_manager.upgrade_details_label = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails/UpgradeDetailsLabel
 		ui_manager.purchase_button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls/PurchaseButton
