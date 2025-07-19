@@ -713,8 +713,9 @@ func _populate_upgrade_catalog() -> void:
 		print("[LobbyZone2D] CRITICAL ERROR - LocalPlayerData not initialized!")
 		return
 
-	# Clear existing upgrade buttons
+	# Clear existing upgrade buttons - FIXED: Immediately remove from scene tree
 	for child in upgrade_grid.get_children():
+		upgrade_grid.remove_child(child)
 		child.queue_free()
 	upgrade_buttons.clear()
 	print("[LobbyZone2D] Cleared existing upgrade buttons")
@@ -1347,9 +1348,11 @@ func _update_inventory_display(inventory: Array, capacity: int) -> void:
 	else:
 		inventory_status.modulate = Color.WHITE
 
-	# Clear existing inventory display
+	# Clear existing inventory display - FIXED: Immediately remove from scene tree
 	for item in inventory_items:
-		if item:
+		if item and is_instance_valid(item):
+			if item.get_parent():
+				item.get_parent().remove_child(item)
 			item.queue_free()
 	inventory_items.clear()
 
@@ -1545,8 +1548,9 @@ func _populate_debris_selection_ui() -> void:
 	if not debris_selection_list or not LocalPlayerData:
 		return
 
-	# Clear existing selection items
+	# Clear existing selection items - FIXED: Immediately remove from scene tree
 	for child in debris_selection_list.get_children():
+		debris_selection_list.remove_child(child)
 		child.queue_free()
 
 	# Group inventory by type
