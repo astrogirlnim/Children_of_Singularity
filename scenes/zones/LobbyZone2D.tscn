@@ -1,0 +1,348 @@
+[gd_scene load_steps=16 format=3 uid="uid://b8r7x5jy4h2l6"]
+
+[ext_resource type="Script" uid="uid://cjas7bklaa36f" path="res://scripts/LobbyZone2D.gd" id="1_lobby_script"]
+[ext_resource type="Script" uid="uid://dlwu2rskp1ojf" path="res://scripts/LobbyPlayer2D.gd" id="2_player_script"]
+[ext_resource type="Texture2D" uid="uid://cfyo4n74f64jt" path="res://assets/trading_hub_pixel_horizontal.png" id="3_background"]
+[ext_resource type="Texture2D" uid="uid://b6cqeexl126ff" path="res://assets/schlorp_guy_sprite.png" id="4_player_sprite"]
+[ext_resource type="Texture2D" uid="uid://bmxhgnlqpqujy" path="res://assets/computer_trading_hub_sprite.png" id="5_computer_sprite"]
+[ext_resource type="Theme" uid="uid://bq1qdtl0gehde" path="res://resources/themes/SpaceCustomTheme.tres" id="6_ui_theme"]
+
+[sub_resource type="RectangleShape2D" id="computer_collision_shape"]
+size = Vector2(585, 555)
+
+[sub_resource type="RectangleShape2D" id="player_collision_shape"]
+size = Vector2(32, 48)
+
+[sub_resource type="CircleShape2D" id="interaction_collision_shape"]
+radius = 64.0
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_k1m3w"]
+a = Vector2(60.9628, -0.301456)
+b = Vector2(-60.6283, 0.0861301)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_hirm4"]
+a = Vector2(-85.561, -0.328156)
+b = Vector2(77.8341, 0.147625)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hirm4"]
+size = Vector2(24.3213, 19.2985)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_ujpgb"]
+b = Vector2(-1.90735e-06, 2.94772)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_somqn"]
+a = Vector2(-742, -3)
+b = Vector2(805, -4)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ujpgb"]
+size = Vector2(1532, 1023)
+
+[node name="LobbyZone2D" type="Node2D"]
+script = ExtResource("1_lobby_script")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(500, 200)
+
+[node name="Background" type="Sprite2D" parent="."]
+position = Vector2(500, 200)
+texture = ExtResource("3_background")
+
+[node name="TradingComputer" type="Area2D" parent="."]
+position = Vector2(1076, 297)
+collision_layer = 2
+collision_mask = 0
+
+[node name="ComputerSprite2D" type="Sprite2D" parent="TradingComputer"]
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("5_computer_sprite")
+
+[node name="ComputerCollisionShape2D" type="CollisionShape2D" parent="TradingComputer"]
+scale = Vector2(0.2, 0.2)
+shape = SubResource("computer_collision_shape")
+
+[node name="ComputerSolidBody" type="StaticBody2D" parent="."]
+visible = false
+position = Vector2(1076, 297)
+
+[node name="ComputerSolidCollision" type="CollisionShape2D" parent="ComputerSolidBody"]
+position = Vector2(0, -15.5)
+scale = Vector2(0.2, 0.2)
+shape = SubResource("computer_collision_shape")
+
+[node name="LobbyPlayer2D" type="CharacterBody2D" parent="."]
+position = Vector2(400, 300)
+scale = Vector2(1.78828, 1.78317)
+script = ExtResource("2_player_script")
+
+[node name="PlayerSprite2D" type="Sprite2D" parent="LobbyPlayer2D"]
+scale = Vector2(0.1, 0.1)
+texture = ExtResource("4_player_sprite")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LobbyPlayer2D"]
+shape = SubResource("player_collision_shape")
+
+[node name="InteractionArea2D" type="Area2D" parent="LobbyPlayer2D"]
+collision_layer = 0
+collision_mask = 2
+
+[node name="InteractionCollision" type="CollisionShape2D" parent="LobbyPlayer2D/InteractionArea2D"]
+shape = SubResource("interaction_collision_shape")
+
+[node name="SmallWall2" type="StaticBody2D" parent="."]
+position = Vector2(909, 597)
+
+[node name="SmallWall2Collision" type="CollisionShape2D" parent="SmallWall2"]
+position = Vector2(-5, -18)
+scale = Vector2(5.92163, -4.18356)
+shape = SubResource("SegmentShape2D_k1m3w")
+
+[node name="SmallWall1" type="StaticBody2D" parent="."]
+position = Vector2(-17, 548)
+scale = Vector2(13.596, -16.2301)
+
+[node name="SmallWallCollision" type="CollisionShape2D" parent="SmallWall1"]
+position = Vector2(-3.08915, -1.72519)
+scale = Vector2(-0.200295, 0.187772)
+shape = SubResource("SegmentShape2D_hirm4")
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="HUD" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("6_ui_theme")
+
+[node name="LobbyStatus" type="Label" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -100.0
+offset_right = 300.0
+offset_bottom = -50.0
+text = "Welcome to the Trading Lobby"
+vertical_alignment = 1
+
+[node name="InteractionPrompt" type="Label" parent="UILayer/HUD"]
+visible = false
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -100.0
+offset_right = 200.0
+offset_bottom = -50.0
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TradingInterface" type="Panel" parent="UILayer/HUD"]
+visible = false
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+
+[node name="TradingTitle" type="Label" parent="UILayer/HUD/TradingInterface"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.1
+text = "TRADING TERMINAL"
+horizontal_alignment = 1
+
+[node name="TradingTabs" type="TabContainer" parent="UILayer/HUD/TradingInterface"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.1
+anchor_right = 0.95
+anchor_bottom = 0.85
+current_tab = 0
+
+[node name="SELL" type="Control" parent="UILayer/HUD/TradingInterface/TradingTabs"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="TradingContent" type="VBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TradingResult" type="Label" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent"]
+layout_mode = 2
+text = "Select 'Sell All' to convert your debris into credits."
+horizontal_alignment = 1
+
+[node name="SellAllButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent"]
+layout_mode = 2
+text = "SELL ALL DEBRIS"
+
+[node name="DumpInventoryButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent"]
+modulate = Color(1, 0.5, 0.5, 1)
+layout_mode = 2
+text = "DUMP ALL INVENTORY"
+
+[node name="BUY" type="Control" parent="UILayer/HUD/TradingInterface/TradingTabs"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="UpgradeContent" type="VBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="UpgradeCatalog" type="ScrollContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="UpgradeGrid" type="GridContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeCatalog"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="UpgradeDetails" type="Panel" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+
+[node name="UpgradeDetailsLabel" type="Label" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/UpgradeDetails"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Select an upgrade above to see details"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="PurchaseControls" type="HBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+
+[node name="PurchaseButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/PurchaseControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+disabled = true
+text = "PURCHASE UPGRADE"
+
+[node name="PurchaseResult" type="Label" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ClearUpgradesContainer" type="HBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent"]
+layout_mode = 2
+
+[node name="ClearUpgradesButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer"]
+modulate = Color(1, 0.5, 0.5, 1)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CLEAR ALL UPGRADES"
+
+[node name="MARKETPLACE" type="Control" parent="UILayer/HUD/TradingInterface/TradingTabs"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="MarketplaceContent" type="VBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarketplaceStatus" type="Label" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent"]
+layout_mode = 2
+text = "Player-to-Player Marketplace"
+horizontal_alignment = 1
+
+[node name="MarketplaceListings" type="ScrollContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MarketplaceGrid" type="GridContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceListings"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MarketplaceControls" type="HBoxContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent"]
+layout_mode = 2
+
+[node name="RefreshButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "REFRESH LISTINGS"
+
+[node name="SellItemButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "SELL ITEM"
+
+[node name="TradingCloseButton" type="Button" parent="UILayer/HUD/TradingInterface"]
+layout_mode = 0
+anchor_left = 0.85
+anchor_top = 0.05
+anchor_right = 0.95
+anchor_bottom = 0.1
+text = "X"
+
+[node name="WindowWalls" type="StaticBody2D" parent="."]
+position = Vector2(490, -140)
+rotation = 3.14159
+scale = Vector2(62.8666, 20.3168)
+
+[node name="WindowCollision" type="CollisionShape2D" parent="WindowWalls"]
+position = Vector2(-0.0954404, -1.17922)
+shape = SubResource("RectangleShape2D_hirm4")
+
+[node name="SideWall1" type="StaticBody2D" parent="."]
+
+[node name="SideWall1Collision" type="CollisionShape2D" parent="SideWall1"]
+position = Vector2(-268, -263)
+scale = Vector2(10.0748, 283.27)
+shape = SubResource("SegmentShape2D_ujpgb")
+
+[node name="SideWall2" type="StaticBody2D" parent="."]
+position = Vector2(1524, 6)
+
+[node name="SideWall1Collision" type="CollisionShape2D" parent="SideWall2"]
+position = Vector2(-268, -263)
+scale = Vector2(10.0748, 283.27)
+shape = SubResource("SegmentShape2D_ujpgb")
+
+[node name="Floor" type="StaticBody2D" parent="."]
+position = Vector2(469, 707)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Floor"]
+position = Vector2(-2, 1)
+shape = SubResource("SegmentShape2D_somqn")
+
+[node name="ExitBoundaries" type="Area2D" parent="."]
+position = Vector2(500, 200)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExitBoundaries"]
+position = Vector2(0, -2.5)
+shape = SubResource("RectangleShape2D_ujpgb")
+
+[connection signal="area_entered" from="LobbyPlayer2D/InteractionArea2D" to="." method="_on_trading_computer_area_entered"]
+[connection signal="area_exited" from="LobbyPlayer2D/InteractionArea2D" to="." method="_on_trading_computer_area_exited"]
+[connection signal="pressed" from="UILayer/HUD/TradingInterface/TradingCloseButton" to="." method="close_trading_interface"]
+[connection signal="body_exited" from="ExitBoundaries" to="." method="_on_exit_boundaries_body_exited"]
