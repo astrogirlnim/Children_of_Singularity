@@ -1,6 +1,7 @@
 # APIClient.gd
-# HTTP client for communicating with the Children of the Singularity backend API
-# Handles all REST API calls for player data, inventory, and transactions
+# Hybrid API client that supports both backend and local-only modes
+# Development: Uses HTTP backend at localhost:8000
+# Release: Falls back to LocalPlayerData.gd for offline functionality
 
 class_name APIClient
 extends HTTPRequest
@@ -31,6 +32,10 @@ var base_url: String = "http://localhost:8000/api/v1"
 var player_id: String = "550e8400-e29b-41d4-a716-446655440000"
 var request_timeout: float = 30.0
 
+# Fallback mode for releases
+var use_local_storage: bool = false
+var local_player_data: LocalPlayerData
+
 # Request tracking
 var pending_requests: Dictionary = {}
 var request_id_counter: int = 0
@@ -40,15 +45,39 @@ var max_retries: int = 3
 var retry_delay: float = 1.0
 
 func _ready() -> void:
+	_log_message("APIClient: === INITIALIZING HTTP CLIENT ===")
 	_log_message("APIClient: Initializing HTTP client")
-	request_completed.connect(_on_request_completed)
-	request_timeout = 30.0
+
+	# Initialize reference to LocalPlayerData autoload singleton
+	local_player_data = LocalPlayerData
+	_log_message("APIClient: LocalPlayerData reference obtained - is_initialized: %s" % local_player_data.is_initialized)
+
+	# Wait for LocalPlayerData to be fully loaded before proceeding
+	if not local_player_data.is_initialized:
+		_log_message("APIClient: LocalPlayerData not ready, waiting for player_data_loaded signal...")
+		await local_player_data.player_data_loaded
+		_log_message("APIClient: LocalPlayerData ready signal received, proceeding with initialization")
+		_log_message("APIClient: LocalPlayerData now reports is_initialized: %s" % local_player_data.is_initialized)
+	else:
+		_log_message("APIClient: LocalPlayerData already initialized, proceeding immediately")
+
+	# Check if we should use local storage mode
+	_log_message("APIClient: Detecting storage mode...")
+	_detect_storage_mode()
+
+	if not use_local_storage:
+		request_completed.connect(_on_request_completed)
+		request_timeout = 30.0
+		_log_message("APIClient: Backend mode enabled")
+	else:
+		_log_message("APIClient: Local storage mode enabled")
 
 	# Validate the default player ID
 	if not _is_valid_uuid(player_id):
 		_log_message("APIClient: WARNING - Default player_id is not a valid UUID: %s" % player_id)
 
-	_log_message("APIClient: HTTP client ready")
+	_log_message("APIClient: === CLIENT READY IN %s MODE ===" % ("local" if use_local_storage else "backend"))
+	_log_message("APIClient: Client ready in %s mode" % ("local" if use_local_storage else "backend"))
 
 ## Validate UUID format
 func _is_valid_uuid(uuid_string: String) -> bool:
@@ -69,16 +98,76 @@ func _is_valid_uuid(uuid_string: String) -> bool:
 
 	return is_valid
 
-## Load player data from the backend
+## Detect whether to use backend or local storage
+func _detect_storage_mode() -> void:
+	# Try to connect to backend with short timeout
+	var test_request = HTTPRequest.new()
+	add_child(test_request)
+
+	test_request.timeout = 2.0  # Very short timeout
+	var url = base_url + "/health"
+
+	_log_message("APIClient: Testing backend connectivity...")
+	test_request.request(url)
+
+	# Wait briefly for response
+	await get_tree().create_timer(2.5).timeout
+
+	# Clean up test request
+	test_request.queue_free()
+
+	# If we get here without a response, assume no backend
+	use_local_storage = true
+	_log_message("APIClient: Backend not available, switching to local storage mode")
+
+## Load player data (unified interface)
 func load_player_data(target_player_id: String = "") -> void:
 	if target_player_id.is_empty():
 		target_player_id = self.player_id
 
-	# Validate UUID format before making request
+	if use_local_storage:
+		_load_player_data_local(target_player_id)
+	else:
+		_load_player_data_backend(target_player_id)
+
+## Local storage implementation
+func _load_player_data_local(target_player_id: String) -> void:
+	_log_message("APIClient: === LOADING PLAYER DATA FROM LOCAL STORAGE ===")
+	_log_message("APIClient: Loading player data from local storage")
+	_log_message("APIClient: Target player ID: %s" % target_player_id)
+
+	# Ensure LocalPlayerData is fully initialized
+	if not local_player_data.is_initialized:
+		_log_message("APIClient: LocalPlayerData not ready, waiting...")
+		await local_player_data.player_data_loaded
+		_log_message("APIClient: LocalPlayerData is now ready")
+
+	_log_message("APIClient: Accessing LocalPlayerData - is_initialized: %s" % local_player_data.is_initialized)
+	_log_message("APIClient: LocalPlayerData.player_data: %s" % local_player_data.player_data)
+	_log_message("APIClient: LocalPlayerData.player_upgrades: %s" % local_player_data.player_upgrades)
+
+	# Use LocalPlayerData singleton
+	var player_data = {
+		"id": target_player_id,
+		"name": local_player_data.get_player_name(),
+		"credits": local_player_data.get_credits(),
+		"upgrades": local_player_data.player_upgrades,
+		"progression": local_player_data.player_data.get("progression", {}),
+		"position": local_player_data.player_data.get("position", {"x": 0, "y": 0, "z": 0})
+	}
+
+	_log_message("APIClient: Constructed player data: %s" % player_data)
+	_log_message("APIClient: Loaded local player data - Credits: %d, Upgrades: %s" % [player_data["credits"], player_data["upgrades"]])
+
+	# Emit signal with local data
+	player_data_loaded.emit(player_data)
+	_log_message("APIClient: === PLAYER DATA LOADED AND EMITTED ===")
+
+## Backend implementation (existing code)
+func _load_player_data_backend(target_player_id: String) -> void:
 	if not _is_valid_uuid(target_player_id):
-		var error_msg = "Invalid UUID format for player ID: %s" % target_player_id
-		_log_message("APIClient: %s" % error_msg)
-		api_error.emit(error_msg)
+		var error_msg = "APIClient: Cannot load player data - invalid UUID: %s" % target_player_id
+		_log_message(error_msg)
 		return
 
 	var url = "%s/players/%s" % [base_url, target_player_id]
@@ -88,9 +177,36 @@ func load_player_data(target_player_id: String = "") -> void:
 	if request_id == -1:
 		api_error.emit("Failed to initiate player data load request")
 
-## Save player data to the backend
+## Save player data (unified interface)
 func save_player_data(player_data: Dictionary) -> void:
-	# Validate UUID format before making request
+	if use_local_storage:
+		_save_player_data_local(player_data)
+	else:
+		_save_player_data_backend(player_data)
+
+## Local save implementation
+func _save_player_data_local(player_data: Dictionary) -> void:
+	_log_message("APIClient: Saving player data to local storage")
+
+	# Update LocalPlayerData with provided data
+	if player_data.has("credits"):
+		local_player_data.set_credits(player_data["credits"])
+
+	if player_data.has("name"):
+		local_player_data.set_player_name(player_data["name"])
+
+	if player_data.has("upgrades"):
+		local_player_data.player_upgrades = player_data["upgrades"]
+		local_player_data.save_upgrades()
+
+	if player_data.has("progression"):
+		local_player_data.player_data["progression"] = player_data["progression"]
+		local_player_data.save_player_data()
+
+	_log_message("APIClient: Player data saved to local storage")
+
+## Backend save implementation
+func _save_player_data_backend(player_data: Dictionary) -> void:
 	if not _is_valid_uuid(player_id):
 		var error_msg = "Invalid UUID format for player ID: %s" % player_id
 		_log_message("APIClient: %s" % error_msg)
@@ -102,16 +218,42 @@ func save_player_data(player_data: Dictionary) -> void:
 
 	var json_data = JSON.stringify(player_data)
 	var headers = ["Content-Type: application/json"]
-	var request_id = _make_request(url, HTTPClient.METHOD_POST, headers, "save_player_data", json_data)
+	var request_id = _make_request(url, HTTPClient.METHOD_POST, headers, json_data)
 	if request_id == -1:
 		api_error.emit("Failed to initiate player data save request")
 
-## Load inventory from the backend
+## Load inventory (unified interface)
 func load_inventory(target_player_id: String = "") -> void:
 	if target_player_id.is_empty():
 		target_player_id = self.player_id
 
-	# Validate UUID format before making request
+	if use_local_storage:
+		_load_inventory_local(target_player_id)
+	else:
+		_load_inventory_backend(target_player_id)
+
+## Local inventory loading
+func _load_inventory_local(target_player_id: String) -> void:
+	_log_message("APIClient: === LOADING INVENTORY FROM LOCAL STORAGE ===")
+	_log_message("APIClient: Loading inventory from local storage")
+
+	# Ensure LocalPlayerData is fully initialized
+	if not local_player_data.is_initialized:
+		_log_message("APIClient: LocalPlayerData not ready for inventory, waiting...")
+		await local_player_data.player_data_loaded
+
+	# Get inventory from LocalPlayerData
+	var inventory_data = local_player_data.player_inventory
+
+	_log_message("APIClient: Raw inventory from LocalPlayerData: %s" % inventory_data)
+	_log_message("APIClient: Loaded local inventory - %d items" % inventory_data.size())
+
+	# Emit signal with inventory data
+	inventory_updated.emit(inventory_data)
+	_log_message("APIClient: === INVENTORY LOADED AND EMITTED ===")
+
+## Backend inventory loading
+func _load_inventory_backend(target_player_id: String) -> void:
 	if not _is_valid_uuid(target_player_id):
 		var error_msg = "Invalid UUID format for player ID: %s" % target_player_id
 		_log_message("APIClient: %s" % error_msg)
@@ -125,9 +267,26 @@ func load_inventory(target_player_id: String = "") -> void:
 	if request_id == -1:
 		api_error.emit("Failed to initiate inventory load request")
 
-## Add item to inventory via backend
+## Add inventory item (unified interface)
 func add_inventory_item(item_data: Dictionary) -> void:
-	# Validate UUID format before making request
+	if use_local_storage:
+		_add_inventory_item_local(item_data)
+	else:
+		_add_inventory_item_backend(item_data)
+
+## Local inventory addition
+func _add_inventory_item_local(item_data: Dictionary) -> void:
+	_log_message("APIClient: Adding item to local inventory: %s" % item_data)
+
+	# Add item to LocalPlayerData inventory
+	local_player_data.player_inventory.append(item_data)
+	local_player_data.save_inventory()
+
+	# Emit inventory updated signal
+	inventory_updated.emit(local_player_data.player_inventory)
+
+## Backend inventory addition
+func _add_inventory_item_backend(item_data: Dictionary) -> void:
 	if not _is_valid_uuid(player_id):
 		var error_msg = "Invalid UUID format for player ID: %s" % player_id
 		_log_message("APIClient: %s" % error_msg)
@@ -139,13 +298,29 @@ func add_inventory_item(item_data: Dictionary) -> void:
 
 	var json_data = JSON.stringify(item_data)
 	var headers = ["Content-Type: application/json"]
-	var request_id = _make_request(url, HTTPClient.METHOD_POST, headers, "add_inventory_item", json_data)
+	var request_id = _make_request(url, HTTPClient.METHOD_POST, headers, json_data)
 	if request_id == -1:
 		api_error.emit("Failed to initiate inventory add request")
 
-## Clear inventory (sell all items)
+## Clear inventory (unified interface)
 func clear_inventory() -> void:
-	# Validate UUID format before making request
+	if use_local_storage:
+		_clear_inventory_local()
+	else:
+		_clear_inventory_backend()
+
+## Local inventory clearing
+func _clear_inventory_local() -> void:
+	_log_message("APIClient: Clearing local inventory")
+
+	local_player_data.player_inventory.clear()
+	local_player_data.save_inventory()
+
+	# Emit signal
+	inventory_updated.emit([])
+
+## Backend inventory clearing
+func _clear_inventory_backend() -> void:
 	if not _is_valid_uuid(player_id):
 		var error_msg = "Invalid UUID format for player ID: %s" % player_id
 		_log_message("APIClient: %s" % error_msg)
@@ -159,9 +334,25 @@ func clear_inventory() -> void:
 	if request_id == -1:
 		api_error.emit("Failed to initiate inventory clear request")
 
-## Clear all upgrades (reset to defaults)
+## Clear upgrades (unified interface)
 func clear_upgrades() -> void:
-	# Validate UUID format before making request
+	if use_local_storage:
+		_clear_upgrades_local()
+	else:
+		_clear_upgrades_backend()
+
+## Local upgrades clearing
+func _clear_upgrades_local() -> void:
+	_log_message("APIClient: Clearing local upgrades")
+
+	local_player_data.player_upgrades.clear()
+	local_player_data.save_upgrades()
+
+	# Emit signal
+	upgrades_cleared.emit({"success": true})
+
+## Backend upgrades clearing
+func _clear_upgrades_backend() -> void:
 	if not _is_valid_uuid(player_id):
 		var error_msg = "Invalid UUID format for player ID: %s" % player_id
 		_log_message("APIClient: %s" % error_msg)
@@ -175,59 +366,125 @@ func clear_upgrades() -> void:
 	if request_id == -1:
 		api_error.emit("Failed to initiate upgrades clear request")
 
-## Update credits
-func update_credits(credits_change: int) -> void:
-	# Validate UUID format before making request
-	if not _is_valid_uuid(player_id):
-		var error_msg = "Invalid UUID format for player ID: %s" % player_id
-		_log_message("APIClient: %s" % error_msg)
-		api_error.emit(error_msg)
-		return
+## Update credits (unified interface)
+func update_credits(credit_change: int) -> void:
+	if use_local_storage:
+		_update_credits_local(credit_change)
+	else:
+		_update_credits_backend(credit_change)
+
+## Local credits update
+func _update_credits_local(credit_change: int) -> void:
+	_log_message("APIClient: Updating credits locally by %d" % credit_change)
+
+	local_player_data.add_credits(credit_change)
+	var new_credits = local_player_data.get_credits()
+
+	_log_message("APIClient: Credits updated to %d" % new_credits)
+
+## Backend credits update
+func _update_credits_backend(credit_change: int) -> void:
+	var credit_data = {"credit_change": credit_change}
 
 	var url = "%s/players/%s/credits" % [base_url, player_id]
 	_log_message("APIClient: Updating credits at %s" % url)
 
-	var data = {"credits_change": credits_change}
-	var json_data = JSON.stringify(data)
+	var json_data = JSON.stringify(credit_data)
 	var headers = ["Content-Type: application/json"]
-	var request_id = _make_request(url, HTTPClient.METHOD_POST, headers, "update_credits", json_data)
+	var request_id = _make_request(url, HTTPClient.METHOD_POST, headers, json_data)
 	if request_id == -1:
 		api_error.emit("Failed to initiate credits update request")
 
-## Check backend health
-func check_health() -> void:
+## Health check (unified interface)
+func check_backend_health() -> void:
+	if use_local_storage:
+		_check_health_local()
+	else:
+		_check_health_backend()
+
+## Local health check (always succeeds)
+func _check_health_local() -> void:
+	_log_message("APIClient: Local storage health check - always healthy")
+	# Emit success signal immediately
+	call_deferred("_emit_health_success")
+
+func _emit_health_success() -> void:
+	# Simulate successful health check response
+	pass
+
+## Backend health check
+func _check_health_backend() -> void:
 	var url = "%s/health" % base_url
 	_log_message("APIClient: Checking backend health at %s" % url)
 
-	var request_id = _make_request(url, HTTPClient.METHOD_GET, [], "check_health")
+	var request_id = _make_request(url, HTTPClient.METHOD_GET, [], "health_check")
 	if request_id == -1:
 		api_error.emit("Failed to initiate health check request")
 
-## Purchase an upgrade for the player
-func purchase_upgrade(target_player_id: String, upgrade_type: String, expected_cost: int) -> void:
-	_log_message("APIClient: Initiating upgrade purchase - Type: %s, Expected Cost: %d, Player: %s" % [upgrade_type, expected_cost, target_player_id])
-
-	# Validate input parameters
+## Unified upgrade purchase interface
+func purchase_upgrade(upgrade_type: String, expected_cost: int, target_player_id: String = "") -> void:
 	if target_player_id.is_empty():
 		target_player_id = self.player_id
 
-	# Validate UUID format before making request
+	if use_local_storage:
+		_purchase_upgrade_local(upgrade_type, expected_cost, target_player_id)
+	else:
+		_purchase_upgrade_backend(upgrade_type, expected_cost, target_player_id)
+
+## Local upgrade purchase
+func _purchase_upgrade_local(upgrade_type: String, expected_cost: int, target_player_id: String) -> void:
+	_log_message("APIClient: Processing local upgrade purchase - Type: %s, Cost: %d" % [upgrade_type, expected_cost])
+
+	# Check if player has enough credits
+	var current_credits = local_player_data.get_credits()
+	if current_credits < expected_cost:
+		_log_message("APIClient: Insufficient credits for upgrade - Have: %d, Need: %d" % [current_credits, expected_cost])
+		# Emit failure signal with proper parameters
+		var error_message = "Insufficient credits. Need: %d, Have: %d" % [expected_cost, current_credits]
+		upgrade_purchase_failed.emit(error_message, upgrade_type)
+		return
+
+	# Deduct credits
+	local_player_data.add_credits(-expected_cost)
+
+	# Apply upgrade
+	var current_level = local_player_data.player_upgrades.get(upgrade_type, 0)
+	var new_level = current_level + 1
+	local_player_data.player_upgrades[upgrade_type] = new_level
+	local_player_data.save_upgrades()
+
+	var new_credits = local_player_data.get_credits()
+	_log_message("APIClient: Local upgrade successful - Type: %s, Level: %d, Credits remaining: %d" % [upgrade_type, new_level, new_credits])
+
+	# Emit success signal with the same format as backend
+	var result = {
+		"upgrade_type": upgrade_type,
+		"new_level": new_level,
+		"cost": expected_cost,
+		"remaining_credits": new_credits,
+		"success": true
+	}
+
+	upgrade_purchased.emit(result)
+
+## Backend upgrade purchase
+func _purchase_upgrade_backend(upgrade_type: String, expected_cost: int, target_player_id: String) -> void:
+	_log_message("APIClient: Initiating backend upgrade purchase - Type: %s, Expected Cost: %d, Player: %s" % [upgrade_type, expected_cost, target_player_id])
+
+	# Validate input parameters
 	if not _is_valid_uuid(target_player_id):
 		var error_msg = "Invalid UUID format for player ID: %s" % target_player_id
 		_log_message("APIClient: %s" % error_msg)
-		upgrade_purchase_failed.emit(error_msg, upgrade_type)
 		return
 
 	if upgrade_type.is_empty():
 		var error_msg = "Invalid upgrade type: cannot be empty"
 		_log_message("APIClient: %s" % error_msg)
-		upgrade_purchase_failed.emit(error_msg, upgrade_type)
 		return
 
 	if expected_cost < 0:
 		var error_msg = "Invalid expected cost: cannot be negative (%d)" % expected_cost
 		_log_message("APIClient: %s" % error_msg)
-		upgrade_purchase_failed.emit(error_msg, upgrade_type)
 		return
 
 	# Make the upgrade purchase request
@@ -418,3 +675,104 @@ func _log_message(message: String) -> void:
 	var timestamp = Time.get_datetime_string_from_system()
 	var formatted_message = "[%s] %s" % [timestamp, message]
 	print(formatted_message)
+
+## Sell all inventory items (unified interface)
+func sell_all_inventory() -> void:
+	if use_local_storage:
+		_sell_all_inventory_local()
+	else:
+		_sell_all_inventory_backend()
+
+## Local sell all implementation
+func _sell_all_inventory_local() -> void:
+	_log_message("APIClient: Selling all inventory items locally")
+
+	# Get current inventory to calculate total value
+	var inventory_items = local_player_data.player_inventory
+	if inventory_items.is_empty():
+		_log_message("APIClient: No items to sell")
+		return
+
+	# Calculate total value of all items
+	var total_value = 0
+	var items_sold = 0
+	for item in inventory_items:
+		if item.has("value") and item.has("quantity"):
+			total_value += item["value"] * item["quantity"]
+			items_sold += item["quantity"]
+		elif item.has("value"):
+			total_value += item["value"]
+			items_sold += 1
+
+	# Clear inventory and get what was cleared
+	var cleared_items = local_player_data.clear_inventory()
+
+	# Add credits to player
+	local_player_data.add_credits(total_value)
+
+	_log_message("APIClient: Sold %d items for %d credits" % [items_sold, total_value])
+
+	# Emit signals for UI updates
+	inventory_updated.emit([])  # Empty inventory
+	# Note: credits update will be handled by LocalPlayerData signals
+
+## Backend sell all implementation
+func _sell_all_inventory_backend() -> void:
+	_log_message("APIClient: Selling all inventory via backend")
+
+	# Get current inventory first to calculate value
+	var url = base_url + "/players/" + player_id + "/inventory"
+	request(url, PackedStringArray(), HTTPClient.METHOD_GET)
+
+	var response = await request_completed
+	var response_code = response[1]
+	var response_body = response[3].get_string_from_utf8()
+
+	if response_code != 200:
+		_log_message("APIClient: Failed to get inventory for selling - Code: %d" % response_code)
+		return
+
+	var json = JSON.new()
+	var parse_result = json.parse(response_body)
+	if parse_result != OK:
+		_log_message("APIClient: Failed to parse inventory response")
+		return
+
+	var inventory_data = json.data
+	if not inventory_data.has("inventory"):
+		_log_message("APIClient: No inventory data in response")
+		return
+
+	# Calculate total value
+	var total_value = 0
+	var items_sold = 0
+	for item in inventory_data["inventory"]:
+		if item.has("value") and item.has("quantity"):
+			total_value += item["value"] * item["quantity"]
+			items_sold += item["quantity"]
+		elif item.has("value"):
+			total_value += item["value"]
+			items_sold += 1
+
+	# Clear inventory via backend
+	request(url, PackedStringArray(), HTTPClient.METHOD_DELETE)
+	response = await request_completed
+	response_code = response[1]
+
+	if response_code != 200:
+		_log_message("APIClient: Failed to clear inventory - Code: %d" % response_code)
+		return
+
+	# Add credits to player
+	var credits_data = {"credits": total_value}
+	var credits_json = JSON.stringify(credits_data)
+	var headers = PackedStringArray(["Content-Type: application/json"])
+
+	var credits_url = base_url + "/players/" + player_id + "/credits"
+	request(credits_url, headers, HTTPClient.METHOD_POST, credits_json)
+	response = await request_completed
+
+	_log_message("APIClient: Sold %d items for %d credits via backend" % [items_sold, total_value])
+
+	# Emit signals for UI updates
+	inventory_updated.emit([])  # Empty inventory

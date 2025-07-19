@@ -1992,7 +1992,7 @@ func _perform_upgrade_purchase() -> void:
 
 	# Call APIClient to purchase upgrade (Phase 2A integration)
 	if api_client and api_client.has_method("purchase_upgrade"):
-		api_client.purchase_upgrade(player_ship.player_id, current_selected_upgrade, current_upgrade_cost)
+		api_client.purchase_upgrade(current_selected_upgrade, current_upgrade_cost, player_ship.player_id)
 		_log_message("ZoneMain3D: Purchase request sent to API")
 	else:
 		_log_message("ZoneMain3D: ERROR - API client does not support upgrade purchases")
