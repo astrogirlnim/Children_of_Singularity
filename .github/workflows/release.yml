@@ -72,54 +72,30 @@ jobs:
             fi
           fi
 
-          # Tag push
+          # Tag push - always trigger release
           if [ "${{ github.event_name }}" = "push" ]; then
             case "${{ github.ref }}" in
               refs/tags/v*)
                 SHOULD_RELEASE="true"
                 echo "✅ Tag-based release triggered"
                 ;;
-            esac
-          fi
-
-          # PR merge to main/master
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.action }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ]; then
-            # Check if PR has release-related changes
-            echo "🔍 Checking PR for release-worthy changes..."
-
-            # Get list of changed files
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
-            echo "Changed files: $CHANGED_FILES"
-
-            # Check for significant changes (not just docs or minor fixes)
-            if echo "$CHANGED_FILES" | grep -E '\.(gd|tscn|tres|cs|cpp|h)$|scripts/|scenes/|assets/|project\.godot|export_presets\.cfg'; then
-              SHOULD_RELEASE="true"
-              IS_PRERELEASE="true"
-              echo "✅ PR contains significant changes, triggering release"
-            else
-              echo "ℹ️ PR contains only minor changes, skipping release"
-            fi
-          fi
-
-          # Push to main/master (direct commits)
-          if [ "${{ github.event_name }}" = "push" ]; then
-            case "${{ github.ref }}" in
-              refs/heads/*)
-                # Check if push contains significant changes
-                echo "🔍 Checking push for release-worthy changes..."
-
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
-            echo "Changed files: $CHANGED_FILES"
-
-            if echo "$CHANGED_FILES" | grep -E '\.(gd|tscn|tres|cs|cpp|h)$|scripts/|scenes/|assets/|project\.godot|export_presets\.cfg'; then
-              SHOULD_RELEASE="true"
-              IS_PRERELEASE="true"
-              echo "✅ Push contains significant changes, triggering release"
-            else
-              echo "ℹ️ Push contains only minor changes, skipping release"
-            fi
+              refs/heads/main|refs/heads/master)
+                SHOULD_RELEASE="true"
+                IS_PRERELEASE="true"
+                echo "✅ Push to main/master branch - triggering release"
                 ;;
             esac
+          fi
+
+          # PR merge to main/master - always trigger release
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.action }}" = "closed" ] && [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+            if [ "${{ github.event.pull_request.base.ref }}" = "main" ] || [ "${{ github.event.pull_request.base.ref }}" = "master" ]; then
+              SHOULD_RELEASE="true"
+              IS_PRERELEASE="true"
+              echo "✅ PR merged to main/master - triggering release"
+            else
+              echo "ℹ️ PR merged to non-main branch - skipping release"
+            fi
           fi
 
           echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
