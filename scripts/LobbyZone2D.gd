@@ -78,8 +78,8 @@ func _setup_lobby_environment() -> void:
 	# Position player relative to screen size (left-center area)
 	if lobby_player:
 		lobby_player.global_position = Vector2(screen_size.x * 0.25, screen_size.y * 0.5)
-		# Scale player appropriately for the screen
-		var player_scale = min(screen_size.x / 1920.0, screen_size.y / 1080.0) * 1.2  # Base scale with multiplier
+		# Scale player appropriately for the screen (reduced scale for better proportions)
+		var player_scale = min(screen_size.x / 1920.0, screen_size.y / 1080.0) * 0.6  # Reduced from 1.2 to 0.6
 		if lobby_player.get_node_or_null("PlayerSprite2D"):
 			lobby_player.get_node("PlayerSprite2D").scale = Vector2(player_scale, player_scale)
 		print("[LobbyZone2D] Player positioned at: %s with scale: %s" % [lobby_player.global_position, player_scale])
@@ -102,8 +102,8 @@ func _setup_lobby_environment() -> void:
 
 		# Position computer relative to screen size (right side, vertically centered)
 		trading_computer.position = Vector2(screen_size.x * 0.75, screen_size.y * 0.5)
-		# Scale computer appropriately for the screen
-		var computer_scale = min(screen_size.x / 1920.0, screen_size.y / 1080.0) * 1.5  # Base scale with multiplier
+		# Scale computer appropriately for the screen (reduced scale for better proportions)
+		var computer_scale = min(screen_size.x / 1920.0, screen_size.y / 1080.0) * 0.8  # Reduced from 1.5 to 0.8
 		computer_sprite.scale = Vector2(computer_scale, computer_scale)
 		print("[LobbyZone2D] Trading computer positioned at: %s with scale: %s" % [trading_computer.position, computer_sprite.scale])
 
