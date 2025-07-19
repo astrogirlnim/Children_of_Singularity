@@ -3,8 +3,7 @@
 # Handles all personal player data locally using Godot's built-in file system
 # NO backend sync for personal data - only trading goes to AWS RDS
 
-class_name LocalPlayerData
-extends RefCounted
+extends Node
 
 ## Signal emitted when data is saved
 signal data_saved(data_type: String)
@@ -17,8 +16,6 @@ signal player_data_loaded()
 
 # File operation locks to prevent concurrency issues
 var _inventory_lock: bool = false
-var _credits_lock: bool = false
-var _upgrades_lock: bool = false
 var _save_operation_in_progress: bool = false
 
 # File paths for different data types
@@ -227,7 +224,15 @@ func load_inventory() -> bool:
 		player_inventory = []
 		return false
 
-	player_inventory = json.data
+	# Safely assign JSON data to typed array
+	if json.data is Array:
+		player_inventory.clear()
+		for item in json.data:
+			if item is Dictionary:
+				player_inventory.append(item)
+	else:
+		player_inventory = []
+
 	_log_message("LocalPlayerData: Inventory loaded - %d items" % player_inventory.size())
 	return true
 
@@ -473,10 +478,10 @@ func get_player_name() -> String:
 	##Get player name
 	return player_data.get("player_name", "Space Salvager")
 
-func set_player_name(name: String) -> bool:
+func set_player_name(player_name_value: String) -> bool:
 	##Set player name
-	player_data["player_name"] = name
-	_log_message("LocalPlayerData: Player name set to %s" % name)
+	player_data["player_name"] = player_name_value
+	_log_message("LocalPlayerData: Player name set to %s" % player_name_value)
 	return save_player_data()
 
 func get_player_id() -> String:

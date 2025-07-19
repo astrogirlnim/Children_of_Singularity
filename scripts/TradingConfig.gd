@@ -1,6 +1,6 @@
 extends Node
-class_name TradingConfig
 
+# TradingConfig autoload singleton for Children of the Singularity
 # Default configuration (should be overridden by local config file)
 var config = {
 	"api_base_url": "https://your-api-gateway-id.execute-api.your-region.amazonaws.com/prod",
