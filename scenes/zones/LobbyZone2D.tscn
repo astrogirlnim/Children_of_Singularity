@@ -311,7 +311,6 @@ scale = Vector2(62.8666, 20.3168)
 
 [node name="WindowCollision" type="CollisionShape2D" parent="WindowWalls"]
 position = Vector2(-0.0954404, -1.17922)
-scale = Vector2(1, 1)
 shape = SubResource("RectangleShape2D_hirm4")
 
 [node name="SideWall1" type="StaticBody2D" parent="."]
