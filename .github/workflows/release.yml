@@ -195,6 +195,20 @@ jobs:
       - name: 📥 Checkout Source
         uses: actions/checkout@v4
 
+      - name: 🔧 Install AWS CLI
+        if: ${{ vars.USE_S3_STORAGE == 'true' }}
+        run: |
+          echo "🔧 Installing AWS CLI in container..."
+          apt-get update -qq
+          apt-get install -y curl unzip
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -q awscliv2.zip
+          ./aws/install
+
+          # Verify installation
+          aws --version
+          echo "✅ AWS CLI installed successfully"
+
       - name: ⚙️ Configure AWS Credentials
         if: ${{ vars.USE_S3_STORAGE == 'true' }}
         uses: aws-actions/configure-aws-credentials@v4
@@ -398,6 +412,17 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
           COMMIT_HASH: ${{ github.sha }}
         run: |
+          # Install AWS CLI if not available (should already be installed from earlier step)
+          if ! command -v aws &> /dev/null; then
+            echo "🔧 Installing AWS CLI..."
+            apt-get update -qq
+            apt-get install -y curl unzip
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip -q awscliv2.zip
+            ./aws/install
+            aws --version
+          fi
+
           # Make S3 manager executable
           chmod +x scripts/s3-manager.sh
 
@@ -470,6 +495,17 @@ jobs:
           AWS_REGION: ${{ vars.AWS_REGION || 'us-west-2' }}
           S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME || 'children-of-singularity-releases' }}
         run: |
+          # Install AWS CLI if not available
+          if ! command -v aws &> /dev/null; then
+            echo "🔧 Installing AWS CLI..."
+            apt-get update -qq
+            apt-get install -y curl unzip
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip -q awscliv2.zip
+            ./aws/install
+            aws --version
+          fi
+
           VERSION="${{ needs.version-check.outputs.version }}"
 
           echo "☁️ S3 Release Summary:"

@@ -14,6 +14,20 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: 🔧 Install AWS CLI
+      if: ${{ vars.USE_S3_STORAGE == 'true' }}
+      run: |
+        echo "🔧 Installing AWS CLI in container..."
+        apt-get update -qq
+        apt-get install -y curl unzip
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip -q awscliv2.zip
+        ./aws/install
+
+        # Verify installation
+        aws --version
+        echo "✅ AWS CLI installed successfully"
+
     - name: ⚙️ Configure AWS Credentials
       if: ${{ vars.USE_S3_STORAGE == 'true' }}
       uses: aws-actions/configure-aws-credentials@v4
