@@ -275,10 +275,42 @@ func _setup_interaction_area() -> void:
 
 func _initialize_player_state() -> void:
 	##Initialize player state and inventory
+	_log_message("PlayerShip3D: === INITIALIZING PLAYER STATE ===")
 	_log_message("PlayerShip3D: Initializing 3D player state")
+	_log_message("PlayerShip3D: is_loading_from_backend: %s" % is_loading_from_backend)
 
-	# Don't clear data if we're loading from backend
-	if not is_loading_from_backend:
+	# Check if we're in local-first mode (LocalPlayerData available)
+	var local_player_data = get_node_or_null("/root/LocalPlayerData")
+	var in_local_mode = local_player_data != null and local_player_data.is_initialized
+
+	_log_message("PlayerShip3D: local_player_data available: %s" % (local_player_data != null))
+	_log_message("PlayerShip3D: local_player_data initialized: %s" % (local_player_data.is_initialized if local_player_data else false))
+	_log_message("PlayerShip3D: in_local_mode: %s" % in_local_mode)
+
+	# If loading from backend OR in local mode, don't reset data
+	if is_loading_from_backend or in_local_mode:
+		if is_loading_from_backend:
+			_log_message("PlayerShip3D: Waiting for backend data load - Current credits: %d, inventory: %d items" % [credits, current_inventory.size()])
+		else:
+			# Load data from LocalPlayerData
+			_log_message("PlayerShip3D: Loading data from LocalPlayerData")
+			credits = local_player_data.get_credits()
+			upgrades = local_player_data.player_upgrades.duplicate()
+			current_inventory = local_player_data.player_inventory.duplicate()
+
+			_log_message("PlayerShip3D: Loaded from LocalPlayerData - Credits: %d, Upgrades: %s, Inventory: %d items" % [credits, upgrades, current_inventory.size()])
+
+			# CRITICAL FIX: Apply all loaded upgrade effects
+			for upgrade_type in upgrades:
+				var level = upgrades[upgrade_type]
+				if level > 0:
+					_apply_upgrade_effects(upgrade_type, level)
+					_log_message("PlayerShip3D: Applied %s upgrade level %d effects from LocalPlayerData" % [upgrade_type, level])
+
+			_log_message("PlayerShip3D: All upgrade effects applied - Final inventory capacity: %d" % inventory_capacity)
+	else:
+		# Only reset to defaults if neither backend nor local data is available
+		_log_message("PlayerShip3D: No data source available, using defaults")
 		current_inventory.clear()
 		credits = 0
 		upgrades = {
@@ -288,8 +320,8 @@ func _initialize_player_state() -> void:
 			"cargo_magnet": 0
 		}
 		_log_message("PlayerShip3D: Initialized with default values - Credits: %d, Capacity: %d/%d" % [credits, current_inventory.size(), inventory_capacity])
-	else:
-		_log_message("PlayerShip3D: Waiting for backend data load - Current credits: %d, inventory: %d items" % [credits, current_inventory.size()])
+
+	_log_message("PlayerShip3D: === PLAYER STATE INITIALIZATION COMPLETE - CREDITS: %d ===" % credits)
 
 func _physics_process(delta: float) -> void:
 	##Handle 3D physics processing

@@ -1,4 +1,4 @@
-name: PR Quality Checks
+name: PR Quality Checks (Local-Only Mode)
 
 on:
   pull_request:
@@ -100,8 +100,8 @@ jobs:
         # Use project-level validation which checks all scripts in context
         godot --headless --check --quit --path .
 
-  python-quality:
-    name: Python Backend Quality
+  aws-trading-validation:
+    name: AWS Trading Components
     runs-on: ubuntu-latest
 
     steps:
@@ -112,80 +112,101 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install dependencies
+    - name: Validate AWS Trading Lambda
       run: |
-        cd backend
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install flake8 black mypy pytest
+        echo "☁️ Validating AWS Trading Lambda..."
 
-    - name: Run Black formatting check
+        # Check if trading lambda exists
+        if [ -f "backend/trading_lambda.py" ]; then
+          echo "✅ AWS trading lambda file exists"
+
+          # Basic Python syntax check
+          python3 -m py_compile backend/trading_lambda.py
+          echo "✅ Trading lambda syntax is correct"
+        else
+          echo "❌ AWS trading lambda file missing"
+          exit 1
+        fi
+
+    - name: Check Trading Configuration
       run: |
-        echo "🖤 Checking Python code formatting with Black..."
-        cd backend
-        black --check app.py
+        echo "🔧 Checking trading configuration files..."
 
-    - name: Run Flake8 linting
+        # Check Godot trading scripts
+        required_trading_files=("scripts/TradingMarketplace.gd" "scripts/TradingConfig.gd")
+        for file in "${required_trading_files[@]}"; do
+          if [ -f "$file" ]; then
+            echo "✅ Trading file exists: $file"
+          else
+            echo "❌ Missing trading file: $file"
+            exit 1
+          fi
+        done
+
+    - name: Validate Trading Schema
       run: |
-        echo "🔍 Running Flake8 linting..."
-        cd backend
-        flake8 app.py --max-line-length=88 --statistics
+        echo "🗄️ Validating trading database schema..."
+        if [ -f "data/postgres/trading_schema.sql" ]; then
+          echo "✅ Trading schema file exists"
 
-    - name: Run MyPy type checking
-      run: |
-        echo "🔤 Running MyPy type checking..."
-        cd backend
-        mypy app.py --ignore-missing-imports
+          # Check for required tables
+          if grep -q "listings" data/postgres/trading_schema.sql; then
+            echo "✅ Trading schema contains listings table"
+          else
+            echo "❌ Trading schema missing listings table"
+            exit 1
+          fi
+        else
+          echo "❌ Trading schema file missing"
+          exit 1
+        fi
 
-    - name: Test Backend Import
-      run: |
-        echo "📦 Testing backend module imports..."
-        cd backend
-        python -c "import app; print('✅ Backend imports successfully')"
-
-  api-testing:
-    name: API Endpoint Testing
+  local-data-validation:
+    name: Local Data System Validation
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12'
-
-    - name: Install dependencies
+    - name: Validate Local Data Components
       run: |
-        cd backend
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install httpx pytest
+        echo "💾 Validating local data system..."
 
-    - name: Start Backend Server
+        # Check LocalPlayerData.gd exists and has required methods
+        if [ -f "scripts/LocalPlayerData.gd" ]; then
+          echo "✅ LocalPlayerData.gd exists"
+
+          # Check for essential methods
+          required_methods=("get_credits" "save_credits" "save_upgrades" "load_data_from_files")
+          for method in "${required_methods[@]}"; do
+            if grep -q "func $method" scripts/LocalPlayerData.gd; then
+              echo "✅ LocalPlayerData has $method method"
+            else
+              echo "⚠️ LocalPlayerData missing $method method"
+            fi
+          done
+        else
+          echo "❌ LocalPlayerData.gd missing"
+          exit 1
+        fi
+
+    - name: Validate APIClient Local Mode
       run: |
-        cd backend
-        python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
-        echo "🚀 Backend server started..."
-        sleep 5
+        echo "🔧 Validating APIClient local-only configuration..."
 
-    - name: Test API Endpoints
-      run: |
-        echo "🔌 Testing API endpoints..."
+        if [ -f "scripts/APIClient.gd" ]; then
+          echo "✅ APIClient.gd exists"
 
-        # Test health endpoint
-        echo "Testing /api/v1/health..."
-        curl -f http://localhost:8000/api/v1/health
-
-        # Test stats endpoint
-        echo "Testing /api/v1/stats..."
-        curl -f http://localhost:8000/api/v1/stats
-
-        # Test root endpoint
-        echo "Testing root endpoint..."
-        curl -f http://localhost:8000/
-
-        echo "✅ All API endpoints responding correctly"
+          # Check for local-only configuration
+          if grep -q "Local-only API client" scripts/APIClient.gd; then
+            echo "✅ APIClient is configured for local-only mode"
+          else
+            echo "⚠️ APIClient may not be properly configured for local-only mode"
+          fi
+        else
+          echo "❌ APIClient.gd missing"
+          exit 1
+        fi
 
   code-quality:
     name: Code Quality Analysis
@@ -221,8 +242,8 @@ jobs:
           fi
         done
 
-        # Check required files
-        required_files=("project.godot" "backend/app.py" "backend/requirements.txt" "README.md")
+        # Check required files (updated for local-only)
+        required_files=("project.godot" "backend/trading_lambda.py" "README.md" "scripts/LocalPlayerData.gd" "scripts/APIClient.gd")
         for file in "${required_files[@]}"; do
           if [ -f "$file" ]; then
             echo "✅ File exists: $file"
@@ -247,27 +268,27 @@ jobs:
           fi
         done
 
-    - name: Database Schema Validation
+    - name: Trading Schema Validation
       run: |
-        echo "🗄️  Validating database schema..."
-        if [ -f "data/postgres/schema.sql" ]; then
-          echo "✅ Database schema file exists"
+        echo "🗄️  Validating trading database schema..."
+        if [ -f "data/postgres/trading_schema.sql" ]; then
+          echo "✅ Trading schema file exists"
 
           # Basic SQL syntax check
-          if grep -q "CREATE TABLE" data/postgres/schema.sql; then
+          if grep -q "CREATE TABLE" data/postgres/trading_schema.sql; then
             echo "✅ Schema contains table definitions"
           else
             echo "❌ Schema missing table definitions"
             exit 1
           fi
 
-          if grep -q "uuid_generate_v4" data/postgres/schema.sql; then
-            echo "✅ Schema uses UUID generation"
+          if grep -q "listings" data/postgres/trading_schema.sql; then
+            echo "✅ Schema contains trading tables"
           else
-            echo "⚠️  Consider using UUIDs for primary keys"
+            echo "⚠️  Consider adding trading table definitions"
           fi
         else
-          echo "❌ Database schema file missing"
+          echo "❌ Trading schema file missing"
           exit 1
         fi
 
@@ -442,7 +463,7 @@ jobs:
   final-integration:
     name: Final Integration Test
     runs-on: ubuntu-latest
-    needs: [godot-validation, python-quality, api-testing, code-quality, security-scan, gitleaks-scan, performance-check, documentation-check]
+    needs: [godot-validation, aws-trading-validation, local-data-validation, code-quality, security-scan, gitleaks-scan, performance-check, documentation-check]
 
     steps:
     - uses: actions/checkout@v4
@@ -457,47 +478,55 @@ jobs:
       with:
         version: 4.4.1
 
-    - name: Install Python dependencies
+    - name: Local-Only Integration Test
       run: |
-        cd backend
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        echo "🎯 Running local-only integration test..."
 
-    - name: Full Integration Test
-      run: |
-        echo "🎯 Running full integration test..."
-
-        # Start backend
-        cd backend
-        python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
-        BACKEND_PID=$!
-        cd ..
-
-        # Wait for backend to start
-        sleep 5
-
-        # Test backend is responding
-        curl -f http://localhost:8000/api/v1/health
-
-        # Test Godot project
+        # Test Godot project loads correctly
+        echo "🎮 Testing Godot project loading..."
         godot --headless --check --quit --path .
 
-        # Clean up
-        kill $BACKEND_PID
+        # Test AWS trading lambda syntax
+        echo "☁️ Testing AWS trading lambda..."
+        python3 -m py_compile backend/trading_lambda.py
 
-        echo "✅ Full integration test passed!"
+        # Test local data system is accessible
+        echo "💾 Testing local data system..."
+        if [ -f "scripts/LocalPlayerData.gd" ] && [ -f "scripts/APIClient.gd" ]; then
+          echo "✅ Local data system components found"
+        else
+          echo "❌ Local data system components missing"
+          exit 1
+        fi
+
+        # Test export capability
+        echo "🏗️ Testing export build capability..."
+        if [ -f "export_presets.cfg" ]; then
+          echo "✅ Export presets available"
+        else
+          echo "❌ Export presets missing"
+          exit 1
+        fi
+
+        echo "✅ Local-only integration test passed!"
 
     - name: Quality Gate Summary
       run: |
-        echo "🏆 Quality Gate Summary:"
+        echo "🏆 Quality Gate Summary (Local-Only Mode):"
         echo "✅ Godot project validation passed"
-        echo "✅ Python code quality checks passed"
-        echo "✅ API endpoint testing passed"
+        echo "✅ AWS trading components passed"
+        echo "✅ Local data system passed"
         echo "✅ Code quality analysis passed"
         echo "✅ Security scan passed"
         echo "✅ Gitleaks secret detection passed"
         echo "✅ Performance check passed"
         echo "✅ Documentation check passed"
-        echo "✅ Full integration test passed"
+        echo "✅ Local-only integration test passed"
         echo ""
-        echo "🎉 All quality checks passed! PR is ready for review."
+        echo "🎉 All quality checks passed! Local-only PR is ready for review."
+        echo ""
+        echo "🎮 Local-Only Mode Features:"
+        echo "  ✅ No backend dependencies required"
+        echo "  ✅ All data stored locally via LocalPlayerData.gd"
+        echo "  ✅ AWS trading marketplace available (when configured)"
+        echo "  ✅ Complete offline functionality"

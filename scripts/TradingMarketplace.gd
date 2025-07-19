@@ -1,6 +1,6 @@
 extends Node
-class_name TradingMarketplace
 
+# TradingMarketplace autoload singleton for Children of the Singularity
 # Trading API configuration is managed by TradingConfig singleton
 # The actual API endpoint is loaded from user://trading_config.json
 # which can be configured based on your AWS deployment

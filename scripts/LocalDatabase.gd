@@ -1,6 +1,7 @@
 # LocalDatabase.gd
-# SQLite wrapper for local player data storage in Children of the Singularity
+# JSON-based local player data storage for Children of the Singularity
 # Handles all personal player data locally - NO backend sync for personal data
+# Alternative to LocalPlayerData.gd using simplified key-value storage
 
 class_name LocalDatabase
 extends RefCounted
@@ -14,117 +15,62 @@ signal save_failed(key: String, error: String)
 ## Signal emitted when database is ready
 signal database_ready()
 
-# Database connection
-var db: SQLiteDatabase
+# JSON file paths for different data types
+var db_path: String = "user://local_database.json"
+var inventory_path: String = "user://local_inventory.json"
+var upgrades_path: String = "user://local_upgrades.json"
+var settings_path: String = "user://local_settings.json"
 
-# Database file path
-var db_path: String = "user://save_data.db"
-
-# Cache for frequently accessed data
+# In-memory data storage
 var data_cache: Dictionary = {}
+var inventory_data: Array[Dictionary] = []
+var upgrades_data: Dictionary = {}
+var settings_data: Dictionary = {}
 
 # Initialize flag
 var is_initialized: bool = false
 
 func _init() -> void:
-	_log_message("LocalDatabase: Initializing SQLite database")
+	_log_message("LocalDatabase: Initializing JSON-based database")
 	initialize_database()
 
 func initialize_database() -> void:
-	##Initialize SQLite database and create tables
-	_log_message("LocalDatabase: Opening database at %s" % db_path)
+	##Initialize JSON-based database and load data
+	_log_message("LocalDatabase: Setting up JSON file storage at %s" % db_path)
 
-	# Create SQLite database instance
-	db = SQLiteDatabase.new()
+	# Load all data files
+	_load_all_data()
 
-	if not db.open(db_path):
-		_log_message("LocalDatabase: ERROR - Failed to open database at %s" % db_path)
-		return
-
-	_log_message("LocalDatabase: Database opened successfully")
-
-	# Create tables if they don't exist
-	_create_tables()
-
-	# Load initial cache
-	_load_cache()
+	# Create default data if this is first run
+	_initialize_default_data()
 
 	is_initialized = true
 	database_ready.emit()
 	_log_message("LocalDatabase: Database initialization complete")
 
-func _create_tables() -> void:
-	##Create all necessary tables for local storage
-	_log_message("LocalDatabase: Creating tables")
+func _load_all_data() -> void:
+	##Load all JSON data files
+	_log_message("LocalDatabase: Loading all data files")
 
-	# Main player data table (key-value storage)
-	var player_data_sql = """
-		CREATE TABLE IF NOT EXISTS player_data (
-			key TEXT PRIMARY KEY,
-			value TEXT NOT NULL,
-			updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-		)
-	"""
+	# Load main data cache
+	_load_cache()
 
-	# Local inventory table
-	var inventory_sql = """
-		CREATE TABLE IF NOT EXISTS local_inventory (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			item_type TEXT NOT NULL,
-			item_id TEXT,
-			quantity INTEGER NOT NULL DEFAULT 1,
-			value INTEGER NOT NULL DEFAULT 0,
-			acquired_at TEXT DEFAULT CURRENT_TIMESTAMP
-		)
-	"""
+	# Load inventory data
+	_load_inventory_data()
 
-	# Local upgrades table
-	var upgrades_sql = """
-		CREATE TABLE IF NOT EXISTS local_upgrades (
-			upgrade_type TEXT PRIMARY KEY,
-			level INTEGER NOT NULL DEFAULT 0,
-			purchased_at TEXT DEFAULT CURRENT_TIMESTAMP
-		)
-	"""
+	# Load upgrades data
+	_load_upgrades_data()
 
-	# Settings table
-	var settings_sql = """
-		CREATE TABLE IF NOT EXISTS local_settings (
-			setting_name TEXT PRIMARY KEY,
-			setting_value TEXT NOT NULL,
-			updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-		)
-	"""
-
-	# Execute table creation
-	if not db.query(player_data_sql):
-		_log_message("LocalDatabase: ERROR - Failed to create player_data table")
-		return
-
-	if not db.query(inventory_sql):
-		_log_message("LocalDatabase: ERROR - Failed to create local_inventory table")
-		return
-
-	if not db.query(upgrades_sql):
-		_log_message("LocalDatabase: ERROR - Failed to create local_upgrades table")
-		return
-
-	if not db.query(settings_sql):
-		_log_message("LocalDatabase: ERROR - Failed to create local_settings table")
-		return
-
-	_log_message("LocalDatabase: All tables created successfully")
-
-	# Initialize default data if this is first run
-	_initialize_default_data()
+	# Load settings data
+	_load_settings_data()
 
 func _initialize_default_data() -> void:
-	##Initialize default player data on first run
+	##Initialize default player data on first run for JSON storage
 	_log_message("LocalDatabase: Checking for default data initialization")
 
 	# Check if this is first run
 	var first_run_check = get_data("first_run_complete")
-	if first_run_check != null:
+	if first_run_check != "":
 		_log_message("LocalDatabase: Database already initialized, skipping defaults")
 		return
 
@@ -152,80 +98,121 @@ func _initialize_default_data() -> void:
 	_log_message("LocalDatabase: Default data initialization complete")
 
 func _load_cache() -> void:
-	##Load frequently accessed data into cache
-	_log_message("LocalDatabase: Loading data cache")
+	##Load main data cache from JSON file
+	if FileAccess.file_exists(db_path):
+		var file = FileAccess.open(db_path, FileAccess.READ)
+		if file:
+			var json_text = file.get_as_text()
+			file.close()
 
-	var query = "SELECT key, value FROM player_data"
-	var result = db.query_with_bindings(query, [])
-
-	if result:
-		for row in result:
-			data_cache[row.key] = row.value
-		_log_message("LocalDatabase: Loaded %d items into cache" % data_cache.size())
+			var json = JSON.new()
+			var parse_result = json.parse(json_text)
+			if parse_result == OK:
+				data_cache = json.data
+				_log_message("LocalDatabase: Loaded %d items into cache" % data_cache.size())
+			else:
+				_log_message("LocalDatabase: Error parsing main data file: %s" % json.get_error_message())
 	else:
-		_log_message("LocalDatabase: No cached data to load")
+		_log_message("LocalDatabase: No cached data file found, starting fresh")
+
+func _load_inventory_data() -> void:
+	##Load inventory data from JSON file
+	if FileAccess.file_exists(inventory_path):
+		var file = FileAccess.open(inventory_path, FileAccess.READ)
+		if file:
+			var json_text = file.get_as_text()
+			file.close()
+
+			var json = JSON.new()
+			var parse_result = json.parse(json_text)
+			if parse_result == OK:
+				inventory_data = json.data
+				_log_message("LocalDatabase: Loaded %d inventory items" % inventory_data.size())
+
+func _load_upgrades_data() -> void:
+	##Load upgrades data from JSON file
+	if FileAccess.file_exists(upgrades_path):
+		var file = FileAccess.open(upgrades_path, FileAccess.READ)
+		if file:
+			var json_text = file.get_as_text()
+			file.close()
+
+			var json = JSON.new()
+			var parse_result = json.parse(json_text)
+			if parse_result == OK:
+				upgrades_data = json.data
+				_log_message("LocalDatabase: Loaded upgrades data")
+
+func _load_settings_data() -> void:
+	##Load settings data from JSON file
+	if FileAccess.file_exists(settings_path):
+		var file = FileAccess.open(settings_path, FileAccess.READ)
+		if file:
+			var json_text = file.get_as_text()
+			file.close()
+
+			var json = JSON.new()
+			var parse_result = json.parse(json_text)
+			if parse_result == OK:
+				settings_data = json.data
+				_log_message("LocalDatabase: Loaded settings data")
 
 ## Core data operations
 
 func save_data(key: String, value: String) -> bool:
-	##Save key-value data to database
+	##Save key-value data to JSON file
 	if not is_initialized:
 		_log_message("LocalDatabase: ERROR - Database not initialized")
 		save_failed.emit(key, "Database not initialized")
 		return false
 
-	var query = """
-		INSERT OR REPLACE INTO player_data (key, value, updated_at)
-		VALUES (?, ?, datetime('now'))
-	"""
+	# Update cache
+	data_cache[key] = value
 
-	var success = db.query_with_bindings(query, [key, value])
-
-	if success:
-		data_cache[key] = value
-		data_saved.emit(key)
-		_log_message("LocalDatabase: Saved data - %s" % key)
-		return true
-	else:
-		save_failed.emit(key, "Database query failed")
-		_log_message("LocalDatabase: ERROR - Failed to save %s" % key)
+	# Save to JSON file
+	var file = FileAccess.open(db_path, FileAccess.WRITE)
+	if not file:
+		save_failed.emit(key, "Could not open file for writing")
+		_log_message("LocalDatabase: ERROR - Could not open file for writing")
 		return false
 
+	var json_string = JSON.stringify(data_cache, "\t")
+	file.store_string(json_string)
+	file.close()
+
+	data_saved.emit(key)
+	_log_message("LocalDatabase: Saved data - %s" % key)
+	return true
+
 func get_data(key: String) -> String:
-	##Get data by key, return null if not found
+	##Get data by key, return empty string if not found
 	if not is_initialized:
 		_log_message("LocalDatabase: ERROR - Database not initialized")
 		return ""
 
-	# Check cache first
-	if key in data_cache:
-		return data_cache[key]
-
-	# Query database
-	var query = "SELECT value FROM player_data WHERE key = ?"
-	var result = db.query_with_bindings(query, [key])
-
-	if result and result.size() > 0:
-		var value = result[0].value
-		data_cache[key] = value
-		return value
-
-	return ""
+	# Return from cache
+	return data_cache.get(key, "")
 
 func delete_data(key: String) -> bool:
 	##Delete data by key
 	if not is_initialized:
 		return false
 
-	var query = "DELETE FROM player_data WHERE key = ?"
-	var success = db.query_with_bindings(query, [key])
+	# Remove from cache
+	data_cache.erase(key)
 
-	if success:
-		data_cache.erase(key)
-		_log_message("LocalDatabase: Deleted data - %s" % key)
-		return true
+	# Save updated cache to file
+	var file = FileAccess.open(db_path, FileAccess.WRITE)
+	if not file:
+		_log_message("LocalDatabase: ERROR - Could not open file for writing")
+		return false
 
-	return false
+	var json_string = JSON.stringify(data_cache, "\t")
+	file.store_string(json_string)
+	file.close()
+
+	_log_message("LocalDatabase: Deleted data - %s" % key)
+	return true
 
 ## Player-specific data operations
 
@@ -260,49 +247,38 @@ func spend_credits(amount: int) -> bool:
 ## Inventory operations
 
 func add_inventory_item(item_type: String, item_id: String = "", quantity: int = 1, value: int = 0) -> bool:
-	##Add item to local inventory
+	##Add item to local inventory JSON file
 	if not is_initialized:
 		return false
 
-	var query = """
-		INSERT INTO local_inventory (item_type, item_id, quantity, value, acquired_at)
-		VALUES (?, ?, ?, ?, datetime('now'))
-	"""
+	var new_item = {
+		"id": len(inventory_data) + 1,
+		"type": item_type,
+		"item_id": item_id,
+		"quantity": quantity,
+		"value": value,
+		"acquired_at": Time.get_datetime_string_from_system()
+	}
 
-	var success = db.query_with_bindings(query, [item_type, item_id, quantity, value])
+	inventory_data.append(new_item)
 
-	if success:
+	# Save to file
+	var file = FileAccess.open(inventory_path, FileAccess.WRITE)
+	if file:
+		var json_string = JSON.stringify(inventory_data, "\t")
+		file.store_string(json_string)
+		file.close()
 		_log_message("LocalDatabase: Added inventory item - %s (qty: %d, value: %d)" % [item_type, quantity, value])
 		return true
 
 	return false
 
 func get_inventory() -> Array[Dictionary]:
-	##Get all inventory items
+	##Get all inventory items from memory
 	if not is_initialized:
 		return []
 
-	var query = """
-		SELECT id, item_type, item_id, quantity, value, acquired_at
-		FROM local_inventory
-		ORDER BY acquired_at DESC
-	"""
-
-	var result = db.query_with_bindings(query, [])
-	var inventory: Array[Dictionary] = []
-
-	if result:
-		for row in result:
-			inventory.append({
-				"id": row.id,
-				"type": row.item_type,
-				"item_id": row.item_id,
-				"quantity": row.quantity,
-				"value": row.value,
-				"acquired_at": row.acquired_at
-			})
-
-	return inventory
+	return inventory_data.duplicate()
 
 func clear_inventory() -> Array[Dictionary]:
 	##Clear all inventory items and return what was cleared
@@ -310,17 +286,20 @@ func clear_inventory() -> Array[Dictionary]:
 		return []
 
 	# Get current inventory before clearing
-	var current_inventory = get_inventory()
+	var current_inventory = inventory_data.duplicate()
 
 	# Clear the inventory
-	var query = "DELETE FROM local_inventory"
-	var success = db.query(query)
+	inventory_data.clear()
 
-	if success:
+	# Save empty inventory to file
+	var file = FileAccess.open(inventory_path, FileAccess.WRITE)
+	if file:
+		var json_string = JSON.stringify(inventory_data, "\t")
+		file.store_string(json_string)
+		file.close()
 		_log_message("LocalDatabase: Cleared %d inventory items" % current_inventory.size())
-		return current_inventory
 
-	return []
+	return current_inventory
 
 func get_inventory_value() -> int:
 	##Calculate total value of all inventory items
@@ -335,83 +314,63 @@ func get_inventory_value() -> int:
 ## Upgrade operations
 
 func set_upgrade_level(upgrade_type: String, level: int) -> bool:
-	##Set upgrade level
+	##Set upgrade level in JSON file
 	if not is_initialized:
 		return false
 
-	var query = """
-		INSERT OR REPLACE INTO local_upgrades (upgrade_type, level, purchased_at)
-		VALUES (?, ?, datetime('now'))
-	"""
+	upgrades_data[upgrade_type] = level
 
-	var success = db.query_with_bindings(query, [upgrade_type, level])
-
-	if success:
+	# Save to file
+	var file = FileAccess.open(upgrades_path, FileAccess.WRITE)
+	if file:
+		var json_string = JSON.stringify(upgrades_data, "\t")
+		file.store_string(json_string)
+		file.close()
 		_log_message("LocalDatabase: Set upgrade %s to level %d" % [upgrade_type, level])
 		return true
 
 	return false
 
 func get_upgrade_level(upgrade_type: String) -> int:
-	##Get upgrade level
+	##Get upgrade level from memory
 	if not is_initialized:
 		return 0
 
-	var query = "SELECT level FROM local_upgrades WHERE upgrade_type = ?"
-	var result = db.query_with_bindings(query, [upgrade_type])
-
-	if result and result.size() > 0:
-		return result[0].level
-
-	return 0
+	return upgrades_data.get(upgrade_type, 0)
 
 func get_all_upgrades() -> Dictionary:
 	##Get all upgrade levels as dictionary
 	if not is_initialized:
 		return {}
 
-	var query = "SELECT upgrade_type, level FROM local_upgrades"
-	var result = db.query_with_bindings(query, [])
-	var upgrades = {}
-
-	if result:
-		for row in result:
-			upgrades[row.upgrade_type] = row.level
-
-	return upgrades
+	return upgrades_data.duplicate()
 
 ## Settings operations
 
 func save_setting(setting_name: String, setting_value: String) -> bool:
-	##Save a game setting
+	##Save a game setting to JSON file
 	if not is_initialized:
 		return false
 
-	var query = """
-		INSERT OR REPLACE INTO local_settings (setting_name, setting_value, updated_at)
-		VALUES (?, ?, datetime('now'))
-	"""
+	settings_data[setting_name] = setting_value
 
-	var success = db.query_with_bindings(query, [setting_name, setting_value])
-
-	if success:
+	# Save to file
+	var file = FileAccess.open(settings_path, FileAccess.WRITE)
+	if file:
+		var json_string = JSON.stringify(settings_data, "\t")
+		file.store_string(json_string)
+		file.close()
 		_log_message("LocalDatabase: Saved setting %s = %s" % [setting_name, setting_value])
 		return true
 
 	return false
 
 func get_setting(setting_name: String, default_value: String = "") -> String:
-	##Get a game setting
+	##Get a game setting from memory
 	if not is_initialized:
 		return default_value
 
-	var query = "SELECT setting_value FROM local_settings WHERE setting_name = ?"
-	var result = db.query_with_bindings(query, [setting_name])
-
-	if result and result.size() > 0:
-		return result[0].setting_value
-
-	return default_value
+	return settings_data.get(setting_name, default_value)
 
 ## Utility methods
 
@@ -422,7 +381,7 @@ func get_database_info() -> Dictionary:
 		"is_initialized": is_initialized,
 		"cache_size": data_cache.size(),
 		"credits": get_credits(),
-		"inventory_items": get_inventory().size(),
+		"inventory_items": inventory_data.size(),
 		"inventory_value": get_inventory_value(),
 		"upgrades": get_all_upgrades()
 	}
@@ -431,8 +390,9 @@ func export_save_data() -> Dictionary:
 	##Export all save data for backup/transfer
 	return {
 		"player_data": data_cache.duplicate(),
-		"inventory": get_inventory(),
-		"upgrades": get_all_upgrades(),
+		"inventory": inventory_data.duplicate(),
+		"upgrades": upgrades_data.duplicate(),
+		"settings": settings_data.duplicate(),
 		"export_timestamp": Time.get_datetime_string_from_system()
 	}
 

@@ -17,8 +17,13 @@ signal item_added(item_type: String, quantity: int)
 ## Signal emitted when item is removed from inventory
 signal item_removed(item_type: String, quantity: int)
 
+## Signal emitted when inventory changes (for compatibility)
+signal inventory_changed(inventory_data: Dictionary)
+
 var player_inventory: Array[Dictionary] = []
+var inventory_items: Dictionary = {}  # Stack-based inventory for item types
 var inventory_capacity: int = 10
+var max_inventory_size: int = 25  # Maximum individual items allowed
 var max_stack_size: int = 99
 
 func _ready() -> void:
@@ -30,7 +35,16 @@ func _initialize_inventory() -> void:
 	##Initialize the inventory system
 	_log_message("InventoryManager: Setting up inventory structure")
 	player_inventory.clear()
+	inventory_items.clear()
 	_log_message("InventoryManager: Inventory initialized with capacity: %d" % inventory_capacity)
+
+## Gets the total count of individual items across all stacks
+func get_total_item_count() -> int:
+	##Calculate total individual items in inventory
+	var total_count = 0
+	for item_type in inventory_items:
+		total_count += inventory_items[item_type]
+	return total_count
 
 ## Adds item to inventory.
 # @param item_id: String - ID of the item.

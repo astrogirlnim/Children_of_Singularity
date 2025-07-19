@@ -3,8 +3,7 @@
 # Handles all personal player data locally using Godot's built-in file system
 # NO backend sync for personal data - only trading goes to AWS RDS
 
-class_name LocalPlayerData
-extends RefCounted
+extends Node
 
 ## Signal emitted when data is saved
 signal data_saved(data_type: String)
@@ -17,8 +16,6 @@ signal player_data_loaded()
 
 # File operation locks to prevent concurrency issues
 var _inventory_lock: bool = false
-var _credits_lock: bool = false
-var _upgrades_lock: bool = false
 var _save_operation_in_progress: bool = false
 
 # File paths for different data types
@@ -37,36 +34,57 @@ var player_upgrades: Dictionary = {}
 var is_initialized: bool = false
 
 func _init() -> void:
+	_log_message("LocalPlayerData: === INITIALIZATION START ===")
 	_log_message("LocalPlayerData: Initializing local storage system")
 	load_all_data()
+	_log_message("LocalPlayerData: === INITIALIZATION COMPLETE ===")
 
 func load_all_data() -> void:
 	##Load all player data from local files
+	_log_message("LocalPlayerData: === LOADING ALL DATA START ===")
 	_log_message("LocalPlayerData: Loading all player data from local files")
 
 	# Load main player data
-	load_player_data()
+	_log_message("LocalPlayerData: Step 1/4 - Loading player data...")
+	var player_data_loaded_success = load_player_data()
+	_log_message("LocalPlayerData: Player data load result: %s" % player_data_loaded_success)
 
 	# Load settings
-	load_settings()
+	_log_message("LocalPlayerData: Step 2/4 - Loading settings...")
+	var settings_loaded_success = load_settings()
+	_log_message("LocalPlayerData: Settings load result: %s" % settings_loaded_success)
 
 	# Load inventory
-	load_inventory()
+	_log_message("LocalPlayerData: Step 3/4 - Loading inventory...")
+	var inventory_loaded_success = load_inventory()
+	_log_message("LocalPlayerData: Inventory load result: %s" % inventory_loaded_success)
 
 	# Load upgrades
-	load_upgrades()
+	_log_message("LocalPlayerData: Step 4/4 - Loading upgrades...")
+	var upgrades_loaded_success = load_upgrades()
+	_log_message("LocalPlayerData: Upgrades load result: %s" % upgrades_loaded_success)
 
 	# Initialize defaults if this is first run
+	_log_message("LocalPlayerData: Checking if first run - has 'first_run_complete': %s" % player_data.has("first_run_complete"))
 	if not player_data.has("first_run_complete"):
+		_log_message("LocalPlayerData: First run detected, initializing defaults")
 		_initialize_defaults()
+	else:
+		_log_message("LocalPlayerData: Not first run, using loaded data")
+		_log_message("LocalPlayerData: Loaded credits: %d" % get_credits())
+		_log_message("LocalPlayerData: Loaded upgrades: %s" % player_upgrades)
 
 	is_initialized = true
 	player_data_loaded.emit()
+	_log_message("LocalPlayerData: === DATA LOADING COMPLETE - CREDITS: %d, UPGRADES: %s ===" % [get_credits(), player_upgrades])
 	_log_message("LocalPlayerData: All data loaded successfully")
 
 func _initialize_defaults() -> void:
 	##Initialize default player data on first run
+	_log_message("LocalPlayerData: === INITIALIZING DEFAULTS (THIS SHOULD ONLY HAPPEN ON FIRST RUN) ===")
 	_log_message("LocalPlayerData: First run detected, initializing defaults")
+	_log_message("LocalPlayerData: Current player_data before defaults: %s" % player_data)
+	_log_message("LocalPlayerData: Current player_upgrades before defaults: %s" % player_upgrades)
 
 	# Default player data
 	player_data = {
@@ -104,17 +122,23 @@ func _initialize_defaults() -> void:
 	player_upgrades = {
 		"speed_boost": 0,
 		"inventory_expansion": 0,
-		"collection_efficiency": 0,
-		"cargo_magnet": 0
+		"cargo_magnet": 0,
+		"collection_efficiency": 0
 	}
 
-	# Empty inventory
+	# Default inventory
 	player_inventory = []
 
-	# Save all defaults
-	save_all_data()
+	_log_message("LocalPlayerData: Defaults set - Credits: %d, Upgrades: %s" % [get_credits(), player_upgrades])
 
-	_log_message("LocalPlayerData: Default data initialization complete")
+	# Save defaults to file
+	save_player_data()
+	save_settings()
+	save_upgrades()
+	save_inventory()
+
+	_log_message("LocalPlayerData: === DEFAULTS INITIALIZATION COMPLETE ===")
+	_log_message("LocalPlayerData: Default data saved to files")
 
 func _generate_player_id() -> String:
 	##Generate a unique player ID for trading
@@ -126,14 +150,19 @@ func _generate_player_id() -> String:
 
 func load_player_data() -> bool:
 	##Load main player data from JSON file
+	_log_message("LocalPlayerData: === LOADING PLAYER DATA FROM FILE ===")
+	_log_message("LocalPlayerData: File path: %s" % save_file_path)
+
 	var file = FileAccess.open(save_file_path, FileAccess.READ)
 	if not file:
-		_log_message("LocalPlayerData: No save file found, will create new one")
+		_log_message("LocalPlayerData: No save file found, using empty data")
 		player_data = {}
 		return false
 
 	var json_string = file.get_as_text()
 	file.close()
+
+	_log_message("LocalPlayerData: Raw JSON loaded from file: %s" % json_string)
 
 	var json = JSON.new()
 	var parse_result = json.parse(json_string)
@@ -144,6 +173,7 @@ func load_player_data() -> bool:
 		return false
 
 	player_data = json.data
+	_log_message("LocalPlayerData: Parsed player_data: %s" % player_data)
 	_log_message("LocalPlayerData: Player data loaded - Credits: %d" % get_credits())
 	return true
 
@@ -227,7 +257,15 @@ func load_inventory() -> bool:
 		player_inventory = []
 		return false
 
-	player_inventory = json.data
+	# Safely assign JSON data to typed array
+	if json.data is Array:
+		player_inventory.clear()
+		for item in json.data:
+			if item is Dictionary:
+				player_inventory.append(item)
+	else:
+		player_inventory = []
+
 	_log_message("LocalPlayerData: Inventory loaded - %d items" % player_inventory.size())
 	return true
 
@@ -273,14 +311,19 @@ func save_inventory() -> bool:
 
 func load_upgrades() -> bool:
 	##Load player upgrades from JSON file
+	_log_message("LocalPlayerData: === LOADING UPGRADES FROM FILE ===")
+	_log_message("LocalPlayerData: Upgrades file path: %s" % upgrades_file_path)
+
 	var file = FileAccess.open(upgrades_file_path, FileAccess.READ)
 	if not file:
-		_log_message("LocalPlayerData: No upgrades file found, using defaults")
+		_log_message("LocalPlayerData: No upgrades file found, using empty upgrades")
 		player_upgrades = {}
 		return false
 
 	var json_string = file.get_as_text()
 	file.close()
+
+	_log_message("LocalPlayerData: Raw upgrades JSON: %s" % json_string)
 
 	var json = JSON.new()
 	var parse_result = json.parse(json_string)
@@ -291,7 +334,8 @@ func load_upgrades() -> bool:
 		return false
 
 	player_upgrades = json.data
-	_log_message("LocalPlayerData: Upgrades loaded")
+	_log_message("LocalPlayerData: Parsed upgrades: %s" % player_upgrades)
+	_log_message("LocalPlayerData: Upgrades loaded successfully")
 	return true
 
 func save_upgrades() -> bool:
@@ -473,10 +517,10 @@ func get_player_name() -> String:
 	##Get player name
 	return player_data.get("player_name", "Space Salvager")
 
-func set_player_name(name: String) -> bool:
+func set_player_name(player_name_value: String) -> bool:
 	##Set player name
-	player_data["player_name"] = name
-	_log_message("LocalPlayerData: Player name set to %s" % name)
+	player_data["player_name"] = player_name_value
+	_log_message("LocalPlayerData: Player name set to %s" % player_name_value)
 	return save_player_data()
 
 func get_player_id() -> String:

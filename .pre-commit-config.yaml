@@ -55,23 +55,23 @@ repos:
         description: Replace mixed line endings with LF
         args: ['--fix=lf']
 
-  # Python specific hooks (for backend)
+  # Python formatting and linting for AWS Trading Lambda only
   - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
       - id: black
-        name: Black Python formatter
-        description: Format Python code with Black
-        files: ^backend/.*\.py$
+        name: Black Python formatter (Trading Lambda)
+        description: Format AWS trading lambda code with Black
+        files: ^backend/trading_lambda\.py$
         language_version: python3
 
   - repo: https://github.com/pycqa/flake8
     rev: 7.1.1
     hooks:
       - id: flake8
-        name: Flake8 Python linter
-        description: Lint Python code with Flake8
-        files: ^backend/.*\.py$
+        name: Flake8 Python linter (Trading Lambda)
+        description: Lint AWS trading lambda code with Flake8
+        files: ^backend/trading_lambda\.py$
         args: ['--max-line-length=100', '--ignore=E203,W503']
 
   # Godot specific hooks

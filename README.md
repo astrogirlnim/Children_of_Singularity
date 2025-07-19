@@ -8,22 +8,23 @@ A 2D / 2.5D multiplayer sci-fi salvage simulation inspired by Moebius, Planetes,
 
 1. **Explore Zones** – Navigate dense debris fields in stylized 2D / 2.5D space.
 2. **Collect Trash** – Harvest satellites, biotech waste, derelict AI components, and more.
-3. **Trade / Upgrade** – Sell salvage at NPC hubs; purchase ship, tool, and AI augment upgrades.
+3. **Trade / Upgrade** – Sell salvage locally; purchase ship, tool, and AI augment upgrades.
 4. **Expand & Progress** – Unlock deeper zones, narrative milestones, and philosophical paths (Rogue, Corporate, or AI Integration).
+5. **Marketplace Trading** – Trade items with other players via AWS serverless marketplace.
 
 > For a detailed flow, see `documentation/core_concept/user_flow.md`.
 
 ---
 
-## Tech Stack (Client & Backend)
+## Tech Stack (Local-Only + Cloud Trading)
 
 | Layer        | Technology / Notes                             |
 |--------------|-----------------------------------------------|
 | Game Engine  | **Godot 4.x** – Strict typing, signals for decoupling, composition-first design |
-| Networking   | **ENet (Godot)** – Server-authoritative, small (<32) player zones |
-| Backend API  | **FastAPI / Flask** – REST persistence to **PostgreSQL** |
+| Local Data   | **JSON Files** – LocalPlayerData.gd manages all personal data locally |
+| Trading API  | **AWS Lambda + S3** – Serverless player-to-player marketplace |
 | Audio AI     | Whisper-generated voice clips triggered in-game |
-| Hosting      | VPS / Container clusters, environment separation (Dev / Stage / Prod) |
+| Distribution | **Local Executables** – No server dependencies for core gameplay |
 
 Details live in `documentation/core_concept/tech_stack.md`.
 
@@ -35,11 +36,12 @@ Details live in `documentation/core_concept/tech_stack.md`.
 /scenes          Godot scenes (Zone, Player, UI)
 /scenes/zones    Zone grids and screens
 /scenes/ui       HUD, Inventory, Mission Panel
-/scripts         GDScript (InventoryManager.gd, AICommunicator.gd)
+/scripts         GDScript (LocalPlayerData.gd, TradingMarketplace.gd)
 /assets          Art, audio, shaders
 /audio/ai        Pre-generated AI voice files
-/data/postgres   Database storage
-/logs            Server logs
+/backend         AWS Lambda functions for trading
+/data/postgres   AWS RDS schema for trading marketplace
+/logs            Game logs
 ```
 
 Key guidelines (see `documentation/core_concept/project_rules.md`):
@@ -55,7 +57,7 @@ Key guidelines (see `documentation/core_concept/project_rules.md`):
 ## Development Principles
 
 * Clarity over complexity – maintain small, focused scripts.
-* Server-authoritative networking – validate all state server-side.
+* Local-first approach – all personal data stored locally.
 * Atmospheric feedback – audio/visual cues for every player action.
 * Modular progress – Phase-based roadmap with playable milestones.
 
@@ -67,47 +69,22 @@ See phase breakdown in `_docs/phases/`.
 
 ### Prerequisites
 - **Godot 4.4+** – [Download here](https://godotengine.org/download)
-- **Python 3.11+** – For backend API services
 - **Git** – For version control
 
 ### 🚀 One-Command Development Setup
 
 ```bash
-# Clone and run the full development environment
+# Clone and run the local-only game
 git clone <repository-url>
 cd Children_of_Singularity
 ./dev_start.sh
 ```
 
 **What this does:**
-- ✅ Sets up Python virtual environment automatically
-- ✅ Installs backend dependencies (FastAPI, etc.)
-- ✅ Starts backend API server on port 8000
-- ✅ Launches Godot game window
-- ✅ Handles process management and cleanup (Ctrl+C to stop)
-
-### 🔍 Testing API Connection
-
-```bash
-# Test backend connectivity
-./test_connection.sh
-```
-
-### Manual Setup (Alternative)
-
-If you prefer step-by-step control:
-
-```bash
-# 1. Backend setup
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
-
-# 2. Launch game
-godot --run-project .
-```
+- ✅ Launches Godot game in local-only mode
+- ✅ All data stored locally in user:// directory
+- ✅ Complete offline functionality
+- ✅ AWS Trading Marketplace available (when configured)
 
 ### 🎮 Game Controls
 
@@ -115,45 +92,100 @@ godot --run-project .
 - **Mouse** – Aim collection claw
 - **Space** – Collect debris
 - **Tab** – Toggle inventory
+- **F** – Interact with trading hubs
 - **ESC** – Pause menu
 
 ### 🛠️ Development Tools
 
-- **Backend API**: `http://localhost:8000/docs` (FastAPI auto-docs)
-- **Health Check**: `http://localhost:8000/api/v1/health`
-- **Game Logs**: Console output shows real-time system status
-- **Database**: PostgreSQL schema in `data/postgres/schema.sql`
+- **Local Data**: Stored in user:// directory as JSON files
+- **AWS Trading**: Optional cloud marketplace for player-to-player trading
+- **Game Logs**: Comprehensive logging for all operations
 
-### Troubleshooting
+---
 
-**"Port 8000 already in use"**
-```bash
-# Kill existing processes
-lsof -ti :8000 | xargs kill -9
+## Architecture Overview
+
+### **Local-Only Core Game:**
+```
+Godot Game → LocalPlayerData.gd → JSON Files (user://)
+                ↓
+    Complete offline functionality
 ```
 
-**"Godot not found"**
-```bash
-# Add Godot to PATH or use full path
-export PATH="/Applications/Godot.app/Contents/MacOS:$PATH"
+### **Optional Cloud Trading:**
+```
+TradingMarketplace.gd → AWS API Gateway → Lambda Functions → S3/RDS
+                ↓
+    Player-to-player item marketplace
 ```
 
-**"Python venv issues"**
-```bash
-# Clean virtual environment
-rm -rf backend/venv
-python3 -m venv backend/venv
+### **Key Benefits:**
+- **Offline Capable:** Game works completely without internet
+- **Zero Dependencies:** No server setup required for core gameplay
+- **Fast Performance:** Local JSON operations are instant
+- **Privacy Focused:** Personal data stays on player's computer
+- **Cloud Trading:** Optional marketplace for enhanced multiplayer experience
+
+---
+
+## Data Management
+
+### **Local Data (Personal):**
+```
+user://
+├── player_save.json              # Credits, progress, player ID
+├── player_inventory.json         # Items and quantities
+├── player_upgrades.json          # Upgrade levels
+├── player_settings.json          # Game preferences
+└── trading_config.json           # AWS marketplace configuration (optional)
+```
+
+### **Cloud Data (Trading Only):**
+```
+AWS Infrastructure:
+├── Lambda Functions              # Trading API endpoints
+├── S3 Storage                   # Trade listings data
+└── RDS PostgreSQL              # Transaction history (optional)
 ```
 
 ---
 
-### Reference Docs
+## Development Features
 
-* Game Design: `documentation/BrainLift/children_singularity_gdd.md`
-* User Flow: `documentation/core_concept/user_flow.md`
-* Tech Stack: `documentation/core_concept/tech_stack.md`
-* Project Rules: `documentation/core_concept/project_rules.md`
+- **Comprehensive Logging**: Every operation logged with timestamps
+- **Data Persistence**: Automatic saving to JSON files with atomic writes
+- **Upgrade System**: 6 upgrade types with visual effects
+- **Inventory Management**: Full item collection and selling system
+- **Trading Interface**: Complete UI for marketplace interactions
+- **Offline Mode**: Game works completely without internet connection
+
+### 🔍 Development Monitoring
+
+- **Local Data**: `user://` directory contains all save files
+- **Game State**: Real-time logging in console
+- **Performance**: Optimized for local file operations
+- **Error Handling**: Graceful fallbacks for all operations
+
+### 📊 Project Status
+
+- ✅ **Core Gameplay**: Complete offline functionality
+- ✅ **Data Persistence**: Local JSON storage system
+- ✅ **Upgrade System**: 6 upgrade types with effects
+- ✅ **Trading Interface**: Local item selling and upgrade purchasing
+- ✅ **AWS Trading**: Serverless marketplace infrastructure
+- ✅ **Cross-Platform**: Windows, macOS, Linux support
+
+### 🚀 Distribution
+
+- **Game Executables**: Single file distribution with no dependencies
+- **Local Data**: Automatic user directory creation
+- **AWS Trading**: Optional configuration for marketplace features
+- **Update System**: Simple executable replacement
 
 ---
 
-© Children of the Singularity – All rights reserved.
+## Contributing
+
+The game uses a local-first architecture for maximum accessibility and performance. All personal player data is managed locally, while optional cloud features enhance the multiplayer experience without creating dependencies.
+
+For detailed architecture information, see `documentation/core_concept/` and `memory_bank/` directories.
