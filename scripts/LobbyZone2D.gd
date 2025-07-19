@@ -75,14 +75,12 @@ func _setup_lobby_environment() -> void:
 	screen_size = get_viewport().get_visible_rect().size
 	print("[LobbyZone2D] Screen size: %s" % screen_size)
 
-	# Position player relative to screen size (left-center area)
+	# Use editor-set player position and scale instead of programmatic positioning
 	if lobby_player:
-		lobby_player.global_position = Vector2(screen_size.x * 0.25, screen_size.y * 0.5)
-		# Scale player appropriately for the screen (reduced scale for better proportions)
-		var player_scale = min(screen_size.x / 1920.0, screen_size.y / 1080.0) * 0.6  # Reduced from 1.2 to 0.6
+		print("[LobbyZone2D] Using editor-set player position: %s" % lobby_player.global_position)
 		if lobby_player.get_node_or_null("PlayerSprite2D"):
-			lobby_player.get_node("PlayerSprite2D").scale = Vector2(player_scale, player_scale)
-		print("[LobbyZone2D] Player positioned at: %s with scale: %s" % [lobby_player.global_position, player_scale])
+			var player_sprite = lobby_player.get_node("PlayerSprite2D")
+			print("[LobbyZone2D] Using editor-set player scale: %s" % player_sprite.scale)
 
 	# Setup background to stretch and fill the entire screen (like startup screen)
 	if background:
@@ -100,12 +98,9 @@ func _setup_lobby_environment() -> void:
 		var computer_texture = preload("res://assets/computer_trading_hub_sprite.png")
 		computer_sprite.texture = computer_texture
 
-		# Position computer relative to screen size (right side, vertically centered)
-		trading_computer.position = Vector2(screen_size.x * 0.75, screen_size.y * 0.5)
-		# Scale computer appropriately for the screen (reduced scale for better proportions)
-		var computer_scale = min(screen_size.x / 1920.0, screen_size.y / 1080.0) * 0.8  # Reduced from 1.5 to 0.8
-		computer_sprite.scale = Vector2(computer_scale, computer_scale)
-		print("[LobbyZone2D] Trading computer positioned at: %s with scale: %s" % [trading_computer.position, computer_sprite.scale])
+		# Use editor-set computer position and scale instead of programmatic positioning
+		print("[LobbyZone2D] Using editor-set computer position: %s" % trading_computer.position)
+		print("[LobbyZone2D] Using editor-set computer scale: %s" % computer_sprite.scale)
 
 func _setup_ui_elements() -> void:
 	##Setup lobby-specific UI elements
