@@ -189,8 +189,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: version-check
     if: needs.version-check.outputs.should_release == 'true'
-    container:
-      image: barichello/godot-ci:4.4.1
     steps:
       - name: 📥 Checkout Source
         uses: actions/checkout@v4
@@ -198,12 +196,12 @@ jobs:
       - name: 🔧 Install AWS CLI
         if: ${{ vars.USE_S3_STORAGE == 'true' }}
         run: |
-          echo "🔧 Installing AWS CLI in container..."
-          apt-get update -qq
-          apt-get install -y curl unzip
+          echo "🔧 Installing AWS CLI on GitHub runner..."
+          sudo apt-get update -qq
+          sudo apt-get install -y curl unzip
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip -q awscliv2.zip
-          ./aws/install
+          sudo ./aws/install
 
           # Verify installation
           aws --version
@@ -216,6 +214,11 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION || 'us-west-2' }}
+
+      - name: 🎮 Setup Godot
+        uses: chickensoft-games/setup-godot@v1
+        with:
+          version: 4.4.1
 
       - name: ☁️ Download Assets from S3
         run: |
@@ -249,8 +252,7 @@ jobs:
           echo "Version: ${{ needs.version-check.outputs.version }}"
           echo "Build Number: ${{ github.run_number }}"
           echo "Commit: ${{ github.sha }}"
-          mkdir -v -p ~/.local/share/godot/export_templates/
-          mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          echo "✅ Godot and export templates configured by setup-godot action"
 
       - name: 🖥️ Build for Windows
         run: |
@@ -415,11 +417,11 @@ jobs:
           # Install AWS CLI if not available (should already be installed from earlier step)
           if ! command -v aws &> /dev/null; then
             echo "🔧 Installing AWS CLI..."
-            apt-get update -qq
-            apt-get install -y curl unzip
+            sudo apt-get update -qq
+            sudo apt-get install -y curl unzip
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip -q awscliv2.zip
-            ./aws/install
+            sudo ./aws/install
             aws --version
           fi
 
@@ -498,11 +500,11 @@ jobs:
           # Install AWS CLI if not available
           if ! command -v aws &> /dev/null; then
             echo "🔧 Installing AWS CLI..."
-            apt-get update -qq
-            apt-get install -y curl unzip
+            sudo apt-get update -qq
+            sudo apt-get install -y curl unzip
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip -q awscliv2.zip
-            ./aws/install
+            sudo ./aws/install
             aws --version
           fi
 

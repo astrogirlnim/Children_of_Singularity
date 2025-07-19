@@ -17,12 +17,12 @@ jobs:
     - name: 🔧 Install AWS CLI
       if: ${{ vars.USE_S3_STORAGE == 'true' }}
       run: |
-        echo "🔧 Installing AWS CLI in container..."
-        apt-get update -qq
-        apt-get install -y curl unzip
+        echo "🔧 Installing AWS CLI on GitHub runner..."
+        sudo apt-get update -qq
+        sudo apt-get install -y curl unzip
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip -q awscliv2.zip
-        ./aws/install
+        sudo ./aws/install
 
         # Verify installation
         aws --version
