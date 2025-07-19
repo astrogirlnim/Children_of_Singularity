@@ -1,4 +1,4 @@
-name: 🚀 Release Pipeline
+name: 🚀 Release Pipeline (Local-Only Mode)
 
 on:
   push:
