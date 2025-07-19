@@ -446,13 +446,21 @@ func remove_inventory_item(item_id: String) -> bool:
 		_log_message("LocalPlayerData: Remove item blocked - inventory operation in progress")
 		return false
 
+	print("LocalPlayerData: DEBUG - Attempting to remove item_id: '%s'" % item_id)
+	print("LocalPlayerData: DEBUG - Current inventory has %d items" % player_inventory.size())
+
 	for i in range(player_inventory.size()):
-		if player_inventory[i].get("item_id") == item_id:
+		var item = player_inventory[i]
+		var stored_item_id = item.get("item_id", "")
+		print("LocalPlayerData: DEBUG - Checking item %d: type=%s, item_id='%s'" % [i, item.get("type", ""), stored_item_id])
+		if stored_item_id == item_id:
 			player_inventory.remove_at(i)
 			_log_message("LocalPlayerData: Removed inventory item - %s" % item_id)
+			print("LocalPlayerData: DEBUG - Successfully removed item at index %d" % i)
 			return save_inventory()
 
 	_log_message("LocalPlayerData: Item not found for removal - %s" % item_id)
+	print("LocalPlayerData: DEBUG - Item not found for removal - '%s'" % item_id)
 	return false
 
 func clear_inventory() -> Array[Dictionary]:
