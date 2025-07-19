@@ -299,6 +299,15 @@ func _initialize_player_state() -> void:
 			current_inventory = local_player_data.player_inventory.duplicate()
 
 			_log_message("PlayerShip3D: Loaded from LocalPlayerData - Credits: %d, Upgrades: %s, Inventory: %d items" % [credits, upgrades, current_inventory.size()])
+
+			# CRITICAL FIX: Apply all loaded upgrade effects
+			for upgrade_type in upgrades:
+				var level = upgrades[upgrade_type]
+				if level > 0:
+					_apply_upgrade_effects(upgrade_type, level)
+					_log_message("PlayerShip3D: Applied %s upgrade level %d effects from LocalPlayerData" % [upgrade_type, level])
+
+			_log_message("PlayerShip3D: All upgrade effects applied - Final inventory capacity: %d" % inventory_capacity)
 	else:
 		# Only reset to defaults if neither backend nor local data is available
 		_log_message("PlayerShip3D: No data source available, using defaults")
