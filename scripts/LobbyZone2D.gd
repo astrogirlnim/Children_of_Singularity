@@ -60,6 +60,12 @@ func _ready() -> void:
 	# exit_boundaries.body_exited.connect(_on_exit_boundaries_body_exited)
 	print("[LobbyZone2D] Exit boundaries ready for signal detection")
 
+	# Trading computer signals should be connected in the editor
+	# If not working, the signals may need to be connected manually in editor:
+	# TradingComputer -> area_entered -> LobbyZone2D._on_trading_computer_area_entered
+	# TradingComputer -> area_exited -> LobbyZone2D._on_trading_computer_area_exited
+	print("[LobbyZone2D] Trading computer interaction ready")
+
 	# Mark lobby as ready
 	lobby_loaded = true
 	lobby_ready.emit()
@@ -118,9 +124,13 @@ func _setup_ui_elements() -> void:
 
 	if interaction_prompt:
 		interaction_prompt.text = ""
-		interaction_prompt.position = Vector2(screen_size.x / 2, screen_size.y - 100)
+		# Position at bottom center of screen
+		interaction_prompt.anchors_preset = Control.PRESET_BOTTOM_WIDE
+		interaction_prompt.position = Vector2(0, -100)
+		interaction_prompt.size = Vector2(screen_size.x, 50)
 		interaction_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		interaction_prompt.visible = false
+		print("[LobbyZone2D] Interaction prompt positioned at bottom center")
 
 func _setup_trading_interface() -> void:
 	##Setup the trading interface that was moved from 3D overlay
@@ -196,12 +206,9 @@ func _interact_with_computer() -> void:
 	if not computer_in_range:
 		return
 
-	print("[LobbyZone2D] Player interacting with trading computer")
-
 	# Show the trading interface
 	if trading_interface:
 		trading_interface.visible = true
-		print("[LobbyZone2D] Trading interface opened")
 
 		# Pause player movement while trading
 		if lobby_player and lobby_player.has_method("set_movement_enabled"):
@@ -220,26 +227,26 @@ func close_trading_interface() -> void:
 	if lobby_player and lobby_player.has_method("set_movement_enabled"):
 		lobby_player.set_movement_enabled(true)
 
-func _on_trading_computer_area_entered(_body: Node2D) -> void:
+func _on_trading_computer_area_entered(area: Area2D) -> void:
 	##Handle player entering trading computer interaction area
-	computer_in_range = true
-	player_can_interact = true
+	# Check if the area being entered is the trading computer
+	if area == trading_computer:
+		computer_in_range = true
+		player_can_interact = true
 
-	if interaction_prompt:
-		interaction_prompt.text = "Press F to access Trading Terminal"
-		interaction_prompt.visible = true
+		if interaction_prompt:
+			interaction_prompt.text = "Press F to access Trading Terminal"
+			interaction_prompt.visible = true
 
-	print("[LobbyZone2D] Player can now interact with trading computer")
-
-func _on_trading_computer_area_exited(_body: Node2D) -> void:
+func _on_trading_computer_area_exited(area: Area2D) -> void:
 	##Handle player exiting trading computer interaction area
-	computer_in_range = false
-	player_can_interact = false
+	# Check if the area being exited is the trading computer
+	if area == trading_computer:
+		computer_in_range = false
+		player_can_interact = false
 
-	if interaction_prompt:
-		interaction_prompt.visible = false
-
-	print("[LobbyZone2D] Player no longer in range of trading computer")
+		if interaction_prompt:
+			interaction_prompt.visible = false
 
 func return_to_3d_world() -> void:
 	##Return player to the 3D world

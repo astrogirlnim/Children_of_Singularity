@@ -271,7 +271,7 @@ position = Vector2(500, 200)
 position = Vector2(0, -2.5)
 shape = SubResource("RectangleShape2D_ujpgb")
 
-[connection signal="area_entered" from="TradingComputer" to="." method="_on_trading_computer_area_entered"]
-[connection signal="area_exited" from="TradingComputer" to="." method="_on_trading_computer_area_exited"]
+[connection signal="area_entered" from="LobbyPlayer2D/InteractionArea2D" to="." method="_on_trading_computer_area_entered"]
+[connection signal="area_exited" from="LobbyPlayer2D/InteractionArea2D" to="." method="_on_trading_computer_area_exited"]
 [connection signal="pressed" from="UILayer/HUD/TradingInterface/TradingCloseButton" to="." method="close_trading_interface"]
 [connection signal="body_exited" from="ExitBoundaries" to="." method="_on_exit_boundaries_body_exited"]
