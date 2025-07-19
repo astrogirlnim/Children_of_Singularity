@@ -142,6 +142,134 @@ offset_bottom = -50.0
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="InventoryPanel" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.04
+anchor_top = 0.12
+anchor_right = 0.24
+anchor_bottom = 0.48
+theme_type_variation = "InventoryPanel"
+
+[node name="InventoryTitle" type="Label" parent="UILayer/HUD/InventoryPanel"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.1
+text = "◦ INVENTORY ◦"
+horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
+
+[node name="InventoryGrid" type="GridContainer" parent="UILayer/HUD/InventoryPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.1
+anchor_right = 0.95
+anchor_bottom = 0.85
+columns = 2
+
+[node name="InventoryStatus" type="Label" parent="UILayer/HUD/InventoryPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.85
+anchor_right = 0.95
+anchor_bottom = 1.0
+text = "0/10 Items"
+horizontal_alignment = 1
+
+[node name="StatsPanel" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.04
+anchor_top = 0.62
+anchor_right = 0.24
+anchor_bottom = 0.88
+theme_type_variation = "SmallPanel"
+
+[node name="StatsTitle" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.2
+text = "📊 PLAYER STATS"
+horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
+
+[node name="CreditsLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.25
+anchor_right = 0.95
+anchor_bottom = 0.45
+text = "Credits: 0"
+
+[node name="DebrisCountLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.45
+anchor_right = 0.95
+anchor_bottom = 0.65
+text = "Nearby Debris: 0"
+
+[node name="CollectionRangeLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.65
+anchor_right = 0.95
+anchor_bottom = 0.85
+text = "Collection Range: 80"
+
+[node name="UpgradeStatusPanel" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.78
+anchor_top = 0.62
+anchor_right = 0.94
+anchor_bottom = 0.88
+theme_type_variation = "SmallPanel"
+
+[node name="UpgradeStatusTitle" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.2
+text = "⚡ UPGRADES"
+horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
+
+[node name="UpgradeStatusText" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.2
+anchor_right = 0.95
+anchor_bottom = 1.0
+text = "No upgrades purchased"
+vertical_alignment = 1
+
+[node name="ControlsPanel" type="Panel" parent="UILayer/HUD"]
+layout_mode = 0
+anchor_left = 0.78
+anchor_top = 0.12
+anchor_right = 0.94
+anchor_bottom = 0.48
+theme_type_variation = "HorizontalPanel"
+
+[node name="ControlsTitle" type="Label" parent="UILayer/HUD/ControlsPanel"]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 0.15
+text = "🎮 CONTROLS"
+horizontal_alignment = 1
+theme_type_variation = "HeaderLabel"
+
+[node name="ControlsText" type="Label" parent="UILayer/HUD/ControlsPanel"]
+layout_mode = 0
+anchor_left = 0.05
+anchor_top = 0.2
+anchor_right = 0.95
+anchor_bottom = 1.0
+text = "WASD: Move
+E: Collect Debris
+F: Interact
+Q/Mouse Wheel: Zoom In
+R/Mouse Wheel: Zoom Out
+ESC: Menu"
+vertical_alignment = 1
+
 [node name="TradingInterface" type="Panel" parent="UILayer/HUD"]
 visible = false
 layout_mode = 0

@@ -29,6 +29,18 @@ signal lobby_exit_requested()
 @onready var interaction_prompt: Label = $UILayer/HUD/InteractionPrompt
 @onready var trading_interface: Panel = $UILayer/HUD/TradingInterface
 
+# UI Card references - The 4 cards from 3D zone
+@onready var inventory_panel: Panel = $UILayer/HUD/InventoryPanel
+@onready var inventory_grid: GridContainer = $UILayer/HUD/InventoryPanel/InventoryGrid
+@onready var inventory_status: Label = $UILayer/HUD/InventoryPanel/InventoryStatus
+@onready var stats_panel: Panel = $UILayer/HUD/StatsPanel
+@onready var credits_label: Label = $UILayer/HUD/StatsPanel/CreditsLabel
+@onready var debris_count_label: Label = $UILayer/HUD/StatsPanel/DebrisCountLabel
+@onready var collection_range_label: Label = $UILayer/HUD/StatsPanel/CollectionRangeLabel
+@onready var upgrade_status_panel: Panel = $UILayer/HUD/UpgradeStatusPanel
+@onready var upgrade_status_text: Label = $UILayer/HUD/UpgradeStatusPanel/UpgradeStatusText
+@onready var controls_panel: Panel = $UILayer/HUD/ControlsPanel
+
 # System references - will be set from LocalPlayerData
 var inventory_manager: Node
 var upgrade_system: Node
@@ -53,6 +65,13 @@ var lobby_bounds: Rect2
 # Debug and logging
 var lobby_logs: Array[String] = []
 
+# UI state tracking
+var last_credits: int = -1
+var last_inventory_size: int = -1
+var last_inventory_capacity: int = -1
+var last_upgrades_hash: String = ""
+var inventory_items: Array[Control] = []
+
 func _ready() -> void:
 	print("[LobbyZone2D] Initializing 2D trading lobby with dynamic scaling")
 
@@ -71,6 +90,10 @@ func _ready() -> void:
 
 	# Apply initial scaling
 	_apply_dynamic_scaling()
+
+	# Setup UI data connections and load current player data
+	_setup_ui_data_connections()
+	_load_and_display_player_data()
 
 	print("[LobbyZone2D] Exit boundaries ready for signal detection")
 	print("[LobbyZone2D] Trading computer interaction ready")
@@ -182,13 +205,7 @@ func _update_boundaries_for_scaling() -> void:
 	lobby_bounds = Rect2(-padding, -padding, local_bounds_size.x + padding * 2, local_bounds_size.y + padding * 2)
 	print("[LobbyZone2D] Updated lobby bounds for scaling: %s" % lobby_bounds)
 
-func _process(_delta: float) -> void:
-	# Handle input for interaction and exit
-	if Input.is_action_just_pressed("interact") and computer_in_range:
-		_interact_with_computer()
-
-	# Exit boundaries are now handled by Area2D signal (_on_exit_boundaries_body_exited)
-	# No need for manual boundary checking
+# _process method is now implemented in the UI Data Management section below
 
 func toggle_scaling(enabled: bool) -> void:
 	"""Toggle dynamic scaling on/off"""
@@ -415,3 +432,212 @@ func _on_exit_boundaries_body_exited(body: Node2D) -> void:
 	if body == lobby_player:
 		print("[LobbyZone2D] Player exited lobby boundaries via Area2D signal")
 		_prompt_lobby_exit()
+
+## UI Data Management Methods
+
+func _setup_ui_data_connections() -> void:
+	##Setup connections to LocalPlayerData for real-time UI updates
+	print("[LobbyZone2D] Setting up UI data connections")
+
+	# Connect to LocalPlayerData signals if available
+	if LocalPlayerData:
+		LocalPlayerData.data_saved.connect(_on_player_data_updated)
+		print("[LobbyZone2D] Connected to LocalPlayerData signals")
+	else:
+		print("[LobbyZone2D] WARNING - LocalPlayerData not available")
+
+func _load_and_display_player_data() -> void:
+	##Load current player data and update all UI displays
+	print("[LobbyZone2D] Loading and displaying current player data")
+
+	if not LocalPlayerData or not LocalPlayerData.is_initialized:
+		print("[LobbyZone2D] LocalPlayerData not ready, skipping initial display")
+		return
+
+	# Force UI update with current data
+	_update_lobby_ui_with_player_data()
+
+func _process(delta: float) -> void:
+	# Handle input for interaction and exit
+	if Input.is_action_just_pressed("interact") and computer_in_range:
+		_interact_with_computer()
+
+	# Periodically update UI (every 0.5 seconds)
+	if Engine.get_physics_ticks() % 30 == 0:  # 60 FPS / 2 = every 30 ticks = 0.5 seconds
+		_update_lobby_ui_with_player_data()
+
+func _update_lobby_ui_with_player_data() -> void:
+	##Update all UI cards with current player data from LocalPlayerData
+	if not LocalPlayerData or not LocalPlayerData.is_initialized:
+		return
+
+	# Get current player data
+	var current_credits = LocalPlayerData.get_credits()
+	var current_inventory = LocalPlayerData.get_inventory()
+	var current_upgrades = LocalPlayerData.get_all_upgrades()
+
+	# Update credits if changed
+	if current_credits != last_credits:
+		_update_credits_display(current_credits)
+		last_credits = current_credits
+
+	# Update inventory if changed
+	var current_capacity = _get_inventory_capacity_from_upgrades(current_upgrades)
+	if current_inventory.size() != last_inventory_size or current_capacity != last_inventory_capacity:
+		_update_inventory_display(current_inventory, current_capacity)
+		last_inventory_size = current_inventory.size()
+		last_inventory_capacity = current_capacity
+
+	# Update upgrades if changed
+	var upgrades_hash = str(current_upgrades.hash())
+	if upgrades_hash != last_upgrades_hash:
+		_update_upgrade_status_display(current_upgrades)
+		last_upgrades_hash = upgrades_hash
+
+	# Update stats (debris count and collection range from upgrades)
+	_update_stats_display(current_upgrades)
+
+func _update_credits_display(credits: int) -> void:
+	##Update the credits display in the StatsPanel
+	if credits_label:
+		credits_label.text = "Credits: %d" % credits
+		print("[LobbyZone2D] Updated credits display: %d" % credits)
+
+func _update_inventory_display(inventory: Array, capacity: int) -> void:
+	##Update the inventory display with grouped items
+	if not inventory_grid or not inventory_status:
+		return
+
+	# Update status text
+	inventory_status.text = "%d/%d Items" % [inventory.size(), capacity]
+
+	# Color code based on fullness
+	if inventory.size() >= capacity:
+		inventory_status.modulate = Color.RED
+	elif inventory.size() >= capacity * 0.8:
+		inventory_status.modulate = Color.YELLOW
+	else:
+		inventory_status.modulate = Color.WHITE
+
+	# Clear existing inventory display
+	for item in inventory_items:
+		if item:
+			item.queue_free()
+	inventory_items.clear()
+
+	# Group inventory by type
+	var grouped_inventory = _group_inventory_by_type(inventory)
+
+	# Add grouped items to display
+	for item_type in grouped_inventory:
+		var group_data = grouped_inventory[item_type]
+		var item_control = _create_inventory_item_control(item_type, group_data)
+		inventory_grid.add_child(item_control)
+		inventory_items.append(item_control)
+
+	print("[LobbyZone2D] Updated inventory display: %d/%d items" % [inventory.size(), capacity])
+
+func _update_upgrade_status_display(upgrades: Dictionary) -> void:
+	##Update the upgrade status display
+	if not upgrade_status_text:
+		return
+
+	var status_text = ""
+	var upgrade_count = 0
+
+	for upgrade_type in upgrades:
+		var level = upgrades[upgrade_type]
+		if level > 0:
+			var upgrade_name = upgrade_type.capitalize().replace("_", " ")
+			status_text += "%s: L%d\n" % [upgrade_name, level]
+			upgrade_count += 1
+
+	if upgrade_count == 0:
+		upgrade_status_text.text = "No upgrades purchased"
+		upgrade_status_text.modulate = Color.GRAY
+	else:
+		upgrade_status_text.text = status_text.strip_edges()
+		upgrade_status_text.modulate = Color.WHITE
+
+	print("[LobbyZone2D] Updated upgrade status: %d upgrades" % upgrade_count)
+
+func _update_stats_display(upgrades: Dictionary) -> void:
+	##Update the stats display (debris count and collection range)
+	if not debris_count_label or not collection_range_label:
+		return
+
+	# For lobby, debris count is always 0 (no debris spawning in lobby)
+	debris_count_label.text = "Nearby Debris: 0"
+
+	# Calculate collection range based on upgrades
+	var base_range = 80
+	var collection_efficiency_level = upgrades.get("collection_efficiency", 0)
+	var bonus_range = collection_efficiency_level * 20  # 2D uses different scaling
+	var total_range = base_range + bonus_range
+
+	if bonus_range > 0:
+		collection_range_label.text = "Collection Range: %d (+%d)" % [total_range, bonus_range]
+	else:
+		collection_range_label.text = "Collection Range: %d" % total_range
+
+func _group_inventory_by_type(inventory: Array) -> Dictionary:
+	##Group inventory items by type and calculate quantities
+	var grouped = {}
+
+	for item in inventory:
+		var item_type = item.get("type", "Unknown")
+		var item_value = item.get("value", 0)
+
+		if not grouped.has(item_type):
+			grouped[item_type] = {
+				"quantity": 0,
+				"total_value": 0,
+				"individual_value": item_value
+			}
+
+		grouped[item_type].quantity += 1
+		grouped[item_type].total_value += item_value
+
+	return grouped
+
+func _create_inventory_item_control(item_type: String, group_data: Dictionary) -> Control:
+	##Create a control for displaying a grouped inventory item
+	var item_container = VBoxContainer.new()
+	item_container.custom_minimum_size = Vector2(60, 60)
+
+	# Item type label
+	var type_label = Label.new()
+	type_label.text = item_type.capitalize().replace("_", " ")
+	type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	type_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	item_container.add_child(type_label)
+
+	# Quantity label
+	var quantity_label = Label.new()
+	quantity_label.text = "x%d" % group_data.quantity
+	quantity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	quantity_label.add_theme_color_override("font_color", Color.CYAN)
+	item_container.add_child(quantity_label)
+
+	# Value label
+	var value_label = Label.new()
+	value_label.text = "%d credits" % group_data.total_value
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value_label.add_theme_color_override("font_color", Color.YELLOW)
+	item_container.add_child(value_label)
+
+	return item_container
+
+func _get_inventory_capacity_from_upgrades(upgrades: Dictionary) -> int:
+	##Calculate inventory capacity based on upgrade levels
+	var base_capacity = 10
+	var expansion_level = upgrades.get("inventory_expansion", 0)
+	var bonus_capacity = expansion_level * 5  # Each level adds 5 slots
+	return base_capacity + bonus_capacity
+
+func _on_player_data_updated(data_type: String) -> void:
+	##Handle player data update signals from LocalPlayerData
+	print("[LobbyZone2D] Player data updated: %s" % data_type)
+
+	# Force UI update when data changes
+	_update_lobby_ui_with_player_data()
