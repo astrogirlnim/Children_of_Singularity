@@ -998,6 +998,36 @@ func close_trading_interface() -> void:
 
 	_log_message("ZoneMain3D: Trading interface closed")
 
+## Trading Hub Signal Handlers
+
+func _on_hub_created(hub: Node3D) -> void:
+	##Handle when a new trading hub is created
+	_log_message("ZoneMain3D: New trading hub created: %s at %s" % [hub.name, hub.global_position])
+
+func _on_player_entered_hub(hub_type: String, hub: Node3D) -> void:
+	##Handle player entering a trading hub
+	_log_message("ZoneMain3D: Player entered %s hub - opening trading interface" % hub_type)
+	open_trading_interface(hub_type)
+
+func _on_player_exited_hub(hub_type: String, hub: Node3D) -> void:
+	##Handle player exiting a trading hub
+	_log_message("ZoneMain3D: Player exited %s hub" % hub_type)
+
+## Space Station Signal Handlers
+
+func _on_module_created(module: Node3D) -> void:
+	##Handle when a new space station module is created
+	_log_message("ZoneMain3D: New space station module created: %s at %s" % [module.name, module.global_position])
+
+func _on_player_entered_module(module_type: String, module: Node3D) -> void:
+	##Handle player entering a space station module
+	_log_message("ZoneMain3D: Player entered %s module - opening trading interface" % module_type)
+	open_trading_interface(module_type)
+
+func _on_player_exited_module(module_type: String, module: Node3D) -> void:
+	##Handle player exiting a space station module
+	_log_message("ZoneMain3D: Player exited %s module" % module_type)
+
 func _on_sell_all_pressed() -> void:
 	##Handle sell all button press - sell all debris in inventory
 	_log_message("ZoneMain3D: Sell all button pressed")
