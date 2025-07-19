@@ -137,14 +137,9 @@ func _setup_trading_interface() -> void:
 	print("[LobbyZone2D] Setting up trading interface")
 
 	if trading_interface:
-		# Hide initially
+		# Hide initially - positioning is handled by scene anchors
 		trading_interface.visible = false
-
-		# Position in center of screen
-		trading_interface.position = Vector2(screen_size.x * 0.2, screen_size.y * 0.1)
-		trading_interface.size = Vector2(screen_size.x * 0.6, screen_size.y * 0.8)
-
-		print("[LobbyZone2D] Trading interface configured - position: %s, size: %s" % [trading_interface.position, trading_interface.size])
+		print("[LobbyZone2D] Trading interface configured with scene-defined anchoring")
 
 func _setup_system_references() -> void:
 	##Setup references to game systems from singletons/autoloads
