@@ -2143,29 +2143,57 @@ func _load_player_data_smartly() -> void:
 	# Check if LocalPlayerData has already loaded valid data
 	var local_player_data = LocalPlayerData
 	if local_player_data and local_player_data.is_initialized:
+		var credits = local_player_data.get_credits()
+		var upgrades = local_player_data.get_all_upgrades()
 		var has_valid_local_data = (
-			local_player_data.credits > 0 or
-			local_player_data.upgrades.values().any(func(level): return level > 0) or
-			local_player_data.inventory.size() > 0
+			credits > 0 or
+			upgrades.values().any(func(level): return level > 0) or
+			local_player_data.get_inventory().size() > 0
 		)
 
 		if has_valid_local_data:
 			_log_message("ZoneMain3D: FOUND VALID LOCAL DATA - Skipping backend loading to preserve local progress")
-			_log_message("ZoneMain3D: Local data summary - Credits: %d, Upgrades: %s" % [local_player_data.credits, local_player_data.upgrades])
+			_log_message("ZoneMain3D: Local data summary - Credits: %d, Upgrades: %s" % [credits, upgrades])
+			# CRITICAL FIX: Update UI to show the loaded local data
+			_refresh_ui_with_loaded_data()
 			return
 
 	# Check if APIClient is already in local storage mode
 	if api_client and api_client.has_method("is_using_local_storage"):
 		if api_client.is_using_local_storage():
 			_log_message("ZoneMain3D: APIClient in local storage mode - Skipping backend loading")
+			# Also refresh UI in this case since data should already be loaded
+			_refresh_ui_with_loaded_data()
 			return
 
 	# SAFETY CHECK: If PlayerShip3D already has local data loaded, don't override it
 	if player_ship and (player_ship.credits > 0 or player_ship.upgrades.values().any(func(level): return level > 0)):
 		_log_message("ZoneMain3D: PlayerShip3D already has valid data loaded - Skipping backend loading")
 		_log_message("ZoneMain3D: PlayerShip3D data - Credits: %d, Upgrades: %s" % [player_ship.credits, player_ship.upgrades])
+		# CRITICAL FIX: Update UI to show the loaded PlayerShip3D data
+		_refresh_ui_with_loaded_data()
 		return
 
 	# Only proceed with backend loading if no valid local data exists and backend is available
 	_log_message("ZoneMain3D: No local data found - Attempting backend loading (will fail safely in local mode)")
 	_load_complete_player_data_from_backend()
+
+func _refresh_ui_with_loaded_data() -> void:
+	##Refresh all UI displays with currently loaded player data
+	_log_message("ZoneMain3D: Refreshing UI with loaded player data...")
+
+	if player_ship:
+		_log_message("ZoneMain3D: PlayerShip3D current state - Credits: %d, Upgrades: %s" % [player_ship.credits, player_ship.upgrades])
+
+		# Update credits display
+		_update_credits_display()
+
+		# Update upgrade status display
+		_update_upgrade_status_display()
+
+		# Update inventory displays
+		_update_inventory_displays()
+
+		_log_message("ZoneMain3D: UI refresh complete - Credits: %d, Upgrades shown: %d" % [player_ship.credits, player_ship.upgrades.values().count(func(level): return level > 0)])
+	else:
+		_log_message("ZoneMain3D: WARNING - PlayerShip3D not available for UI refresh")
