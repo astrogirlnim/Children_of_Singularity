@@ -577,6 +577,17 @@ func _collect_debris_object(debris_object: RigidBody3D) -> void:
 		AudioManager.play_sfx("pickup_debris")
 		_log_message("PlayerShip3D: Played debris collection sound effect")
 
+	# CRITICAL FIX: Sync inventory item with LocalPlayerData (for 2D lobby scene)
+	var local_player_data = get_node_or_null("/root/LocalPlayerData")
+	if local_player_data and local_player_data.has_method("add_inventory_item"):
+		var success = local_player_data.add_inventory_item(debris_type, debris_id, 1, debris_value)
+		if success:
+			_log_message("PlayerShip3D: FIXED - Synced inventory item with LocalPlayerData - %s" % debris_type)
+		else:
+			_log_message("PlayerShip3D: Warning - Failed to sync inventory item with LocalPlayerData")
+	else:
+		_log_message("PlayerShip3D: Warning - LocalPlayerData sync not available for inventory item")
+
 	# Sync inventory item with backend API
 	if zone_main and zone_main.has_method("get_api_client"):
 		var api_client = zone_main.get_api_client()
@@ -719,12 +730,30 @@ func get_player_info() -> Dictionary:
 func add_credits(amount: int) -> void:
 	##Add credits to the player
 	credits += amount
+
+	# CRITICAL FIX: Sync credits with LocalPlayerData (for 2D lobby scene)
+	var local_player_data = get_node_or_null("/root/LocalPlayerData")
+	if local_player_data and local_player_data.has_method("add_credits"):
+		local_player_data.add_credits(amount)
+		_log_message("PlayerShip3D: FIXED - Synced credit addition with LocalPlayerData")
+	else:
+		_log_message("PlayerShip3D: Warning - LocalPlayerData sync not available for credit addition")
+
 	_log_message("PlayerShip3D: Added %d credits - Total: %d" % [amount, credits])
 
 func spend_credits(amount: int) -> bool:
 	##Remove credits from the player
 	if credits >= amount:
 		credits -= amount
+
+		# CRITICAL FIX: Sync credits with LocalPlayerData (for 2D lobby scene)
+		var local_player_data = get_node_or_null("/root/LocalPlayerData")
+		if local_player_data and local_player_data.has_method("spend_credits"):
+			local_player_data.spend_credits(amount)
+			_log_message("PlayerShip3D: FIXED - Synced credit spending with LocalPlayerData")
+		else:
+			_log_message("PlayerShip3D: Warning - LocalPlayerData sync not available for credit spending")
+
 		_log_message("PlayerShip3D: Spent %d credits - Remaining: %d" % [amount, credits])
 		return true
 	else:
@@ -735,6 +764,15 @@ func clear_inventory() -> Array[Dictionary]:
 	##Clear inventory (used when selling to NPCs)
 	var sold_items = current_inventory.duplicate()
 	current_inventory.clear()
+
+	# CRITICAL FIX: Sync inventory clearing with LocalPlayerData (for 2D lobby scene)
+	var local_player_data = get_node_or_null("/root/LocalPlayerData")
+	if local_player_data and local_player_data.has_method("clear_inventory"):
+		local_player_data.clear_inventory()
+		_log_message("PlayerShip3D: FIXED - Synced inventory clearing with LocalPlayerData")
+	else:
+		_log_message("PlayerShip3D: Warning - LocalPlayerData sync not available for inventory clearing")
+
 	_log_message("PlayerShip3D: Inventory cleared - Sold %d items" % sold_items.size())
 	return sold_items
 
@@ -750,6 +788,17 @@ func apply_upgrade(upgrade_type: String, level: int) -> void:
 	if upgrade_type in upgrades:
 		upgrades[upgrade_type] = level
 		_apply_upgrade_effects(upgrade_type, level)
+
+		# CRITICAL FIX: Sync upgrades with LocalPlayerData (for 2D lobby scene)
+		var local_player_data = get_node_or_null("/root/LocalPlayerData")
+		if local_player_data:
+			# Update the upgrades dictionary in LocalPlayerData
+			local_player_data.player_upgrades[upgrade_type] = level
+			local_player_data.save_upgrades()
+			_log_message("PlayerShip3D: FIXED - Synced upgrade with LocalPlayerData - %s level %d" % [upgrade_type, level])
+		else:
+			_log_message("PlayerShip3D: Warning - LocalPlayerData sync not available for upgrade")
+
 		_log_message("PlayerShip3D: Applied upgrade %s level %d" % [upgrade_type, level])
 
 func _apply_upgrade_effects(upgrade_type: String, level: int) -> void:
