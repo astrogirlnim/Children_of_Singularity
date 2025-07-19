@@ -412,8 +412,23 @@ jobs:
             echo "✅ AWS CLI already available: $(aws --version)"
           fi
 
-          # Make S3 manager executable
-          chmod +x scripts/s3-manager.sh
+          # Debug: Check current directory and files
+          echo "🔍 Debug: Current directory: $(pwd)"
+          echo "🔍 Debug: Directory contents:"
+          ls -la
+          echo "🔍 Debug: Scripts directory:"
+          ls -la scripts/ || echo "⚠️ Scripts directory not found"
+
+          # Check if S3 manager exists before chmod
+          if [ -f "scripts/s3-manager.sh" ]; then
+            echo "✅ Found s3-manager.sh, making executable..."
+            chmod +x scripts/s3-manager.sh
+          else
+            echo "❌ s3-manager.sh not found in scripts directory"
+            echo "🔍 Available files in scripts/:"
+            ls -la scripts/ || echo "Scripts directory does not exist"
+            exit 1
+          fi
 
           # Setup S3 bucket (will skip if exists)
           ./scripts/s3-manager.sh setup
@@ -506,8 +521,13 @@ jobs:
           echo ""
 
           # Show S3 release information
-          chmod +x scripts/s3-manager.sh
-          if ./scripts/s3-manager.sh check; then
+          if [ -f "scripts/s3-manager.sh" ]; then
+            chmod +x scripts/s3-manager.sh
+          else
+            echo "❌ s3-manager.sh not found, skipping S3 operations"
+          fi
+
+          if [ -f "scripts/s3-manager.sh" ] && ./scripts/s3-manager.sh check; then
             echo "📊 S3 Storage Information:"
             ./scripts/s3-manager.sh storage-info
 
