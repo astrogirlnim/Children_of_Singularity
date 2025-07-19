@@ -980,7 +980,7 @@ func open_trading_interface(hub_type: String) -> void:
 
 	# Store hub type for lobby context (optional)
 	if LocalPlayerData:
-		LocalPlayerData.set_data("last_interacted_hub_type", hub_type)
+		LocalPlayerData.set_setting("last_interacted_hub_type", hub_type)
 		_log_message("ZoneMain3D: Stored hub type for lobby context: %s" % hub_type)
 
 	# Transition to 2D lobby scene
