@@ -40,6 +40,12 @@ var player_can_interact: bool = false
 var computer_in_range: bool = false
 var lobby_loaded: bool = false
 
+# Dynamic scaling properties
+var original_viewport_size: Vector2 = Vector2(1920, 1080)  # Design resolution
+var original_background_size: Vector2
+var current_scale_factor: Vector2 = Vector2.ONE  # Now using Vector2 for independent X/Y scaling
+var scaling_enabled: bool = true
+
 # Screen dimensions for boundary checking
 var screen_size: Vector2
 var lobby_bounds: Rect2
@@ -48,28 +54,133 @@ var lobby_bounds: Rect2
 var lobby_logs: Array[String] = []
 
 func _ready() -> void:
-	print("[LobbyZone2D] Initializing 2D trading lobby")
+	print("[LobbyZone2D] Initializing 2D trading lobby with dynamic scaling")
+
+	# Store original sizes before any scaling
+	_store_original_sizes()
+
+	# Setup viewport resize signal
+	get_viewport().size_changed.connect(_on_viewport_size_changed)
+
+	# Initial setup
 	_setup_lobby_environment()
 	_setup_ui_elements()
 	_setup_trading_interface()
 	_setup_system_references()
 	_setup_boundaries()
 
-	# Exit boundaries signal should be connected in the editor
-	# If not connected in editor, uncomment the line below:
-	# exit_boundaries.body_exited.connect(_on_exit_boundaries_body_exited)
-	print("[LobbyZone2D] Exit boundaries ready for signal detection")
+	# Apply initial scaling
+	_apply_dynamic_scaling()
 
-	# Trading computer signals should be connected in the editor
-	# If not working, the signals may need to be connected manually in editor:
-	# TradingComputer -> area_entered -> LobbyZone2D._on_trading_computer_area_entered
-	# TradingComputer -> area_exited -> LobbyZone2D._on_trading_computer_area_exited
+	print("[LobbyZone2D] Exit boundaries ready for signal detection")
 	print("[LobbyZone2D] Trading computer interaction ready")
 
 	# Mark lobby as ready
 	lobby_loaded = true
 	lobby_ready.emit()
-	print("[LobbyZone2D] Lobby initialization complete")
+	print("[LobbyZone2D] Lobby initialization complete with dynamic scaling")
+
+func _store_original_sizes() -> void:
+	"""Store original sizes before any scaling modifications"""
+	print("[LobbyZone2D] Storing original sizes for scaling calculations")
+
+	# Store original background texture size if available
+	if background and background.texture:
+		original_background_size = background.texture.get_size()
+		print("[LobbyZone2D] Original background size: %s" % original_background_size)
+	else:
+		# Fallback size if no texture yet
+		original_background_size = Vector2(1000, 400)  # Approximate size of trading_hub_pixel_horizontal.png
+		print("[LobbyZone2D] Using fallback background size: %s" % original_background_size)
+
+func _on_viewport_size_changed() -> void:
+	"""Handle viewport resize events"""
+	print("[LobbyZone2D] Viewport size changed, reapplying scaling")
+	_apply_dynamic_scaling()
+
+func _apply_dynamic_scaling() -> void:
+	"""Apply dynamic scaling to make the entire scene fill the viewport with aspect ratio stretching"""
+	if not scaling_enabled:
+		return
+
+	var current_viewport_size = get_viewport().get_visible_rect().size
+	print("[LobbyZone2D] Applying dynamic scaling - Current viewport: %s" % current_viewport_size)
+	print("[LobbyZone2D] Original viewport design size: %s" % original_viewport_size)
+
+	# Debug: Check what the actual scene content bounds are
+	if background and background.texture:
+		var bg_size = background.texture.get_size()
+		var bg_pos = background.position
+		print("[LobbyZone2D] Background texture size: %s, position: %s" % [bg_size, bg_pos])
+
+		# Use the actual background size as our reference instead of arbitrary design resolution
+		# Since the background is the main visual element that should fill the screen
+		var actual_content_size = bg_size
+
+		# Calculate scale factors to make background fill the entire viewport
+		var scale_x = current_viewport_size.x / actual_content_size.x
+		var scale_y = current_viewport_size.y / actual_content_size.y
+
+		current_scale_factor = Vector2(scale_x, scale_y)
+
+		print("[LobbyZone2D] Using background-based scaling - X: %.3f, Y: %.3f" % [scale_x, scale_y])
+
+		# Apply scaling to the entire scene
+		self.scale = current_scale_factor
+
+		# Position the scene to center the background at viewport center
+		# Background is at bg_pos, so we need to account for that
+		var scaled_bg_pos = bg_pos * current_scale_factor
+		var viewport_center = current_viewport_size * 0.5
+		self.position = viewport_center - scaled_bg_pos
+
+		print("[LobbyZone2D] Scene scaled to: %s, positioned at: %s" % [self.scale, self.position])
+	else:
+		# Fallback to original method if no background
+		var scale_x = current_viewport_size.x / original_viewport_size.x
+		var scale_y = current_viewport_size.y / original_viewport_size.y
+		current_scale_factor = Vector2(scale_x, scale_y)
+		self.scale = current_scale_factor
+		self.position = Vector2.ZERO
+		print("[LobbyZone2D] Using fallback scaling - X: %.3f, Y: %.3f" % [scale_x, scale_y])
+
+	# Update camera to account for scaling
+	_update_camera_for_scaling()
+
+	# Update boundaries for new scale
+	_update_boundaries_for_scaling()
+
+func _update_camera_for_scaling() -> void:
+	"""Update camera settings for the new scaling"""
+	if not camera_2d:
+		return
+
+	# Don't change camera position - let it scale with the scene
+	# The camera maintains its relative position within the scaled scene
+	# This way the camera view moves naturally with the scaled content
+
+	# Make sure camera is enabled
+	camera_2d.enabled = true
+
+	print("[LobbyZone2D] Camera maintaining relative position in scaled scene: %s" % camera_2d.position)
+
+func _update_boundaries_for_scaling() -> void:
+	"""Update exit boundaries for the new scaling"""
+	var current_viewport_size = get_viewport().get_visible_rect().size
+
+	# Boundaries should be in local space (before scaling)
+	# Use component-wise division since current_scale_factor is now Vector2
+	var local_bounds_size = Vector2(
+		current_viewport_size.x / current_scale_factor.x,
+		current_viewport_size.y / current_scale_factor.y
+	)
+
+	# Scale padding based on average scale factor
+	var avg_scale = (current_scale_factor.x + current_scale_factor.y) / 2.0
+	var padding = 50 / avg_scale
+
+	lobby_bounds = Rect2(-padding, -padding, local_bounds_size.x + padding * 2, local_bounds_size.y + padding * 2)
+	print("[LobbyZone2D] Updated lobby bounds for scaling: %s" % lobby_bounds)
 
 func _process(_delta: float) -> void:
 	# Handle input for interaction and exit
@@ -79,8 +190,28 @@ func _process(_delta: float) -> void:
 	# Exit boundaries are now handled by Area2D signal (_on_exit_boundaries_body_exited)
 	# No need for manual boundary checking
 
+func toggle_scaling(enabled: bool) -> void:
+	"""Toggle dynamic scaling on/off"""
+	scaling_enabled = enabled
+	print("[LobbyZone2D] Dynamic scaling %s" % ("enabled" if enabled else "disabled"))
+
+	if enabled:
+		_apply_dynamic_scaling()
+	else:
+		# Reset to original scale and position
+		self.scale = Vector2.ONE
+		self.position = Vector2.ZERO
+
+func get_current_scale_factor() -> Vector2:
+	"""Get the current scale factor being applied"""
+	return current_scale_factor
+
+func get_average_scale_factor() -> float:
+	"""Get the average of X and Y scale factors as a single value"""
+	return (current_scale_factor.x + current_scale_factor.y) / 2.0
+
 func _setup_lobby_environment() -> void:
-	##Setup the 2D lobby visual environment
+	"""Setup the 2D lobby visual environment"""
 	print("[LobbyZone2D] Setting up lobby environment")
 
 	# Get screen size for proper scaling
@@ -254,29 +385,7 @@ func return_to_3d_world() -> void:
 	# Change scene back to 3D zone
 	get_tree().change_scene_to_file("res://scenes/zones/ZoneMain3D.tscn")
 
-func _apply_exact_window_scaling_to_background(sprite: Sprite2D, texture: Texture2D) -> void:
-	##Apply exact window scaling to stretch background to fill screen (like startup screen)
-	if not sprite or not texture:
-		return
 
-	var viewport_size = get_viewport().get_visible_rect().size
-	var texture_size = texture.get_size()
-
-	print("[LobbyZone2D] Applying exact scaling - Viewport: %s, Texture: %s" % [viewport_size, texture_size])
-
-	# Keep background at origin (0,0) so editor coordinates work correctly
-	sprite.position = Vector2.ZERO  # Keep at origin instead of centering
-	sprite.centered = false  # Don't center the sprite
-
-	# Calculate separate scale factors for X and Y to stretch to fill window
-	var scale_x = viewport_size.x / texture_size.x if texture_size.x > 0 else 1.0
-	var scale_y = viewport_size.y / texture_size.y if texture_size.y > 0 else 1.0
-
-	# Apply scale transformation to stretch background to exact viewport size
-	sprite.scale = Vector2(scale_x, scale_y)
-
-	print("[LobbyZone2D] Applied scale transformation - X: %.3f, Y: %.3f" % [scale_x, scale_y])
-	print("[LobbyZone2D] Background positioned at: %s" % sprite.position)
 
 func log_message(message: String) -> void:
 	##Add a message to the lobby log
