@@ -15,10 +15,10 @@ var target_position: Vector2 = Vector2.ZERO
 var interpolation_speed: float = 15.0
 var position_threshold: float = 2.0  # Minimum movement to trigger interpolation
 
-# Visual components
-@onready var player_sprite: Sprite2D = $RemotePlayerSprite2D
-@onready var player_label: Label = $PlayerLabel
-@onready var connection_indicator: ColorRect = $ConnectionIndicator
+# Visual components (created programmatically, not @onready)
+var player_sprite: Sprite2D
+var player_label: Label
+var connection_indicator: ColorRect
 
 # Animation and visual state
 var facing_direction: Vector2 = Vector2.DOWN
@@ -148,15 +148,19 @@ func _setup_visual_components() -> void:
 	print("[RemoteLobbyPlayer2D] Setting up visual components for %s" % player_id)
 
 	# Setup sprite with walking animation idle texture
-	if player_sprite:
-		# Load the walking guy frame 080 as the idle/default sprite
-		default_sprite = preload("res://assets/sprites/player/walking_animation/walking_guy_frame_080.png")
-		player_sprite.texture = default_sprite
+	if not player_sprite:
+		player_sprite = Sprite2D.new()
+		player_sprite.name = "RemotePlayerSprite2D"
+		add_child(player_sprite)
 
-		# Make the sprite larger for better visibility (same as local player)
-		player_sprite.scale = Vector2(0.3, 0.3)  # Match local player scale
-		sprite_scale = player_sprite.scale
-		print("[RemoteLobbyPlayer2D] Remote player sprite setup with walking frame 080 as idle and larger scale: %s" % sprite_scale)
+	# Load the walking guy frame 080 as the idle/default sprite
+	default_sprite = preload("res://assets/sprites/player/walking_animation/walking_guy_frame_080.png")
+	player_sprite.texture = default_sprite
+
+	# Make the sprite larger for better visibility (same as local player)
+	player_sprite.scale = Vector2(0.3, 0.3)  # Match local player scale
+	sprite_scale = player_sprite.scale
+	print("[RemoteLobbyPlayer2D] Remote player sprite setup with walking frame 080 as idle and larger scale: %s" % sprite_scale)
 
 	# Setup player label
 	if not player_label:
