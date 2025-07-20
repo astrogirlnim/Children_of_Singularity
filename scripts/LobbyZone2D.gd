@@ -1778,15 +1778,15 @@ func _create_marketplace_listing_item(listing: Dictionary) -> void:
 	seller_label.add_theme_font_size_override("font_size", 12)
 	content_vbox.add_child(seller_label)
 
-	# Price info - FIXED: Use asking_price and calculate total properly
+	# Price info - CRITICAL FIX: Backend stores asking_price as TOTAL price, not per-unit
 	var price_label = Label.new()
-	var asking_price = listing.get("asking_price", 0)
-	var total_price = asking_price * quantity
+	var asking_price = listing.get("asking_price", 0)  # This is the TOTAL price
 
 	if quantity > 1:
-		price_label.text = "Price: %d credits each\nTotal: %d credits" % [asking_price, total_price]
+		var price_per_unit = asking_price / quantity
+		price_label.text = "Price: %d credits each\nTotal: %d credits" % [price_per_unit, asking_price]
 	else:
-		price_label.text = "Price: %d credits" % total_price
+		price_label.text = "Price: %d credits" % asking_price
 
 	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	price_label.add_theme_color_override("font_color", Color.YELLOW)
@@ -1877,15 +1877,15 @@ func _create_marketplace_listing_item_for_grid(listing: Dictionary, target_grid:
 	seller_label.add_theme_font_size_override("font_size", 12)
 	content_vbox.add_child(seller_label)
 
-	# Price info - FIXED: Use asking_price and calculate total properly
+	# Price info - CRITICAL FIX: Backend stores asking_price as TOTAL price, not per-unit
 	var price_label = Label.new()
-	var asking_price = listing.get("asking_price", 0)
-	var total_price = asking_price * quantity
+	var asking_price = listing.get("asking_price", 0)  # This is the TOTAL price
 
 	if quantity > 1:
-		price_label.text = "Price: %d credits each\nTotal: %d credits" % [asking_price, total_price]
+		var price_per_unit = asking_price / quantity
+		price_label.text = "Price: %d credits each\nTotal: %d credits" % [price_per_unit, asking_price]
 	else:
-		price_label.text = "Price: %d credits" % total_price
+		price_label.text = "Price: %d credits" % asking_price
 
 	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	price_label.add_theme_color_override("font_color", Color.YELLOW)
@@ -3122,8 +3122,7 @@ func _populate_purchase_dialog(listing: Dictionary) -> void:
 	# Extract listing details
 	var item_name = listing.get("item_name", "Unknown Item")
 	var quantity = listing.get("quantity", 1)
-	var asking_price = listing.get("asking_price", 0)
-	var total_price = asking_price * quantity
+	var asking_price = listing.get("asking_price", 0)  # This is the TOTAL price
 	var seller_name = listing.get("seller_name", "Unknown Seller")
 
 	# Format item name for display
@@ -3138,9 +3137,10 @@ func _populate_purchase_dialog(listing: Dictionary) -> void:
 	purchase_seller_label.text = "Seller: %s" % seller_name
 
 	if quantity > 1:
-		purchase_price_label.text = "Total Cost: %d credits (%d each)" % [total_price, asking_price]
+		var price_per_unit = asking_price / quantity
+		purchase_price_label.text = "Total Cost: %d credits (%d each)" % [asking_price, price_per_unit]
 	else:
-		purchase_price_label.text = "Total Cost: %d credits" % total_price
+		purchase_price_label.text = "Total Cost: %d credits" % asking_price
 
 	# Update current credits display
 	var credits_info = purchase_dialog.get_child(0).get_child(5) as Label  # Get the credits info label
@@ -3160,20 +3160,22 @@ func _on_purchase_confirm_pressed() -> void:
 
 	print("[LobbyZone2D] Purchasing listing ID: %s from seller: %s" % [listing_id, seller_id])
 
+	# Close dialog first
+	purchase_dialog.hide()
+
 	# CRITICAL FIX: Remove conditional signal connections - they're now connected during initialization
 	if TradingMarketplace:
 		# Make the purchase - signals are already connected
-		TradingMarketplace.purchase_marketplace_item(listing_id, seller_id)
+		var purchase_started = TradingMarketplace.purchase_marketplace_item(listing_id, seller_id)
+
+		# Only show "Processing purchase..." if the purchase actually started
+		if purchase_started:
+			_update_marketplace_status("Processing purchase...", Color.WHITE)
+		# If purchase_started is false, the error message was already set by the api_error signal
 	else:
 		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
 		_update_marketplace_status("Trading system not available", Color.RED)
 		return
-
-	# Close dialog
-	purchase_dialog.hide()
-
-	# Show purchasing status
-	_update_marketplace_status("Processing purchase...", Color.WHITE)
 
 func _on_purchase_cancel_pressed() -> void:
 	##Handle purchase cancellation

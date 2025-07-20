@@ -87,7 +87,7 @@ func get_listings() -> void:
 
 ## Post a new item for sale
 func post_listing(item_type: String, quantity: int, price_per_unit: int, description: String = "") -> void:
-	print("[TradingMarketplace] Posting listing: %s x%d for %d credits each" % [item_type, quantity, price_per_unit])
+	print("[TradingMarketplace] Posting listing: %s x%d for %d credits each (total: %d)" % [item_type, quantity, price_per_unit, price_per_unit * quantity])
 
 	# INVENTORY VALIDATION ENHANCEMENT: Check request debouncing
 	var debounce_result = can_make_listing_request()
@@ -119,14 +119,14 @@ func post_listing(item_type: String, quantity: int, price_per_unit: int, descrip
 		"price_per_unit": price_per_unit
 	})
 
-	# Create listing data - API expects both item_type and item_name, plus asking_price
+	# Create listing data - API expects both item_type and item_name, plus asking_price as TOTAL
 	var listing_data = {
 		"seller_id": local_player_data.get_player_id(),
 		"seller_name": local_player_data.get_player_name(),
 		"item_type": item_type,  # API expects snake_case value (e.g., "broken_satellite")
 		"item_name": _format_item_name(item_type),  # API expects formatted name (e.g., "Broken Satellite")
 		"quantity": quantity,
-		"asking_price": price_per_unit,  # API expects asking_price (not price_per_item or price_per_unit)
+		"asking_price": price_per_unit * quantity,  # CRITICAL FIX: Send TOTAL price, not per-unit
 		"description": description
 	}
 
@@ -414,8 +414,14 @@ func _handle_api_response(data: Dictionary, _response_code: int):
 
 		# Add item to local inventory (credits already deducted optimistically)
 		if local_player_data and item_name != "":
-			local_player_data.add_inventory_item(item_name, "", quantity, 0)
-			print("[TradingMarketplace] Added %d %s to inventory (credits already deducted)" % [quantity, item_name])
+			# CRITICAL FIX: Add item to local inventory with correct value and type for proper stacking
+			var per_unit_value = total_price / quantity
+
+			# Convert display name back to item type for inventory consistency
+			var item_type = _convert_display_name_to_type(item_name)
+
+			local_player_data.add_inventory_item(item_type, "", quantity, per_unit_value)
+			print("[TradingMarketplace] Added %d %s (type: %s) to inventory at %d credits each" % [quantity, item_name, item_type, per_unit_value])
 
 		emit_signal("item_purchased", true, item_name)
 		emit_signal("trade_completed", true, data)
@@ -521,7 +527,7 @@ func can_sell_item(item_type: String, item_name: String, quantity: int) -> bool:
 
 ## Post item for sale in marketplace (wrapper for existing post_listing method)
 func post_item_for_sale(item_type: String, item_name: String, quantity: int, asking_price: int) -> void:
-	print("[TradingMarketplace] Posting item for sale: %s x%d for %d credits each" % [item_name, quantity, asking_price])
+	print("[TradingMarketplace] Posting item for sale: %s x%d for %d credits each (total: %d)" % [item_name, quantity, asking_price, asking_price * quantity])
 
 	# Enhanced validation before posting (no debouncing check here)
 	if not can_sell_item(item_type, item_name, quantity):
@@ -553,7 +559,7 @@ func post_item_for_sale(item_type: String, item_name: String, quantity: int, ask
 
 	# Use existing post_listing method with item_type (not item_name) and proper description
 	var description = "High-quality %s from player inventory" % item_name.replace("_", " ")
-	post_listing(item_type, quantity, asking_price, description)  # Pass item_type (snake_case) not item_name (formatted)
+	post_listing(item_type, quantity, asking_price, description)  # Pass asking_price as per-unit, post_listing will calculate total
 
 ## Purchase item from marketplace (wrapper for existing purchase_item method)
 func purchase_marketplace_item(listing_id: String, seller_id: String) -> bool:
@@ -586,23 +592,24 @@ func purchase_marketplace_item(listing_id: String, seller_id: String) -> bool:
 		return false
 
 	var listing_details = verification.listing
-	print("[TradingMarketplace] Found listing: %s x%d for %d credits" % [
-		listing_details.get("item_name", "Unknown"),
-		listing_details.get("quantity", 0),
-		listing_details.get("total_price", 0)
+
+	# CRITICAL FIX: Backend stores asking_price as TOTAL price, not per-unit
+	# Use asking_price directly as the total price
+	var total_price = listing_details.get("asking_price", 0)
+	var quantity = listing_details.get("quantity", 1)
+	var item_name = listing_details.get("item_name", "")
+
+	print("[TradingMarketplace] Found listing: %s x%d for %d credits total" % [
+		item_name, quantity, total_price
 	])
 
-	# Validate purchase
+	# Validate purchase using the correct total price
 	var validation_result = validate_marketplace_purchase(listing_details)
 	if not validation_result.success:
 		emit_signal("api_error", validation_result.error_message)
 		return false
 
-	# Use existing purchase_item method
-	var item_name = listing_details.get("item_name", "")
-	var quantity = listing_details.get("quantity", 1)
-	var total_price = listing_details.get("total_price", 0)
-
+	# Use existing purchase_item method with corrected price
 	purchase_item(listing_id, seller_id, item_name, quantity, total_price)
 	return true
 
@@ -617,8 +624,9 @@ func validate_marketplace_purchase(listing: Dictionary) -> Dictionary:
 		result.error_message = "Player data not available"
 		return result
 
-	# Check if player has enough credits
-	var total_price = listing.get("total_price", 0)
+	# CRITICAL FIX: Backend stores asking_price as TOTAL price, not per-unit
+	# Use asking_price directly as the total price
+	var total_price = listing.get("asking_price", 0)
 	var current_credits = local_player_data.get_credits()
 
 	if current_credits < total_price:
@@ -810,13 +818,8 @@ func verify_listing_exists(listing_id: String) -> Dictionary:
 		result.listing = listing
 		return result
 
-	# Calculate total price (may be missing from listing)
-	var asking_price = listing.get("asking_price", 0)
-	var quantity = listing.get("quantity", 1)
-	if not listing.has("total_price"):
-		listing["total_price"] = asking_price * quantity
-		print("[TradingMarketplace] Added missing total_price to listing: %d" % listing["total_price"])
-
+	# CRITICAL FIX: Backend already provides asking_price as total price
+	# No need to calculate total_price separately anymore
 	result.exists = true
 	result.listing = listing
 	return result
