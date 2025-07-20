@@ -2,7 +2,6 @@
 # WebSocket Client Manager for 2D Trading Lobby
 # Autoload singleton that handles real-time multiplayer connections
 
-class_name LobbyController
 extends Node
 
 ## Signal emitted when successfully connected to lobby WebSocket
@@ -165,13 +164,12 @@ func connect_to_lobby() -> void:
 		connection_failed.emit("No WebSocket URL configured")
 		return
 
-	print("[LobbyController] Connecting to lobby: %s" % websocket_url)
+	# Build connection URL with player ID
+	var connection_url = "%s?pid=%s" % [websocket_url, local_player_id]
+	print("[LobbyController] Connecting to lobby: %s" % connection_url)
 	is_connecting = true
 	connection_timer = 0.0
 	current_retry_attempt += 1
-
-	# Build connection URL with player ID
-	var connection_url = "%s?pid=%s" % [websocket_url, local_player_id]
 
 	var error = websocket_client.connect_to_url(connection_url)
 	if error != OK:
