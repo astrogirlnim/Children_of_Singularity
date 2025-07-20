@@ -7,6 +7,7 @@ The marketplace trading system is now fully operational with all core features i
 
 **Last Updated**: December 2024  
 **Phase Status**: Phase 1 Complete (100%) - Production Ready  
+**Latest Enhancement**: Comprehensive inventory validation system prevents over-listing  
 **Critical Fix**: Automatic UI refresh system implemented
 
 ---
@@ -184,6 +185,51 @@ TradingMarketplace.api_error.connect(_on_marketplace_api_error)
 User Action → API Call → Signal Emission → UI Update (Automatic Refresh)
 ```
 
+### Inventory Validation System (NEW)
+**Multi-Layer Architecture to Prevent Over-Listing:**
+
+#### Layer 1: Active Listings Cache
+```gdscript
+var cached_listings: Array[Dictionary] = []         # Current marketplace listings
+var player_active_listings: Array[Dictionary] = []  # Player's own active listings  
+var listings_cache_timestamp: float = 0.0           # Cache freshness tracking
+var listings_cache_duration: float = 30.0           # Cache validity period
+```
+
+#### Layer 2: Enhanced Validation
+```gdscript
+func can_sell_item_enhanced(item_type: String, quantity: int) -> Dictionary:
+    var inventory_quantity = _get_inventory_quantity(inventory, item_type)
+    var listed_quantity = get_player_listed_quantity(item_type)
+    var available_to_list = inventory_quantity - listed_quantity
+    # Prevents listing more than (total_owned - already_listed)
+```
+
+#### Layer 3: Request Debouncing
+```gdscript
+var last_listing_request_time: float = 0.0
+var listing_request_cooldown: float = 2.0  # 2-second cooldown
+# Prevents spam-clicking before API responds
+```
+
+#### Layer 4: Auto-Cache Updates
+```gdscript
+# After successful listing creation/removal:
+refresh_listings_for_validation()
+# Ensures validation is always current
+```
+
+#### Layer 5: Server-Side Limits
+```python
+MAX_LISTED_QUANTITY_PER_ITEM = 50  # Conservative server-side limit
+# Final safety check to prevent abuse
+```
+
+**Enhanced UI Display:**
+- Shows: `"AI Component (8 in inventory, 3 listed, 5 available)"`
+- Real-time validation prevents over-listing attempts
+- Clear error messages with specific quantities
+
 ---
 
 ## ✅ Implemented Features
@@ -208,6 +254,10 @@ User Action → API Call → Signal Emission → UI Update (Automatic Refresh)
 - **Ownership Verification** ✅ - Only sellers can remove their own listings
 - **Price Boundaries** ✅ - Prevent extreme under/over-pricing
 - **Inventory Verification** ✅ - Ensure items exist before listing
+- **Over-listing Prevention** ✅ **NEW** - Multi-layer validation prevents listing more than owned
+- **Active Listings Tracking** ✅ **NEW** - Real-time cache tracks player's current listings
+- **Request Debouncing** ✅ **NEW** - Prevents spam-clicking with 2-second cooldown
+- **Smart Cache Management** ✅ **NEW** - Auto-refresh after listing operations
 
 ---
 
