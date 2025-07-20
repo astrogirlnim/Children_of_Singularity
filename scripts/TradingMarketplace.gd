@@ -256,6 +256,10 @@ func _handle_api_response(data: Dictionary, _response_code: int):
 				_remove_items_from_inventory(item_name, quantity)
 				print("[TradingMarketplace] Removed %d %s from local inventory" % [quantity, item_name])
 
+			# INVENTORY VALIDATION ENHANCEMENT: Refresh cache after successful listing creation
+			print("[TradingMarketplace] Refreshing cache after listing creation to update validation")
+			refresh_listings_for_validation()
+
 		emit_signal("listing_posted", success, listing_id)
 		return
 
@@ -276,6 +280,10 @@ func _handle_api_response(data: Dictionary, _response_code: int):
 				var item_type = _convert_display_name_to_type(item_name)
 				local_player_data.add_inventory_item(item_type, "", quantity, 0)
 				print("[TradingMarketplace] Returned %d %s to inventory after removal" % [quantity, item_type])
+
+			# INVENTORY VALIDATION ENHANCEMENT: Refresh cache after successful listing removal
+			print("[TradingMarketplace] Refreshing cache after listing removal to update validation")
+			refresh_listings_for_validation()
 
 		emit_signal("listing_removed", success, listing_id)
 		return
@@ -362,22 +370,13 @@ func can_sell_item(item_type: String, item_name: String, quantity: int) -> bool:
 func post_item_for_sale(item_type: String, item_name: String, quantity: int, asking_price: int) -> void:
 	print("[TradingMarketplace] Posting item for sale: %s x%d for %d credits each" % [item_name, quantity, asking_price])
 
-	# INVENTORY VALIDATION ENHANCEMENT: Check request debouncing first
-	var debounce_result = can_make_listing_request()
-	if not debounce_result.success:
-		emit_signal("api_error", debounce_result.error_message)
-		return
-
-	# Enhanced validation before posting
+	# Enhanced validation before posting (no debouncing check here)
 	if not can_sell_item(item_type, item_name, quantity):
 		emit_signal("api_error", "Cannot sell item - enhanced validation failed")
 		# Log detailed validation report for debugging
 		var report = get_inventory_validation_report(item_type)
 		print("[TradingMarketplace] ENHANCED VALIDATION FAILED - Report: %s" % str(report))
 		return
-
-	# Mark request as made for debouncing (before making API call)
-	mark_listing_request_made()
 
 	# Validate asking price is reasonable (not too low or too high) - use actual inventory value
 	var inventory = local_player_data.get_inventory()
@@ -391,6 +390,12 @@ func post_item_for_sale(item_type: String, item_name: String, quantity: int, ask
 
 	if asking_price > max_price:
 		emit_signal("api_error", "Asking price too high. Maximum: %d credits" % max_price)
+		return
+
+	# INVENTORY VALIDATION ENHANCEMENT: Check request debouncing right before API call
+	var debounce_result = can_make_listing_request()
+	if not debounce_result.success:
+		emit_signal("api_error", debounce_result.error_message)
 		return
 
 	# Use existing post_listing method with item_type (not item_name) and proper description
