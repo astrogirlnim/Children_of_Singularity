@@ -1228,7 +1228,7 @@ func _interact_with_computer() -> void:
 
 		# Clear any previous results
 		if trading_result:
-			trading_result.text = "Select specific quantities of debris to sell, or use 'Sell All' to convert everything into credits."
+			trading_result.text = "Select debris to sell individually, or use 'Sell All' to convert everything into credits."
 
 		if purchase_result:
 			purchase_result.text = ""

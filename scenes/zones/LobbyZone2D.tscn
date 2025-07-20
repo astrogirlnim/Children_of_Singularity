@@ -287,10 +287,10 @@ horizontal_alignment = 1
 
 [node name="TradingTabs" type="TabContainer" parent="UILayer/HUD/TradingInterface"]
 layout_mode = 0
-anchor_left = 0.05
-anchor_top = 0.1
-anchor_right = 0.95
-anchor_bottom = 0.85
+anchor_left = 0.08
+anchor_top = 0.12
+anchor_right = 0.92
+anchor_bottom = 0.83
 current_tab = 0
 
 [node name="SELL" type="Control" parent="UILayer/HUD/TradingInterface/TradingTabs"]
@@ -302,6 +302,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -309,6 +313,8 @@ grow_vertical = 2
 layout_mode = 2
 text = "Select 'Sell All' to convert your debris into credits."
 horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
 
 [node name="SellAllButton" type="Button" parent="UILayer/HUD/TradingInterface/TradingTabs/SELL/TradingContent"]
 layout_mode = 2
@@ -329,6 +335,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -393,6 +403,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -400,6 +414,8 @@ grow_vertical = 2
 layout_mode = 2
 text = "Player-to-Player Marketplace"
 horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
 
 [node name="MarketplaceListings" type="ScrollContainer" parent="UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent"]
 layout_mode = 2
