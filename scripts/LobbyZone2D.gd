@@ -160,6 +160,11 @@ var connection_status: String = "disconnected"
 var remote_players: Dictionary = {}  # player_id -> RemoteLobbyPlayer2D instance
 var remote_player_scene: PackedScene
 
+# Loading screen management
+var loading_screen_scene: PackedScene
+var loading_screen_instance: LoadingScreen
+var is_transitioning: bool = false
+
 func _ready() -> void:
 	print("[LobbyZone2D] Initializing 2D trading lobby with dynamic scaling")
 
@@ -195,6 +200,9 @@ func _ready() -> void:
 	# Setup WebSocket connection and multiplayer
 	_setup_websocket_connection()
 	_load_remote_player_scene()
+
+	# Preload loading screen for smooth lobby exit transitions
+	_preload_loading_screen()
 
 	# Mark lobby as ready
 	lobby_loaded = true
@@ -501,6 +509,14 @@ func _connect_trading_interface_buttons() -> void:
 		if not TradingMarketplace.api_error.is_connected(_on_marketplace_api_error):
 			TradingMarketplace.api_error.connect(_on_marketplace_api_error)
 			print("[LobbyZone2D] Connected TradingMarketplace api_error signal")
+
+		# PHASE 1.2: Connect purchase state change signal
+		if not TradingMarketplace.purchase_state_changed.is_connected(_on_purchase_state_changed):
+			TradingMarketplace.purchase_state_changed.connect(_on_purchase_state_changed)
+			print("[LobbyZone2D] Connected TradingMarketplace purchase_state_changed signal")
+
+		# PHASE 1.4: Verify all connections are successful
+		_verify_and_recover_trading_signals()
 
 	print("[LobbyZone2D] All trading interface buttons connected successfully")
 
@@ -1212,7 +1228,7 @@ func _interact_with_computer() -> void:
 
 		# Clear any previous results
 		if trading_result:
-			trading_result.text = "Select specific quantities of debris to sell, or use 'Sell All' to convert everything into credits."
+			trading_result.text = "Select debris to sell individually, or use 'Sell All' to convert everything into credits."
 
 		if purchase_result:
 			purchase_result.text = ""
@@ -1269,8 +1285,13 @@ func _on_trading_computer_area_exited(area: Area2D) -> void:
 		print("[LobbyZone2D] Player exited trading computer interaction area")
 
 func return_to_3d_world() -> void:
-	##Return player to the 3D world
-	print("[LobbyZone2D] Returning to 3D world")
+	##Return player to the 3D world with loading screen
+	if is_transitioning:
+		print("[LobbyZone2D] Already transitioning, ignoring additional exit request")
+		return
+
+	print("[LobbyZone2D] Starting transition to 3D world with loading screen")
+	is_transitioning = true
 
 	# Disconnect from WebSocket before leaving
 	_disconnect_from_lobby()
@@ -1278,8 +1299,72 @@ func return_to_3d_world() -> void:
 	# Store lobby state if needed
 	if LocalPlayerData:
 		LocalPlayerData.save_player_data()
+		print("[LobbyZone2D] Player data saved before lobby exit")
 
-	# Change scene back to 3D zone
+	# Show loading screen and handle transition
+	_show_loading_screen_for_exit()
+
+func _show_loading_screen_for_exit() -> void:
+	##Show loading screen and transition to 3D world
+	print("[LobbyZone2D] Displaying loading screen for lobby exit")
+
+	# IMMEDIATELY hide all UI elements to prevent overlay with loading screen
+	_hide_lobby_ui_for_loading()
+
+	# Create loading screen instance if not already created
+	if not loading_screen_scene:
+		loading_screen_scene = preload("res://scenes/ui/LoadingScreen.tscn")
+
+	if loading_screen_scene:
+		loading_screen_instance = loading_screen_scene.instantiate() as LoadingScreen
+		if loading_screen_instance:
+			print("[LobbyZone2D] ✅ Loading screen instantiated successfully")
+
+			# Add loading screen to scene tree (above everything else)
+			get_tree().root.add_child(loading_screen_instance)
+
+			# Start loading process (LoadingScreen will handle scene transition to ZoneMain3D)
+			loading_screen_instance.start_loading()
+
+			print("[LobbyZone2D] Loading screen started - lobby will be cleaned up automatically")
+		else:
+			print("[LobbyZone2D] ERROR - Failed to instantiate loading screen, falling back to direct scene change")
+			_fallback_to_direct_scene_change()
+	else:
+		print("[LobbyZone2D] ERROR - Loading screen scene not available, falling back to direct scene change")
+		_fallback_to_direct_scene_change()
+
+func _hide_lobby_ui_for_loading() -> void:
+	##Hide all lobby UI elements immediately when loading screen appears
+	print("[LobbyZone2D] Hiding UI elements for loading screen transition")
+
+	# Hide main UI panels that would overlay with loading screen
+	if hud:
+		hud.visible = false
+		print("[LobbyZone2D] ✅ HUD hidden for loading screen")
+
+	# Also ensure trading interface is closed if it was open
+	if trading_interface and trading_interface.visible:
+		close_trading_interface()
+		print("[LobbyZone2D] ✅ Trading interface closed for loading screen")
+
+	# Hide interaction prompt if visible
+	if interaction_prompt and interaction_prompt.visible:
+		interaction_prompt.visible = false
+		print("[LobbyZone2D] ✅ Interaction prompt hidden for loading screen")
+
+func _preload_loading_screen() -> void:
+	##Preload the loading screen for smooth lobby exit transitions
+	print("[LobbyZone2D] Preloading loading screen for lobby exit")
+	loading_screen_scene = preload("res://scenes/ui/LoadingScreen.tscn")
+	if loading_screen_scene:
+		print("[LobbyZone2D] ✅ Loading screen preloaded successfully")
+	else:
+		print("[LobbyZone2D] ⚠️ Failed to preload loading screen")
+
+func _fallback_to_direct_scene_change() -> void:
+	##Fallback to direct scene change if loading screen fails
+	print("[LobbyZone2D] Using fallback direct scene change method")
 	get_tree().change_scene_to_file("res://scenes/zones/ZoneMain3D.tscn")
 
 ## MARKETPLACE BUTTON HANDLERS - Phase 1.1 Implementation
@@ -1770,15 +1855,15 @@ func _create_marketplace_listing_item(listing: Dictionary) -> void:
 	seller_label.add_theme_font_size_override("font_size", 12)
 	content_vbox.add_child(seller_label)
 
-	# Price info - FIXED: Use asking_price and calculate total properly
+	# Price info - CRITICAL FIX: Backend stores asking_price as TOTAL price, not per-unit
 	var price_label = Label.new()
-	var asking_price = listing.get("asking_price", 0)
-	var total_price = asking_price * quantity
+	var asking_price = listing.get("asking_price", 0)  # This is the TOTAL price
 
 	if quantity > 1:
-		price_label.text = "Price: %d credits each\nTotal: %d credits" % [asking_price, total_price]
+		var price_per_unit = asking_price / quantity
+		price_label.text = "Price: %d credits each\nTotal: %d credits" % [price_per_unit, asking_price]
 	else:
-		price_label.text = "Price: %d credits" % total_price
+		price_label.text = "Price: %d credits" % asking_price
 
 	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	price_label.add_theme_color_override("font_color", Color.YELLOW)
@@ -1869,15 +1954,15 @@ func _create_marketplace_listing_item_for_grid(listing: Dictionary, target_grid:
 	seller_label.add_theme_font_size_override("font_size", 12)
 	content_vbox.add_child(seller_label)
 
-	# Price info - FIXED: Use asking_price and calculate total properly
+	# Price info - CRITICAL FIX: Backend stores asking_price as TOTAL price, not per-unit
 	var price_label = Label.new()
-	var asking_price = listing.get("asking_price", 0)
-	var total_price = asking_price * quantity
+	var asking_price = listing.get("asking_price", 0)  # This is the TOTAL price
 
 	if quantity > 1:
-		price_label.text = "Price: %d credits each\nTotal: %d credits" % [asking_price, total_price]
+		var price_per_unit = asking_price / quantity
+		price_label.text = "Price: %d credits each\nTotal: %d credits" % [price_per_unit, asking_price]
 	else:
-		price_label.text = "Price: %d credits" % total_price
+		price_label.text = "Price: %d credits" % asking_price
 
 	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	price_label.add_theme_color_override("font_color", Color.YELLOW)
@@ -2157,7 +2242,7 @@ func _on_remote_player_joined(player_data: Dictionary) -> void:
 		return
 
 	# Create remote player instance
-	print("[LobbyZone2D] 🔧 Creating remote player instance...")
+	print("[LobbyZone2D] Creating remote player instance...")
 	_spawn_remote_player(player_data)
 
 	# Update player count display
@@ -2230,7 +2315,7 @@ func _spawn_remote_player(player_data: Dictionary) -> void:
 	print("[LobbyZone2D] ✅ Added remote player to scene")
 
 	# Initialize the remote player
-	print("[LobbyZone2D] 🔧 Initializing remote player...")
+	print("[LobbyZone2D] Initializing remote player...")
 	remote_player.initialize_remote_player(player_data)
 	print("[LobbyZone2D] ✅ Remote player initialized")
 
@@ -2390,7 +2475,8 @@ func _load_and_display_player_data() -> void:
 	print("[LobbyZone2D] - Upgrades: %s" % player_upgrades)
 
 	if player_inventory.size() > 0:
-		print("[LobbyZone2D] - Sample inventory items: %s" % player_inventory.slice(0, min(3, player_inventory.size())))
+		var sample_items = player_inventory.slice(0, min(3, player_inventory.size()))
+		print("[LobbyZone2D] - Sample inventory items: %s" % str(sample_items))
 
 	# Check if this looks like freshly synced data from 3D scene
 	if player_inventory.size() > 0 or player_credits > 100 or player_upgrades.values().any(func(level): return level > 0):
@@ -3114,8 +3200,7 @@ func _populate_purchase_dialog(listing: Dictionary) -> void:
 	# Extract listing details
 	var item_name = listing.get("item_name", "Unknown Item")
 	var quantity = listing.get("quantity", 1)
-	var asking_price = listing.get("asking_price", 0)
-	var total_price = asking_price * quantity
+	var asking_price = listing.get("asking_price", 0)  # This is the TOTAL price
 	var seller_name = listing.get("seller_name", "Unknown Seller")
 
 	# Format item name for display
@@ -3130,9 +3215,10 @@ func _populate_purchase_dialog(listing: Dictionary) -> void:
 	purchase_seller_label.text = "Seller: %s" % seller_name
 
 	if quantity > 1:
-		purchase_price_label.text = "Total Cost: %d credits (%d each)" % [total_price, asking_price]
+		var price_per_unit = asking_price / quantity
+		purchase_price_label.text = "Total Cost: %d credits (%d each)" % [asking_price, price_per_unit]
 	else:
-		purchase_price_label.text = "Total Cost: %d credits" % total_price
+		purchase_price_label.text = "Total Cost: %d credits" % asking_price
 
 	# Update current credits display
 	var credits_info = purchase_dialog.get_child(0).get_child(5) as Label  # Get the credits info label
@@ -3152,20 +3238,22 @@ func _on_purchase_confirm_pressed() -> void:
 
 	print("[LobbyZone2D] Purchasing listing ID: %s from seller: %s" % [listing_id, seller_id])
 
+	# Close dialog first
+	purchase_dialog.hide()
+
 	# CRITICAL FIX: Remove conditional signal connections - they're now connected during initialization
 	if TradingMarketplace:
 		# Make the purchase - signals are already connected
-		TradingMarketplace.purchase_marketplace_item(listing_id, seller_id)
+		var purchase_started = TradingMarketplace.purchase_marketplace_item(listing_id, seller_id)
+
+		# Only show "Processing purchase..." if the purchase actually started
+		if purchase_started:
+			_update_marketplace_status("Processing purchase...", Color.WHITE)
+		# If purchase_started is false, the error message was already set by the api_error signal
 	else:
 		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
 		_update_marketplace_status("Trading system not available", Color.RED)
 		return
-
-	# Close dialog
-	purchase_dialog.hide()
-
-	# Show purchasing status
-	_update_marketplace_status("Processing purchase...", Color.WHITE)
 
 func _on_purchase_cancel_pressed() -> void:
 	##Handle purchase cancellation
@@ -3332,10 +3420,165 @@ func _on_listing_removal_result(success: bool, listing_id: String) -> void:
 	print("[LobbyZone2D] Listing removal result - Success: %s, ID: %s" % [success, listing_id])
 
 	if success:
-		_update_marketplace_status("Listing removed successfully! Item returned to inventory.", Color.GREEN)
-		# Refresh marketplace to remove the listing from display
+		_update_marketplace_status("Listing removed successfully! ID: %s" % listing_id, Color.GREEN)
+		# Refresh marketplace to remove the removed listing
 		_refresh_marketplace_listings()
-		# Update UI to show updated inventory
+		# Update UI to show returned inventory item
 		_update_lobby_ui_with_player_data()
 	else:
 		_update_marketplace_status("Failed to remove listing. Please try again.", Color.RED)
+
+# PHASE 1.2: Purchase State Management Handler
+func _on_purchase_state_changed(new_state: int, state_data: Dictionary) -> void:
+	"""Handle purchase state changes for UI updates"""
+	var state_name = _purchase_state_to_string(new_state)
+	print("[LobbyZone2D] Purchase state changed: %s" % state_name)
+
+	match new_state:
+		0: # IDLE
+			_update_marketplace_status("Ready for marketplace operations", Color.WHITE)
+		1: # VALIDATING
+			_update_marketplace_status("Validating purchase...", Color.YELLOW)
+		2: # SENDING_REQUEST
+			_update_marketplace_status("Sending purchase request...", Color.YELLOW)
+		3: # PROCESSING
+			_update_marketplace_status("Processing purchase...", Color.YELLOW)
+		4: # COMPLETED
+			var item_name = state_data.get("item_name", "item")
+			_update_marketplace_status("Purchase successful! %s added to inventory." % item_name, Color.GREEN)
+		5: # FAILED
+			var error = state_data.get("error", "Unknown error")
+			var error_category = state_data.get("error_category", "unknown_error")
+			_update_marketplace_status("Purchase failed: %s" % error, Color.RED)
+
+			# Show recovery suggestions if available
+			var suggestions = state_data.get("recovery_suggestions", [])
+			if suggestions.size() > 0:
+				var suggestion_text = "\n\nSuggestions:\n" + "\n".join(suggestions)
+				_update_marketplace_status("Purchase failed: %s%s" % [error, suggestion_text], Color.RED)
+		6: # TIMED_OUT
+			_update_marketplace_status("Purchase timed out. Credits have been restored.", Color.ORANGE)
+
+func _purchase_state_to_string(state: int) -> String:
+	"""Convert purchase state enum to readable string"""
+	match state:
+		0: return "IDLE"
+		1: return "VALIDATING"
+		2: return "SENDING_REQUEST"
+		3: return "PROCESSING"
+		4: return "COMPLETED"
+		5: return "FAILED"
+		6: return "TIMED_OUT"
+		_: return "UNKNOWN"
+
+# PHASE 1.4: Signal Connection Verification & Auto-Recovery
+func _verify_and_recover_trading_signals() -> bool:
+	"""Verify and recover TradingMarketplace signal connections"""
+	print("[LobbyZone2D] Verifying TradingMarketplace signal connections...")
+
+	if not TradingMarketplace:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available for verification")
+		return false
+
+	var signal_connections = [
+		{"signal": "listings_received", "method": "_on_marketplace_listings_received"},
+		{"signal": "listing_posted", "method": "_on_item_posting_result"},
+		{"signal": "listing_removed", "method": "_on_listing_removal_result"},
+		{"signal": "item_purchased", "method": "_on_item_purchase_result"},
+		{"signal": "api_error", "method": "_on_marketplace_api_error"},
+		{"signal": "purchase_state_changed", "method": "_on_purchase_state_changed"}
+	]
+
+	var all_connected = true
+	var failed_connections = []
+
+	for connection in signal_connections:
+		var signal_name = connection.signal
+		var method_name = connection.method
+
+		# Check if connection exists
+		if not TradingMarketplace.is_connected(signal_name, Callable(self, method_name)):
+			print("[LobbyZone2D] WARNING: Signal '%s' not connected, attempting recovery..." % signal_name)
+
+			# Attempt to reconnect
+			var connect_result = TradingMarketplace.connect(signal_name, Callable(self, method_name))
+			if connect_result == OK:
+				print("[LobbyZone2D] Successfully recovered connection for '%s'" % signal_name)
+			else:
+				print("[LobbyZone2D] ERROR: Failed to recover connection for '%s'" % signal_name)
+				all_connected = false
+				failed_connections.append(signal_name)
+
+		# Double-check connection was successful
+		if not TradingMarketplace.is_connected(signal_name, Callable(self, method_name)):
+			print("[LobbyZone2D] ERROR: Signal '%s' still not connected after recovery attempt" % signal_name)
+			all_connected = false
+			failed_connections.append(signal_name)
+
+	if all_connected:
+		print("[LobbyZone2D] ✅ All TradingMarketplace signals verified and connected")
+	else:
+		print("[LobbyZone2D] ❌ Signal verification failed. Failed connections: %s" % str(failed_connections))
+		_show_signal_connection_error(failed_connections)
+
+	return all_connected
+
+func _show_signal_connection_error(failed_signals: Array) -> void:
+	"""Show error message for failed signal connections"""
+	var error_message = "Marketplace connection error!\n\nFailed to connect signals: %s\n\nSome marketplace features may not work correctly." % str(failed_signals)
+	_update_marketplace_status(error_message, Color.RED)
+
+func get_marketplace_connection_status() -> Dictionary:
+	"""Get current marketplace connection status"""
+	if not TradingMarketplace:
+		return {
+			"marketplace_available": false,
+			"error": "TradingMarketplace singleton not found"
+		}
+
+	# Get connection health report from TradingMarketplace
+	var health_report = TradingMarketplace.get_connection_health_report()
+
+	return {
+		"marketplace_available": true,
+		"health_report": health_report,
+		"last_check": Time.get_unix_time_from_system()
+	}
+
+# DEBUG HELPER METHODS FOR TROUBLESHOOTING
+
+func debug_marketplace_state() -> void:
+	"""Debug marketplace state and print detailed information"""
+	print("[LobbyZone2D] === MARKETPLACE DEBUG SESSION ===")
+
+	if TradingMarketplace:
+		TradingMarketplace.debug_print_marketplace_state()
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+
+	print("[LobbyZone2D] UI State:")
+	print("[LobbyZone2D]   marketplace_listings.size(): %d" % marketplace_listings.size())
+	print("[LobbyZone2D]   marketplace_loading: %s" % marketplace_loading)
+	print("[LobbyZone2D]   trading_interface_open: %s" % trading_interface_open)
+
+	var status = get_marketplace_connection_status()
+	print("[LobbyZone2D] Connection Status: %s" % str(status))
+
+	print("[LobbyZone2D] === END DEBUG SESSION ===")
+
+func test_listing_lookup(listing_id: String) -> void:
+	"""Test looking up a specific listing ID"""
+	print("[LobbyZone2D] Testing lookup for listing ID: %s" % listing_id)
+
+	if TradingMarketplace:
+		var verification = TradingMarketplace.verify_listing_exists(listing_id)
+		print("[LobbyZone2D] Verification result: %s" % str(verification))
+
+		if verification.exists:
+			print("[LobbyZone2D] ✅ Listing found: %s" % verification.listing.get("item_name", "Unknown"))
+		else:
+			print("[LobbyZone2D] ❌ Listing not found: %s" % verification.error)
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+
+## WebSocket and Multiplayer Methods

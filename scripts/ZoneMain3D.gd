@@ -26,6 +26,7 @@ signal npc_hub_entered()
 
 # System nodes (shared with 2D version)
 @onready var hud: Control = $UILayer/HUD
+@onready var screen_space_border: Control = $UILayer/ScreenSpaceBorder
 @onready var debug_label: Label = $UILayer/HUD/DebugLabel
 @onready var log_label: Label = $UILayer/HUD/LogLabel
 @onready var inventory_status: Label = $UILayer/HUD/InventoryPanel/InventoryStatus
@@ -78,6 +79,11 @@ var current_selected_upgrade: String = ""
 var current_upgrade_cost: int = 0
 var upgrade_buttons: Dictionary = {}  # Store upgrade button references
 
+# Loading screen management for lobby transitions
+var loading_screen_scene: PackedScene
+var loading_screen_instance: LoadingScreen
+var is_transitioning_to_lobby: bool = false
+
 # Preloaded scripts for 3D systems
 const SpaceStationModule3DScript = preload("res://scripts/SpaceStationModule3D.gd")
 const SpaceStationManager3DScript = preload("res://scripts/SpaceStationManager3D.gd")
@@ -115,17 +121,21 @@ var last_inventory_size: int = 0
 var last_inventory_hash: String = ""
 
 func _ready() -> void:
-	print("🔴 ZoneMain3D._ready() CALLED - Scene is initializing!")
-	print("🔴 ZoneMain3D: Current scene tree node count: ", get_tree().get_node_count())
-	print("🔴 ZoneMain3D: Starting initialization...")
+	print("ZoneMain3D._ready() CALLED - Scene is initializing!")
+	print("ZoneMain3D: Current scene tree node count: ", get_tree().get_node_count())
+	print("ZoneMain3D: Starting initialization...")
 
 	_log_message("ZoneMain3D: Initializing 3D zone controller")
 	_initialize_3d_zone()
 	_update_debug_display()
+
+	# Preload loading screen for lobby transitions
+	_preload_loading_screen_for_lobby()
+
 	_log_message("ZoneMain3D: 3D Zone ready for gameplay")
 	zone_ready.emit()
 
-	print("🔴 ZoneMain3D._ready() COMPLETED - Scene fully initialized!")
+	print("ZoneMain3D._ready() COMPLETED - Scene fully initialized!")
 
 func _process(delta: float) -> void:
 	##Handle periodic updates including position sync
@@ -1021,9 +1031,8 @@ func open_trading_interface(hub_type: String) -> void:
 		LocalPlayerData.set_setting("last_interacted_hub_type", hub_type)
 		_log_message("ZoneMain3D: Stored hub type for lobby context: %s" % hub_type)
 
-	# Transition to 2D lobby scene
-	_log_message("ZoneMain3D: Transitioning to 2D lobby scene...")
-	get_tree().change_scene_to_file("res://scenes/zones/LobbyZone2D.tscn")
+	# Show loading screen and transition to 2D lobby scene
+	_show_loading_screen_for_lobby_entry()
 
 func close_trading_interface() -> void:
 	##Close the trading interface
@@ -1039,7 +1048,74 @@ func close_trading_interface() -> void:
 
 	_log_message("ZoneMain3D: Trading interface closed")
 
+func _preload_loading_screen_for_lobby() -> void:
+	##Preload the loading screen for smooth lobby entry transitions
+	_log_message("ZoneMain3D: Preloading loading screen for lobby entry")
+	loading_screen_scene = preload("res://scenes/ui/LoadingScreen.tscn")
+	if loading_screen_scene:
+		_log_message("ZoneMain3D: ✅ Loading screen preloaded successfully")
+	else:
+		_log_message("ZoneMain3D: ⚠️ Failed to preload loading screen")
 
+func _show_loading_screen_for_lobby_entry() -> void:
+	##Show loading screen and transition to 2D lobby
+	if is_transitioning_to_lobby:
+		_log_message("ZoneMain3D: Already transitioning to lobby, ignoring additional request")
+		return
+
+	_log_message("ZoneMain3D: Starting transition to 2D lobby with loading screen")
+	is_transitioning_to_lobby = true
+
+	# Hide 3D HUD immediately to prevent overlay with loading screen
+	_hide_3d_ui_for_loading()
+
+	# Create loading screen instance if not already created
+	if not loading_screen_scene:
+		loading_screen_scene = preload("res://scenes/ui/LoadingScreen.tscn")
+
+	if loading_screen_scene:
+		loading_screen_instance = loading_screen_scene.instantiate() as LoadingScreen
+		if loading_screen_instance:
+			_log_message("ZoneMain3D: ✅ Loading screen instantiated successfully")
+
+			# Add loading screen to scene tree (above everything else)
+			get_tree().root.add_child(loading_screen_instance)
+
+			# Set lobby scene as target and start loading process
+			loading_screen_instance.set_target_scene("res://scenes/zones/LobbyZone2D.tscn")
+			loading_screen_instance.start_loading()
+
+			_log_message("ZoneMain3D: Loading screen started - transitioning to lobby")
+		else:
+			_log_message("ZoneMain3D: ERROR - Failed to instantiate loading screen, falling back to direct scene change")
+			_fallback_to_direct_lobby_change()
+	else:
+		_log_message("ZoneMain3D: ERROR - Loading screen scene not available, falling back to direct scene change")
+		_fallback_to_direct_lobby_change()
+
+func _hide_3d_ui_for_loading() -> void:
+	##Hide all 3D UI elements immediately when loading screen appears
+	_log_message("ZoneMain3D: Hiding UI elements for loading screen transition")
+
+	# Hide main HUD that would overlay with loading screen
+	if hud:
+		hud.visible = false
+		_log_message("ZoneMain3D: ✅ HUD hidden for loading screen")
+
+	# Hide screen space border that would overlay with loading screen
+	if screen_space_border:
+		screen_space_border.visible = false
+		_log_message("ZoneMain3D: ✅ Screen space border hidden for loading screen")
+
+	# Hide trading interface if it was open (though it shouldn't be at this point)
+	if trading_interface and trading_interface.visible:
+		trading_interface.visible = false
+		_log_message("ZoneMain3D: ✅ Trading interface hidden for loading screen")
+
+func _fallback_to_direct_lobby_change() -> void:
+	##Fallback to direct scene change if loading screen fails
+	_log_message("ZoneMain3D: Using fallback direct scene change method")
+	get_tree().change_scene_to_file("res://scenes/zones/LobbyZone2D.tscn")
 
 func _on_sell_all_pressed() -> void:
 	##Handle sell all button press - sell all debris in inventory

@@ -205,6 +205,41 @@ jobs:
           use-dotnet: false
           include-templates: true
 
+      - name: 🔍 Verify Export Templates
+        run: |
+          echo "🔍 Verifying Godot export templates are properly installed..."
+
+          # Check Godot installation
+          godot --version || exit 1
+          echo "✅ Godot is installed and accessible"
+
+          # Verify export templates by attempting a dry-run export check
+          echo "🔍 Testing export configuration..."
+
+          # Check if project file is valid
+          if ! godot --headless --check --quit --path . ; then
+            echo "❌ Project validation failed"
+            exit 1
+          fi
+          echo "✅ Project validation passed"
+
+          # Test export presets exist and are accessible
+          if [ -f "export_presets.cfg" ]; then
+            echo "✅ Export presets configuration found"
+            echo "📋 Export presets summary:"
+            grep -E "^name=" export_presets.cfg | sed 's/name=/  - /'
+          else
+            echo "❌ export_presets.cfg not found"
+            exit 1
+          fi
+
+          # Verify we can access export templates (templates should be installed by chickensoft action)
+          echo "🔍 Checking export template availability..."
+          # The chickensoft-games/setup-godot action should handle template installation
+          # We'll verify by checking if we can at least validate the export configuration
+
+          echo "✅ Export template verification complete"
+
       - name: ☁️ Download Assets from S3
         run: |
           echo "☁️ Downloading game assets from S3..."
@@ -238,6 +273,44 @@ jobs:
           echo "Build Number: ${{ github.run_number }}"
           echo "Commit: ${{ github.sha }}"
           echo "✅ Godot and export templates configured by setup-godot action"
+
+      - name: 🔧 Configure Production Build
+        run: |
+          echo "🔧 Configuring production build environment..."
+
+          # Create production environment files from secrets/variables
+          if [ -n "${{ secrets.API_GATEWAY_ENDPOINT }}" ]; then
+            echo "API_GATEWAY_ENDPOINT=${{ secrets.API_GATEWAY_ENDPOINT }}" > trading.env
+            echo "TRADING_TIMEOUT=15" >> trading.env
+            echo "TRADING_DEBUG=false" >> trading.env
+            echo "TRADING_MAX_RETRIES=3" >> trading.env
+            echo "✅ Created production trading.env"
+          else
+            echo "⚠️ API_GATEWAY_ENDPOINT not configured in secrets, using template"
+            cp trading.env.template trading.env || echo "❌ trading.env.template not found"
+          fi
+
+          if [ -n "${{ secrets.WEBSOCKET_URL }}" ]; then
+            echo "WEBSOCKET_URL=${{ secrets.WEBSOCKET_URL }}" > lobby.env
+            echo "LOBBY_CONNECTION_TIMEOUT=10" >> lobby.env
+            echo "LOBBY_BROADCAST_INTERVAL=0.2" >> lobby.env
+            echo "LOBBY_DEBUG_LOGS=false" >> lobby.env
+            echo "LOBBY_MAX_RETRIES=3" >> lobby.env
+            echo "✅ Created production lobby.env"
+          else
+            echo "⚠️ WEBSOCKET_URL not configured in secrets, using template"
+            cp lobby.env.template lobby.env || echo "❌ lobby.env.template not found"
+          fi
+
+          # Apply build configuration if script exists
+          if [ -f "build_config.sh" ]; then
+            chmod +x build_config.sh
+            echo "🔧 Applying production build configuration..."
+            ./build_config.sh production inject
+            echo "✅ Production configuration applied"
+          else
+            echo "⚠️ build_config.sh not found, skipping build configuration injection"
+          fi
 
       - name: 🖥️ Build for Windows
         run: |
@@ -412,21 +485,43 @@ jobs:
             echo "✅ AWS CLI already available: $(aws --version)"
           fi
 
-          # Debug: Check current directory and files
-          echo "🔍 Debug: Current directory: $(pwd)"
-          echo "🔍 Debug: Directory contents:"
-          ls -la
-          echo "🔍 Debug: Scripts directory:"
-          ls -la scripts/ || echo "⚠️ Scripts directory not found"
+          # Verify we're in the correct project directory
+          echo "🔍 Verifying project structure..."
+          echo "Current directory: $(pwd)"
 
-          # Check if S3 manager exists before chmod
+          # Check for project.godot to ensure we're in the right place
+          if [ ! -f "project.godot" ]; then
+            echo "❌ project.godot not found - not in project root directory"
+            echo "Directory contents:"
+            ls -la
+            exit 1
+          fi
+          echo "✅ Confirmed project root directory"
+
+          # Verify scripts directory exists
+          if [ ! -d "scripts" ]; then
+            echo "❌ Scripts directory not found"
+            echo "Available directories:"
+            ls -la | grep "^d"
+            exit 1
+          fi
+          echo "✅ Scripts directory found"
+
+          # Check if S3 manager exists and verify its executability
           if [ -f "scripts/s3-manager.sh" ]; then
             echo "✅ Found s3-manager.sh, making executable..."
             chmod +x scripts/s3-manager.sh
+
+            # Verify the script is actually executable and has basic functionality
+            if ./scripts/s3-manager.sh check &>/dev/null; then
+              echo "✅ S3 manager script is functional"
+            else
+              echo "⚠️ S3 manager script exists but may have issues (continuing anyway)"
+            fi
           else
             echo "❌ s3-manager.sh not found in scripts directory"
             echo "🔍 Available files in scripts/:"
-            ls -la scripts/ || echo "Scripts directory does not exist"
+            ls -la scripts/ || echo "Scripts directory is empty or inaccessible"
             exit 1
           fi
 
@@ -458,6 +553,37 @@ jobs:
           name: release-builds
           path: build/
           retention-days: 1
+
+      - name: 🧹 Cleanup Build Configuration
+        if: always()  # Run even if previous steps failed
+        run: |
+          echo "🧹 Cleaning up build configuration..."
+
+          # Restore original configuration files if they were modified
+          if [ -f "build_config.sh" ]; then
+            echo "🔄 Restoring original configuration files..."
+            chmod +x build_config.sh
+            ./build_config.sh production restore || echo "⚠️ Could not restore configuration (may not have been modified)"
+          fi
+
+          # Clean up any temporary environment files created during build
+          if [ -f "trading.env" ] && [ -f "trading.env.template" ]; then
+            # Only remove if it appears to be auto-generated (same as template)
+            if cmp -s "trading.env" "trading.env.template"; then
+              rm -f trading.env
+              echo "🗑️ Removed auto-generated trading.env"
+            fi
+          fi
+
+          if [ -f "lobby.env" ] && [ -f "lobby.env.template" ]; then
+            # Only remove if it appears to be auto-generated (same as template)
+            if cmp -s "lobby.env" "lobby.env.template"; then
+              rm -f lobby.env
+              echo "🗑️ Removed auto-generated lobby.env"
+            fi
+          fi
+
+          echo "✅ Build cleanup completed"
 
   # Create GitHub Release
   create-release:

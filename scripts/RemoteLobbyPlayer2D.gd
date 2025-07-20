@@ -15,16 +15,34 @@ var target_position: Vector2 = Vector2.ZERO
 var interpolation_speed: float = 15.0
 var position_threshold: float = 2.0  # Minimum movement to trigger interpolation
 
-# Visual components
-@onready var player_sprite: Sprite2D = $RemotePlayerSprite2D
-@onready var player_label: Label = $PlayerLabel
-@onready var connection_indicator: ColorRect = $ConnectionIndicator
+# Visual components (created programmatically, not @onready)
+var player_sprite: Sprite2D
+var player_label: Label
+var connection_indicator: ColorRect
 
 # Animation and visual state
 var facing_direction: Vector2 = Vector2.DOWN
 var is_moving: bool = false
 var sprite_scale: Vector2 = Vector2.ONE
 var label_offset: Vector2 = Vector2(0, -60)
+
+## Walking animation system (same as LobbyPlayer2D)
+var walking_animation_textures: Dictionary = {}  # Organized by direction
+var animation_timer: Timer
+var current_frame: int = 0
+var current_animation_state: String = "idle"  # idle, walking_left, walking_right, walking_up, walking_down
+var animation_speed: float = 0.1  # Time between frames (10 FPS)
+
+## Animation frame ranges (same as LobbyPlayer2D)
+const WALK_LEFT_START: int = 16
+const WALK_LEFT_END: int = 23
+const WALK_UP_START: int = 42
+const WALK_UP_END: int = 45
+const WALK_DOWN_START: int = 74
+const WALK_DOWN_END: int = 80
+
+## Idle/default sprite
+var default_sprite: Texture2D
 
 # Interpolation state
 var smooth_movement: bool = true
@@ -37,12 +55,21 @@ var fade_in_duration: float = 0.5
 var fade_out_duration: float = 0.3
 var spawn_scale_effect: bool = true
 var alpha_when_spawning: float = 0.0
+var target_node_scale: Vector2 = Vector2(1.78828, 1.78317)  # Match local player node scale
 
 func _ready() -> void:
 	print("[RemoteLobbyPlayer2D] Initializing remote player: %s" % player_id)
+	_load_walking_animation_textures()  # Load all walking frames first
 	_setup_visual_components()
+	_setup_walking_animation_system()
 	_setup_interpolation()
 	_play_spawn_effect()
+
+func _exit_tree() -> void:
+	##Clean up animation resources when node is freed
+	if animation_timer and is_instance_valid(animation_timer):
+		animation_timer.queue_free()
+	print("[RemoteLobbyPlayer2D] Walking animation resources cleaned up for player: %s" % player_id)
 
 func _physics_process(delta: float) -> void:
 	if interpolation_enabled and smooth_movement:
@@ -50,6 +77,7 @@ func _physics_process(delta: float) -> void:
 
 	time_since_last_update += delta
 	_update_visual_state()
+	_update_walking_animation_from_movement()
 
 ## Public API Methods
 
@@ -117,22 +145,29 @@ func remove_remote_player() -> void:
 ## Private Methods
 
 func _setup_visual_components() -> void:
-	"""Setup visual components for the remote player"""
-	print("[RemoteLobbyPlayer2D] Setting up visual components")
+	"""Initialize visual components with walking animation support"""
+	print("[RemoteLobbyPlayer2D] Setting up visual components for %s" % player_id)
 
-	# Setup player sprite
+	# Setup sprite with walking animation idle texture
 	if not player_sprite:
 		player_sprite = Sprite2D.new()
 		player_sprite.name = "RemotePlayerSprite2D"
 		add_child(player_sprite)
 
-	# Load the same sprite as local player
-	var sprite_texture = preload("res://assets/schlorp_guy_sprite.png")
-	player_sprite.texture = sprite_texture
+	# Load the walking guy frame 080 as the idle/default sprite
+	default_sprite = preload("res://assets/sprites/player/walking_animation/walking_guy_frame_080.png")
+	player_sprite.texture = default_sprite
 
-	# Scale to match local player (same size for consistency)
-	sprite_scale = Vector2(0.2, 0.2)  # Same size as local player
-	player_sprite.scale = sprite_scale
+	# Make the sprite larger for better visibility (same as local player)
+	player_sprite.scale = Vector2(0.3, 0.3)  # Match local player sprite scale
+	sprite_scale = player_sprite.scale
+
+	# Apply the same node-level scaling as the local player (from LobbyZone2D.tscn)
+	# Local player has scale = Vector2(1.78828, 1.78317) on the node itself
+	self.scale = target_node_scale
+
+	print("[RemoteLobbyPlayer2D] Remote player sprite setup with walking frame 080 as idle and larger scale: %s" % sprite_scale)
+	print("[RemoteLobbyPlayer2D] Applied node scaling to match local player: %s" % self.scale)
 
 	# Setup player label
 	if not player_label:
@@ -257,8 +292,8 @@ func _play_spawn_effect() -> void:
 	var tween = create_tween()
 	tween.set_parallel(true)
 
-	# Scale animation
-	tween.tween_property(self, "scale", Vector2.ONE, fade_in_duration)
+	# Scale animation - animate to target node scale
+	tween.tween_property(self, "scale", target_node_scale, fade_in_duration)
 	tween.tween_method(_set_scale_with_easing, 0.0, 1.0, fade_in_duration)
 
 	# Fade in animation
@@ -284,7 +319,7 @@ func _play_despawn_effect() -> void:
 func _set_scale_with_easing(value: float) -> void:
 	"""Set scale with easing effect for spawn animation"""
 	var ease_value = ease_out_bounce(value)
-	scale = Vector2(ease_value, ease_value)
+	scale = target_node_scale * ease_value
 
 func ease_out_bounce(t: float) -> float:
 	"""Bounce easing function for spawn effect"""
@@ -347,3 +382,166 @@ func get_remote_player_info() -> Dictionary:
 		"facing_direction": facing_direction,
 		"interpolation_enabled": interpolation_enabled
 	}
+
+func _load_walking_animation_textures() -> void:
+	##Load all walking animation frame textures (same as LobbyPlayer2D)
+	print("[RemoteLobbyPlayer2D] Loading walking animation textures for remote player...")
+
+	# Initialize texture arrays for each direction
+	walking_animation_textures = {
+		"walking_left": [],
+		"walking_right": [],  # Will be flipped versions of left
+		"walking_up": [],
+		"walking_down": []
+	}
+
+	var loaded_count = 0
+	var total_expected = 0
+
+	# Load walking left frames (16-23)
+	for i in range(WALK_LEFT_START, WALK_LEFT_END + 1):
+		var texture_path = "res://assets/sprites/player/walking_animation/walking_guy_frame_%03d.png" % i
+		var texture = load(texture_path) as Texture2D
+		if texture:
+			# Original frames face right, so use them for walking_right
+			walking_animation_textures["walking_right"].append(texture)
+			# Create flipped version for walking left
+			var flipped_texture = _create_flipped_texture(texture)
+			walking_animation_textures["walking_left"].append(flipped_texture)
+			loaded_count += 2
+		else:
+			print("[RemoteLobbyPlayer2D] Failed to load texture: %s" % texture_path)
+		total_expected += 2
+
+	# Load walking up frames (42-45)
+	for i in range(WALK_UP_START, WALK_UP_END + 1):
+		var texture_path = "res://assets/sprites/player/walking_animation/walking_guy_frame_%03d.png" % i
+		var texture = load(texture_path) as Texture2D
+		if texture:
+			walking_animation_textures["walking_up"].append(texture)
+			loaded_count += 1
+		else:
+			print("[RemoteLobbyPlayer2D] Failed to load texture: %s" % texture_path)
+		total_expected += 1
+
+	# Load walking down frames (74-80)
+	for i in range(WALK_DOWN_START, WALK_DOWN_END + 1):
+		var texture_path = "res://assets/sprites/player/walking_animation/walking_guy_frame_%03d.png" % i
+		var texture = load(texture_path) as Texture2D
+		if texture:
+			walking_animation_textures["walking_down"].append(texture)
+			loaded_count += 1
+		else:
+			print("[RemoteLobbyPlayer2D] Failed to load texture: %s" % texture_path)
+		total_expected += 1
+
+	print("[RemoteLobbyPlayer2D] Loaded %d/%d walking animation textures for remote player" % [loaded_count, total_expected])
+
+func _create_flipped_texture(original: Texture2D) -> ImageTexture:
+	##Create a horizontally flipped version of a texture
+	var image = original.get_image()
+	image.flip_x()
+	var flipped_texture = ImageTexture.new()
+	flipped_texture.set_image(image)
+	return flipped_texture
+
+func _setup_walking_animation_system() -> void:
+	##Set up the walking animation timer system for remote player
+	print("[RemoteLobbyPlayer2D] Setting up walking animation system for remote player")
+
+	# Create animation timer
+	animation_timer = Timer.new()
+	animation_timer.name = "RemoteWalkingAnimationTimer"
+	animation_timer.wait_time = animation_speed
+	animation_timer.timeout.connect(_on_walking_animation_timeout)
+	add_child(animation_timer)
+
+	# Don't autostart - only animate when walking
+	animation_timer.autostart = false
+
+	print("[RemoteLobbyPlayer2D] Walking animation system ready for remote player - Frame rate: %.1f FPS" % [1.0/animation_speed])
+
+func _on_walking_animation_timeout() -> void:
+	##Handle walking animation timer timeout - advance to next frame
+	if not is_moving or current_animation_state == "idle":
+		return
+
+	# Get current animation frame array
+	var current_frames = walking_animation_textures.get(current_animation_state, [])
+	if current_frames.size() == 0:
+		return
+
+	# Advance to next frame with looping
+	current_frame += 1
+	if current_frame >= current_frames.size():
+		current_frame = 0  # Loop back to start
+
+	# Update the sprite texture
+	if player_sprite and current_frame < current_frames.size():
+		player_sprite.texture = current_frames[current_frame]
+
+func _update_walking_animation_from_movement() -> void:
+	##Update walking animation state based on movement (using facing_direction)
+	if not is_moving or facing_direction.length() == 0:
+		# Stop walking animation and return to idle
+		_set_animation_state("idle")
+		return
+
+	# Determine animation based on dominant movement direction
+	var abs_x = abs(facing_direction.x)
+	var abs_y = abs(facing_direction.y)
+
+	var new_animation_state = "idle"
+
+	# Prioritize horizontal movement for left/right animation
+	if abs_x > abs_y:
+		if facing_direction.x > 0:
+			new_animation_state = "walking_right"
+		else:
+			new_animation_state = "walking_left"
+	else:
+		# Vertical movement
+		if facing_direction.y < 0:
+			new_animation_state = "walking_up"
+		else:
+			new_animation_state = "walking_down"
+
+	_set_animation_state(new_animation_state)
+
+func _set_animation_state(new_state: String) -> void:
+	##Set the current animation state and handle transitions for remote player
+	if current_animation_state == new_state:
+		return  # No change needed
+
+	var previous_state = current_animation_state
+	current_animation_state = new_state
+
+	if new_state == "idle":
+		# Stop animation and return to default sprite
+		if animation_timer:
+			animation_timer.stop()
+		if player_sprite and default_sprite:
+			player_sprite.texture = default_sprite
+		current_frame = 0
+	else:
+		# Start/continue walking animation
+		current_frame = 0  # Reset to first frame of new animation
+		if animation_timer:
+			if not animation_timer.is_stopped():
+				animation_timer.stop()
+			animation_timer.start()
+
+		# Set initial frame immediately
+		_update_current_frame()
+
+func _update_current_frame() -> void:
+	##Update the sprite to show the current frame of the current animation
+	if current_animation_state == "idle":
+		return
+
+	var current_frames = walking_animation_textures.get(current_animation_state, [])
+	if current_frames.size() == 0:
+		return
+
+	if player_sprite and current_frame < current_frames.size():
+		player_sprite.texture = current_frames[current_frame]

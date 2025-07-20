@@ -287,6 +287,11 @@ func _collect_debris_object(debris_object: RigidBody2D) -> void:
 	# Emit signal
 	debris_collected.emit(debris_type, debris_value)
 
+	# Play debris collection sound effect
+	if AudioManager:
+		AudioManager.play_sfx("debris_pickup")
+		_log_message("PlayerShip: Played debris collection sound effect")
+
 	# Remove the debris object from the zone
 	if zone_main and zone_main.has_method("remove_debris"):
 		zone_main.remove_debris(debris_object)

@@ -1,0 +1,14 @@
+[gd_resource type="SystemFont" format=3 uid="uid://bf7qdtl0gehdb"]
+
+[resource]
+font_names = PackedStringArray("Consolas", "Monaco", "Liberation Mono", "DejaVu Sans Mono", "Courier New", "monospace")
+font_italic = false
+font_weight = 500
+font_stretch = 100
+antialiased = true
+generate_mipmaps = false
+allow_system_fallback = true
+force_autohinter = false
+hinting = 1
+subpixel_positioning = 1
+oversampling = 0.0

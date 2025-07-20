@@ -142,6 +142,7 @@ func _load_from_env_file() -> void:
 	var env_paths = [
 		"user://lobby.env",  # User-specific lobby config
 		"user://.env",       # User-specific general config
+		"res://lobby.env",   # Project root lobby.env
 		"res://infrastructure_setup.env",  # Project infrastructure config
 		"res://.env"         # Project root .env
 	]
