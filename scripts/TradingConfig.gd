@@ -25,10 +25,13 @@ func _ready():
 func load_config() -> void:
 	print("[TradingConfig] Loading configuration from %s" % config_file_path)
 
+	# Start with default configuration (includes build-time injected values)
+	config = default_config.duplicate()
+
 	# Step 1: Try to load from .env file first (like LobbyController does)
 	var env_loaded = _load_from_env_file()
 
-	# Step 2: Only try JSON config if .env loading failed (for backwards compatibility)
+	# Step 2: Load JSON config for user preferences, but protect critical settings
 	if not env_loaded and FileAccess.file_exists(config_file_path):
 		var file = FileAccess.open(config_file_path, FileAccess.READ)
 		if file:
@@ -39,11 +42,24 @@ func load_config() -> void:
 			var parse_result = json.parse(json_text)
 
 			if parse_result == OK:
-				# Use JSON config as fallback only (when .env not found)
 				var json_config = json.data
+				# Merge user config, but protect critical production settings
 				for key in json_config:
-					config[key] = json_config[key]
-				print("[TradingConfig] Configuration loaded from JSON file (fallback)")
+					# Never let user config override empty/critical production values
+					if key == "api_base_url":
+						# Only use user config if both default and user config are non-empty
+						if json_config[key] != "" and config[key] != "":
+							config[key] = json_config[key]
+						elif config[key] != "":
+							# Keep injected production value, ignore empty user config
+							print("[TradingConfig] Protecting production API endpoint from empty user config")
+						else:
+							# Both empty, use user config (development scenario)
+							config[key] = json_config[key]
+					else:
+						# Non-critical settings can be overridden by user config
+						config[key] = json_config[key]
+				print("[TradingConfig] Configuration loaded from JSON file (with production protection)")
 				_merge_default_values()  # Ensure new fields are added
 			else:
 				print("[TradingConfig] Failed to parse config file, using defaults")
