@@ -194,18 +194,18 @@ func purchase_item(listing_id: String, _seller_id: String, item_name: String, qu
 
 	# Validate player has enough credits locally
 	if not local_player_data:
-		_set_purchase_state(PurchaseState.FAILED, {"error": "Local player data not available"})
 		emit_signal("api_error", "Local player data not available")
+		_set_purchase_state(PurchaseState.FAILED, {"error": "Local player data not available"})
 		return
 
 	var current_credits = local_player_data.get_credits()
 	if current_credits < total_price:
+		emit_signal("api_error", "Insufficient credits. Need %d, have %d" % [total_price, current_credits])
 		_set_purchase_state(PurchaseState.FAILED, {
 			"error": "Insufficient credits",
 			"required": total_price,
 			"available": current_credits
 		})
-		emit_signal("api_error", "Insufficient credits. Need %d, have %d" % [total_price, current_credits])
 		return
 
 	# PHASE 1.2: Move to sending request state
@@ -220,8 +220,8 @@ func purchase_item(listing_id: String, _seller_id: String, item_name: String, qu
 	# Optimistic credit hold to prevent double-spending during API call
 	print("[TradingMarketplace] Temporarily holding %d credits for purchase" % total_price)
 	if not local_player_data.add_credits(-total_price):
-		_set_purchase_state(PurchaseState.FAILED, {"error": "Failed to hold credits for purchase"})
 		emit_signal("api_error", "Failed to hold credits for purchase")
+		_set_purchase_state(PurchaseState.FAILED, {"error": "Failed to hold credits for purchase"})
 		return
 
 	# PHASE 1.1: Track this request with credit info for rollback
@@ -559,11 +559,38 @@ func post_item_for_sale(item_type: String, item_name: String, quantity: int, ask
 func purchase_marketplace_item(listing_id: String, seller_id: String) -> bool:
 	print("[TradingMarketplace] Attempting to purchase marketplace item: %s from %s" % [listing_id, seller_id])
 
-	# Find the listing in current marketplace_listings to get details
-	var listing_details = _find_listing_by_id(listing_id)
-	if listing_details.is_empty():
-		emit_signal("api_error", "Listing not found. Please refresh marketplace.")
+	# Verify the listing exists and get comprehensive validation info
+	var verification = verify_listing_exists(listing_id)
+
+	# Safety check: ensure verification has the expected structure
+	if not verification or not verification.has("exists"):
+		print("[TradingMarketplace] Verification method failed to return proper structure")
+		emit_signal("api_error", "Internal error during listing verification. Please try again.")
 		return false
+
+	if not verification.exists:
+		print("[TradingMarketplace] Listing verification failed: %s" % verification.get("error", "Unknown error"))
+
+		# Print debug info to help troubleshoot
+		if verification.has("debug_info") and verification.debug_info:
+			print("[TradingMarketplace] Debug info: %s" % str(verification.debug_info))
+
+		# Suggest refreshing if cache is stale
+		var debug_info = verification.get("debug_info", {})
+		var cache_age = debug_info.get("cache_age_seconds", 0)
+		if cache_age > listings_cache_duration:
+			emit_signal("api_error", "Listing not found - marketplace data may be stale. Please refresh and try again.")
+		else:
+			emit_signal("api_error", "Listing not found. Please refresh marketplace.")
+
+		return false
+
+	var listing_details = verification.listing
+	print("[TradingMarketplace] Found listing: %s x%d for %d credits" % [
+		listing_details.get("item_name", "Unknown"),
+		listing_details.get("quantity", 0),
+		listing_details.get("total_price", 0)
+	])
 
 	# Validate purchase
 	var validation_result = validate_marketplace_purchase(listing_details)
@@ -665,10 +692,134 @@ func _convert_display_name_to_type(display_name: String) -> String:
 
 ## Find listing by ID in current marketplace listings
 func _find_listing_by_id(listing_id: String) -> Dictionary:
-	# This would need to be implemented by storing current listings
-	# For now, return empty dict as placeholder
 	print("[TradingMarketplace] Finding listing by ID: %s" % listing_id)
+
+	# Search through cached listings first (most recent data)
+	for listing in cached_listings:
+		if listing.get("listing_id", "") == listing_id:
+			print("[TradingMarketplace] Found listing in cache: %s" % listing.get("item_name", "Unknown"))
+			return listing
+
+	# If not found in cache, search through player's active listings
+	for listing in player_active_listings:
+		if listing.get("listing_id", "") == listing_id:
+			print("[TradingMarketplace] Found listing in player active listings: %s" % listing.get("item_name", "Unknown"))
+			return listing
+
+	# If still not found, check if we have fresh listings data by looking at cache age
+	var current_time = Time.get_unix_time_from_system()
+	var cache_age = current_time - listings_cache_timestamp
+
+	if cache_age > listings_cache_duration:
+		print("[TradingMarketplace] WARNING: Listing cache is stale (%.1f seconds old), listing may have been removed" % cache_age)
+
+	print("[TradingMarketplace] Listing %s not found in any cached data" % listing_id)
 	return {}
+
+# DEBUG AND TROUBLESHOOTING METHODS
+
+## Get current marketplace state for debugging
+func get_marketplace_debug_info() -> Dictionary:
+	"""Get comprehensive debug information about marketplace state"""
+	var current_time = Time.get_unix_time_from_system()
+	var cache_age = current_time - listings_cache_timestamp
+
+	return {
+		"cached_listings_count": cached_listings.size(),
+		"player_active_listings_count": player_active_listings.size(),
+		"cache_age_seconds": cache_age,
+		"cache_is_valid": cache_age <= listings_cache_duration,
+		"cached_listing_ids": cached_listings.map(func(listing): return listing.get("listing_id", "NO_ID")),
+		"purchase_state": _state_to_string(current_purchase_state),
+		"pending_requests_count": pending_requests.size(),
+		"sample_cached_listing": cached_listings[0] if cached_listings.size() > 0 else {}
+	}
+
+## Print marketplace debug information to console
+func debug_print_marketplace_state() -> void:
+	"""Print detailed marketplace state to console for debugging"""
+	var debug_info = get_marketplace_debug_info()
+	print("[TradingMarketplace] === MARKETPLACE DEBUG INFO ===")
+	print("[TradingMarketplace] Cached listings: %d" % debug_info.cached_listings_count)
+	print("[TradingMarketplace] Player active listings: %d" % debug_info.player_active_listings_count)
+	print("[TradingMarketplace] Cache age: %.1f seconds (valid: %s)" % [debug_info.cache_age_seconds, debug_info.cache_is_valid])
+	print("[TradingMarketplace] Purchase state: %s" % debug_info.purchase_state)
+	print("[TradingMarketplace] Pending requests: %d" % debug_info.pending_requests_count)
+	print("[TradingMarketplace] Available listing IDs: %s" % str(debug_info.cached_listing_ids))
+
+	if debug_info.sample_cached_listing:
+		print("[TradingMarketplace] Sample listing structure: %s" % str(debug_info.sample_cached_listing))
+
+	print("[TradingMarketplace] === END DEBUG INFO ===")
+
+## Verify that a listing exists before attempting purchase
+func verify_listing_exists(listing_id: String) -> Dictionary:
+	"""Verify a listing exists and return its details with validation info"""
+	var result = {
+		"exists": false,
+		"listing": {},
+		"error": "",
+		"debug_info": {}
+	}
+
+	# Ensure listing_id is valid
+	if listing_id == null or listing_id.strip_edges() == "":
+		result.error = "Invalid listing ID provided"
+		return result
+
+	# Get the listing with error checking
+	var listing = _find_listing_by_id(listing_id)
+	if listing == null or listing.is_empty():
+		result.error = "Listing %s not found in cached data" % listing_id
+		result.debug_info = get_marketplace_debug_info()
+		return result
+
+	# Verify listing is still active
+	var status = listing.get("status", "unknown")
+	if status != "unknown" and status != "active":
+		result.error = "Listing %s is not active (status: %s)" % [listing_id, status]
+		result.listing = listing
+		return result
+
+	# Check if listing has required fields for purchase
+	var required_fields = ["item_name", "quantity", "asking_price", "seller_id"]
+	var missing_fields = []
+
+	for field in required_fields:
+		var field_value = listing.get(field, null)
+		var is_missing = false
+
+		# Check based on field type
+		if field_value == null:
+			is_missing = true
+		elif field in ["item_name", "seller_id"]:
+			# String fields - check for empty string
+			is_missing = (field_value == "" or str(field_value).strip_edges() == "")
+		elif field in ["quantity", "asking_price"]:
+			# Numeric fields - check for zero or negative values
+			is_missing = (field_value <= 0)
+		else:
+			# Unknown field type - just check for null/empty
+			is_missing = (field_value == null or field_value == "")
+
+		if not listing.has(field) or is_missing:
+			missing_fields.append(field)
+
+	if missing_fields.size() > 0:
+		result.error = "Listing %s missing required fields: %s" % [listing_id, str(missing_fields)]
+		result.listing = listing
+		return result
+
+	# Calculate total price (may be missing from listing)
+	var asking_price = listing.get("asking_price", 0)
+	var quantity = listing.get("quantity", 1)
+	if not listing.has("total_price"):
+		listing["total_price"] = asking_price * quantity
+		print("[TradingMarketplace] Added missing total_price to listing: %d" % listing["total_price"])
+
+	result.exists = true
+	result.listing = listing
+	return result
 
 ## Get player inventory capacity for validation
 func _get_inventory_capacity() -> int:

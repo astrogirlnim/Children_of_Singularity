@@ -3465,4 +3465,40 @@ func get_marketplace_connection_status() -> Dictionary:
 		"last_check": Time.get_unix_time_from_system()
 	}
 
+# DEBUG HELPER METHODS FOR TROUBLESHOOTING
+
+func debug_marketplace_state() -> void:
+	"""Debug marketplace state and print detailed information"""
+	print("[LobbyZone2D] === MARKETPLACE DEBUG SESSION ===")
+
+	if TradingMarketplace:
+		TradingMarketplace.debug_print_marketplace_state()
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+
+	print("[LobbyZone2D] UI State:")
+	print("[LobbyZone2D]   marketplace_listings.size(): %d" % marketplace_listings.size())
+	print("[LobbyZone2D]   marketplace_loading: %s" % marketplace_loading)
+	print("[LobbyZone2D]   trading_interface_open: %s" % trading_interface_open)
+
+	var status = get_marketplace_connection_status()
+	print("[LobbyZone2D] Connection Status: %s" % str(status))
+
+	print("[LobbyZone2D] === END DEBUG SESSION ===")
+
+func test_listing_lookup(listing_id: String) -> void:
+	"""Test looking up a specific listing ID"""
+	print("[LobbyZone2D] Testing lookup for listing ID: %s" % listing_id)
+
+	if TradingMarketplace:
+		var verification = TradingMarketplace.verify_listing_exists(listing_id)
+		print("[LobbyZone2D] Verification result: %s" % str(verification))
+
+		if verification.exists:
+			print("[LobbyZone2D] ✅ Listing found: %s" % verification.listing.get("item_name", "Unknown"))
+		else:
+			print("[LobbyZone2D] ❌ Listing not found: %s" % verification.error)
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+
 ## WebSocket and Multiplayer Methods
