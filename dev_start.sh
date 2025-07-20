@@ -86,7 +86,63 @@ fi
 
 echo -e "${GREEN}✅ Project structure verified${NC}"
 
-echo -e "${BLUE}Step 3: Checking local data directory...${NC}"
+echo -e "${BLUE}Step 3: Setting up development environment...${NC}"
+
+# Check if environment files exist, if not, set them up
+if [[ ! -f "trading.env" || ! -f "lobby.env" ]]; then
+    echo -e "${YELLOW}Environment files missing. Setting up development configuration...${NC}"
+
+    if [[ -f "setup_dev_env.sh" ]]; then
+        ./setup_dev_env.sh
+    else
+        echo -e "${YELLOW}⚠️  setup_dev_env.sh not found. Creating basic environment files...${NC}"
+
+        # Create basic trading.env if missing
+        if [[ ! -f "trading.env" && -f "trading.env.template" ]]; then
+            cp trading.env.template trading.env
+            echo -e "${GREEN}✅ Created trading.env from template${NC}"
+        fi
+
+        # Create basic lobby.env if missing
+        if [[ ! -f "lobby.env" && -f "lobby.env.template" ]]; then
+            cp lobby.env.template lobby.env
+            echo -e "${GREEN}✅ Created lobby.env from template${NC}"
+        fi
+    fi
+else
+    echo -e "${GREEN}✅ Environment files found${NC}"
+fi
+
+# Validate environment configuration
+echo -e "${BLUE}Validating environment configuration...${NC}"
+
+# Check trading configuration
+if [[ -f "trading.env" ]]; then
+    API_ENDPOINT=$(grep "^API_GATEWAY_ENDPOINT=" trading.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+    if [[ "$API_ENDPOINT" == *"YOUR_API_ID"* ]]; then
+        echo -e "${YELLOW}⚠️  trading.env contains template values - marketplace may not work${NC}"
+        echo -e "${YELLOW}   Edit trading.env to fix marketplace 'Refresh Listings' button${NC}"
+    else
+        echo -e "${GREEN}✅ Trading API configured: $API_ENDPOINT${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  trading.env not found - marketplace will use fallback configuration${NC}"
+fi
+
+# Check lobby configuration
+if [[ -f "lobby.env" ]]; then
+    WEBSOCKET_URL=$(grep "^WEBSOCKET_URL=" lobby.env | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+    if [[ "$WEBSOCKET_URL" == *"YOUR_API_ID"* ]]; then
+        echo -e "${YELLOW}⚠️  lobby.env contains template values - multiplayer lobby may not work${NC}"
+        echo -e "${YELLOW}   Edit lobby.env to fix multiplayer lobby connection${NC}"
+    else
+        echo -e "${GREEN}✅ Lobby WebSocket configured: $WEBSOCKET_URL${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  lobby.env not found - lobby will use fallback configuration${NC}"
+fi
+
+echo -e "${BLUE}Step 4: Checking local data directory...${NC}"
 
 # Create user data directory structure for testing (optional)
 USER_DATA_DIR="$HOME/.local/share/godot/app_userdata/Children of the Singularity"
@@ -116,7 +172,7 @@ else
 fi
 
 echo ""
-echo -e "${BLUE}Step 4: Starting Godot game in local-only mode...${NC}"
+echo -e "${BLUE}Step 5: Starting Godot game in local-only mode...${NC}"
 
 # Start Godot game
 echo -e "${YELLOW}Launching Godot game...${NC}"
@@ -153,6 +209,7 @@ echo -e "  • APIClient.gd operates in pure local-only mode"
 echo -e "  • All player data managed by LocalPlayerData.gd"
 echo -e "  • Complete offline functionality with data persistence"
 echo -e "  • AWS Trading Marketplace available via TradingMarketplace.gd"
+echo -e "  • Environment files (trading.env, lobby.env) configure external services"
 echo ""
 echo -e "${BLUE}💾 LOCAL DATA FILES:${NC}"
 echo -e "  📄 player_save.json       - Credits, progress, player ID"
@@ -165,6 +222,8 @@ echo -e "  • This matches exactly what release users experience"
 echo -e "  • Test all offline functionality, data persistence, upgrades"
 echo -e "  • Data persists between sessions in user:// directory"
 echo -e "  • Inventory clearing and upgrade resetting fully supported"
+echo -e "  • Marketplace 'Refresh Listings' button requires proper trading.env setup"
+echo -e "  • Multiplayer lobby requires proper lobby.env setup"
 echo ""
 echo -e "${YELLOW}Press Ctrl+C to stop the game${NC}"
 

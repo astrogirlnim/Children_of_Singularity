@@ -10,6 +10,10 @@ lobby.env
 trading.env
 .env
 
+# Build configuration
+build_configs/
+*.original
+
 # Documentation
 documentation/godot_summarized/repomix-output.md
 # Documentation assets are stored in S3, not tracked in git

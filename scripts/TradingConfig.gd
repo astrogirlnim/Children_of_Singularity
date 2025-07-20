@@ -1,8 +1,8 @@
 extends Node
 
-# Default configuration values (used if config file doesn't exist)
+# Default configuration values (fallback only - production values injected at build time)
 var default_config = {
-	"api_base_url": "https://your-api-gateway-id.execute-api.your-region.amazonaws.com/prod",
+	"api_base_url": "",  # Injected at build time from trading.env
 	"listings_endpoint": "/listings",
 	"timeout_seconds": 30,
 	"enable_debug_logs": true,
