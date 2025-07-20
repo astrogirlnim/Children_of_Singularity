@@ -1,0 +1,23 @@
+{
+  "websocket_url": "wss://37783owd23.execute-api.us-east-2.amazonaws.com/prod",
+  "connection_timeout": 10,
+  "position_broadcast_interval": 0.2,
+  "enable_debug_logs": true,
+  "max_retry_attempts": 3,
+  "reconnect_delay": 2.0,
+  "lobby_bounds": {
+    "min_x": -50,
+    "max_x": 1050,
+    "min_y": -50,
+    "max_y": 450
+  },
+  "development": {
+    "local_websocket_url": "ws://localhost:8080",
+    "use_local_server": false
+  },
+  "performance": {
+    "max_players_visible": 20,
+    "position_interpolation": true,
+    "smooth_movement": true
+  }
+}
