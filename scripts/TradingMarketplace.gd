@@ -19,6 +19,15 @@ signal api_error(error_message: String)
 # Local player data reference
 var local_player_data: LocalPlayerData
 
+# INVENTORY VALIDATION ENHANCEMENT - Prevent Over-Listing
+var cached_listings: Array[Dictionary] = []  # Cache of current marketplace listings
+var player_active_listings: Array[Dictionary] = []  # Player's own active listings
+var listings_cache_timestamp: float = 0.0  # When listings were last cached
+var listings_cache_duration: float = 30.0  # Cache duration in seconds
+var pending_listing_requests: Dictionary = {}  # Track pending listing requests
+var last_listing_request_time: float = 0.0  # Debouncing for listing requests
+var listing_request_cooldown: float = 2.0  # Minimum seconds between listing requests
+
 func _ready():
 	print("[TradingMarketplace] Initializing trading marketplace client")
 
@@ -50,15 +59,27 @@ func get_listings() -> void:
 func post_listing(item_type: String, quantity: int, price_per_unit: int, description: String = "") -> void:
 	print("[TradingMarketplace] Posting listing: %s x%d for %d credits each" % [item_type, quantity, price_per_unit])
 
-	# Validate player has the item locally
-	if not local_player_data:
-		emit_signal("api_error", "Local player data not available")
+	# INVENTORY VALIDATION ENHANCEMENT: Check request debouncing
+	var debounce_result = can_make_listing_request()
+	if not debounce_result.success:
+		emit_signal("api_error", debounce_result.error_message)
 		return
 
-	var player_inventory = local_player_data.get_inventory()
-	var available_quantity = _get_inventory_quantity(player_inventory, item_type)
-	if available_quantity < quantity:
-		emit_signal("api_error", "Insufficient %s in inventory. Have %d, need %d" % [item_type, available_quantity, quantity])
+	# INVENTORY VALIDATION ENHANCEMENT: Use enhanced validation that accounts for already-listed items
+	var validation_result = can_sell_item_enhanced(item_type, quantity)
+	if not validation_result.success:
+		emit_signal("api_error", validation_result.error_message)
+		# Log detailed validation report for debugging
+		var report = get_inventory_validation_report(item_type)
+		print("[TradingMarketplace] VALIDATION FAILED - Report: %s" % str(report))
+		return
+
+	# Mark request as made for debouncing
+	mark_listing_request_made()
+
+	# Basic validation for LocalPlayerData availability
+	if not local_player_data:
+		emit_signal("api_error", "Local player data not available")
 		return
 
 	# Create listing data - API expects both item_type and item_name, plus asking_price
@@ -213,6 +234,11 @@ func _handle_api_response(data: Dictionary, _response_code: int):
 
 		var total = data.get("total", 0)
 		print("[TradingMarketplace] Received %d listings" % total)
+
+		# INVENTORY VALIDATION ENHANCEMENT: Update listings cache and player's active listings
+		_update_listings_cache(listings)
+		_update_player_active_listings(listings)
+
 		emit_signal("listings_received", listings)
 		return
 
@@ -318,39 +344,40 @@ func get_marketplace_listings() -> void:
 	print("[TradingMarketplace] Getting marketplace listings for lobby interface")
 	get_listings()  # Use existing method, same API endpoint
 
-## Check if player can sell a specific item in marketplace
+## Check if player can sell a specific item in marketplace (ENHANCED)
 func can_sell_item(item_type: String, item_name: String, quantity: int) -> bool:
-	print("[TradingMarketplace] Validating if player can sell %d x %s" % [quantity, item_name])
+	print("[TradingMarketplace] Validating if player can sell %d x %s (ENHANCED)" % [quantity, item_name])
 
-	if not local_player_data:
-		print("[TradingMarketplace] Cannot sell - LocalPlayerData not available")
+	# Use enhanced validation that accounts for already-listed items
+	var validation_result = can_sell_item_enhanced(item_type, quantity)
+
+	if validation_result.success:
+		print("[TradingMarketplace] Can sell %d x %s (available: %d)" % [quantity, item_name, validation_result.available_to_list])
+		return true
+	else:
+		print("[TradingMarketplace] Cannot sell - %s" % validation_result.error_message)
 		return false
-
-	# Check if player has enough of this item in inventory
-	var inventory = local_player_data.get_inventory()
-	var available_quantity = _get_inventory_quantity(inventory, item_type)
-
-	if available_quantity < quantity:
-		print("[TradingMarketplace] Cannot sell - insufficient quantity. Have %d, need %d" % [available_quantity, quantity])
-		return false
-
-	# Get actual item value from inventory instead of hardcoded values
-	var item_value = _get_actual_item_value(inventory, item_type)
-	if item_value < 100:
-		print("[TradingMarketplace] Cannot sell - item value too low (%d credits). Minimum 100 credits." % item_value)
-		return false
-
-	print("[TradingMarketplace] Can sell %d x %s (have %d, value %d credits each)" % [quantity, item_name, available_quantity, item_value])
-	return true
 
 ## Post item for sale in marketplace (wrapper for existing post_listing method)
 func post_item_for_sale(item_type: String, item_name: String, quantity: int, asking_price: int) -> void:
 	print("[TradingMarketplace] Posting item for sale: %s x%d for %d credits each" % [item_name, quantity, asking_price])
 
-	# Validate before posting
-	if not can_sell_item(item_type, item_name, quantity):
-		emit_signal("api_error", "Cannot sell item - validation failed")
+	# INVENTORY VALIDATION ENHANCEMENT: Check request debouncing first
+	var debounce_result = can_make_listing_request()
+	if not debounce_result.success:
+		emit_signal("api_error", debounce_result.error_message)
 		return
+
+	# Enhanced validation before posting
+	if not can_sell_item(item_type, item_name, quantity):
+		emit_signal("api_error", "Cannot sell item - enhanced validation failed")
+		# Log detailed validation report for debugging
+		var report = get_inventory_validation_report(item_type)
+		print("[TradingMarketplace] ENHANCED VALIDATION FAILED - Report: %s" % str(report))
+		return
+
+	# Mark request as made for debouncing (before making API call)
+	mark_listing_request_made()
 
 	# Validate asking price is reasonable (not too low or too high) - use actual inventory value
 	var inventory = local_player_data.get_inventory()
@@ -577,3 +604,135 @@ func _remove_items_from_inventory(item_name: String, quantity_to_remove: int) ->
 	# Remove items that need to be completely removed
 	for item_id in items_to_remove:
 		local_player_data.remove_inventory_item(item_id)
+
+# INVENTORY VALIDATION ENHANCEMENT METHODS - Prevent Over-Listing
+
+## Update listings cache with fresh data from API
+func _update_listings_cache(listings: Array[Dictionary]) -> void:
+	print("[TradingMarketplace] Updating listings cache with %d listings" % listings.size())
+	cached_listings = listings.duplicate()
+	listings_cache_timestamp = Time.get_unix_time_from_system()
+
+## Extract and cache player's own active listings
+func _update_player_active_listings(listings: Array[Dictionary]) -> void:
+	if not local_player_data:
+		return
+
+	var player_id = local_player_data.get_player_id()
+	player_active_listings.clear()
+
+	for listing in listings:
+		if listing.get("seller_id", "") == player_id and listing.get("status", "") == "active":
+			player_active_listings.append(listing)
+
+	print("[TradingMarketplace] Player has %d active listings" % player_active_listings.size())
+
+## Get total quantity of an item type that player has already listed
+func get_player_listed_quantity(item_type: String) -> int:
+	var total_listed = 0
+
+	# Check if cache is still valid
+	var current_time = Time.get_unix_time_from_system()
+	if current_time - listings_cache_timestamp > listings_cache_duration:
+		print("[TradingMarketplace] WARNING: Listings cache expired, validation may be inaccurate")
+		return 0  # Conservative approach: assume nothing listed if cache expired
+
+	# Count quantities in player's active listings
+	for listing in player_active_listings:
+		if listing.get("item_type", "") == item_type:
+			total_listed += listing.get("quantity", 0)
+
+	print("[TradingMarketplace] Player has %d %s already listed" % [total_listed, item_type])
+	return total_listed
+
+## Enhanced can_sell_item that accounts for already-listed quantities
+func can_sell_item_enhanced(item_type: String, quantity_to_list: int) -> Dictionary:
+	var result = {"success": false, "error_message": "", "available_to_list": 0}
+
+	print("[TradingMarketplace] Enhanced validation for listing %d x %s" % [quantity_to_list, item_type])
+
+	if not local_player_data:
+		result.error_message = "Player data not available"
+		return result
+
+	# Get inventory quantity
+	var inventory = local_player_data.get_inventory()
+	var inventory_quantity = _get_inventory_quantity(inventory, item_type)
+
+	# Get already-listed quantity
+	var listed_quantity = get_player_listed_quantity(item_type)
+
+	# Calculate available quantity for new listings
+	var available_to_list = inventory_quantity - listed_quantity
+	result.available_to_list = available_to_list
+
+	if available_to_list < quantity_to_list:
+		result.error_message = "Insufficient %s available for listing. Have %d in inventory, %d already listed, %d available to list (need %d)" % [
+			item_type, inventory_quantity, listed_quantity, available_to_list, quantity_to_list
+		]
+		return result
+
+	# Check minimum value requirement
+	var item_value = _get_actual_item_value(inventory, item_type)
+	if item_value < 100:
+		result.error_message = "Item value too low (%d credits). Minimum 100 credits required." % item_value
+		return result
+
+	result.success = true
+	print("[TradingMarketplace] Enhanced validation passed: %d %s available to list" % [available_to_list, item_type])
+	return result
+
+## Request debouncing to prevent spam-clicking
+func can_make_listing_request() -> Dictionary:
+	var result = {"success": false, "error_message": "", "cooldown_remaining": 0.0}
+
+	var current_time = Time.get_unix_time_from_system()
+	var time_since_last = current_time - last_listing_request_time
+
+	if time_since_last < listing_request_cooldown:
+		var remaining = listing_request_cooldown - time_since_last
+		result.cooldown_remaining = remaining
+		result.error_message = "Please wait %.1f seconds before making another listing request" % remaining
+		return result
+
+	result.success = true
+	return result
+
+## Mark that a listing request is being made (for debouncing)
+func mark_listing_request_made() -> void:
+	last_listing_request_time = Time.get_unix_time_from_system()
+	print("[TradingMarketplace] Listing request timestamp updated for debouncing")
+
+## Force refresh of listings cache for accurate validation
+func refresh_listings_for_validation() -> void:
+	print("[TradingMarketplace] Refreshing listings cache for accurate validation")
+	get_listings()  # This will trigger cache update when response is received
+
+## Get comprehensive listing validation report for debugging
+func get_inventory_validation_report(item_type: String) -> Dictionary:
+	var report = {
+		"item_type": item_type,
+		"timestamp": Time.get_datetime_string_from_system(),
+		"inventory_quantity": 0,
+		"listed_quantity": 0,
+		"available_to_list": 0,
+		"cache_age_seconds": 0.0,
+		"cache_valid": false,
+		"player_active_listings_count": player_active_listings.size()
+	}
+
+	if not local_player_data:
+		report["error"] = "LocalPlayerData not available"
+		return report
+
+	var inventory = local_player_data.get_inventory()
+	report.inventory_quantity = _get_inventory_quantity(inventory, item_type)
+	report.listed_quantity = get_player_listed_quantity(item_type)
+	report.available_to_list = report.inventory_quantity - report.listed_quantity
+
+	var current_time = Time.get_unix_time_from_system()
+	report.cache_age_seconds = current_time - listings_cache_timestamp
+	report.cache_valid = report.cache_age_seconds <= listings_cache_duration
+
+	print("[TradingMarketplace] Validation report for %s: %s" % [item_type, str(report)])
+	return report

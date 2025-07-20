@@ -129,6 +129,51 @@ def create_listing(listing_data: Dict[str, Any]) -> Dict[str, Any]:
                 400, {"error": "Asking price must be a positive integer"}
             )
 
+        # SERVER-SIDE INVENTORY VALIDATION: Prevent over-listing
+        # Check seller's existing active listings for this item type
+        current_listings, _ = load_from_s3(LISTINGS_KEY)
+        seller_id = listing_data["seller_id"]
+        item_type = listing_data["item_type"]
+        quantity_to_list = listing_data["quantity"]
+
+        # Calculate total quantity already listed by this seller for this item type
+        existing_quantity = 0
+        for existing_listing in current_listings:
+            if (
+                existing_listing.get("seller_id") == seller_id
+                and existing_listing.get("item_type") == item_type
+                and existing_listing.get("status") == "active"
+            ):
+                existing_quantity += existing_listing.get("quantity", 0)
+
+        # Basic business logic: Limit total listings per item type per player
+        # This is a server-side safety check - clients should do their own validation
+        MAX_LISTED_QUANTITY_PER_ITEM = 50  # Conservative limit
+        total_after_listing = existing_quantity + quantity_to_list
+
+        if total_after_listing > MAX_LISTED_QUANTITY_PER_ITEM:
+            return create_response(
+                400,
+                {
+                    "error": (
+                        f"Server validation failed: Cannot list {quantity_to_list} "
+                        f"{item_type} - would exceed maximum. Already have "
+                        f"{existing_quantity} listed (max {MAX_LISTED_QUANTITY_PER_ITEM} "
+                        "per item type)"
+                    ),
+                    "existing_quantity": existing_quantity,
+                    "requested_quantity": quantity_to_list,
+                    "max_allowed": MAX_LISTED_QUANTITY_PER_ITEM,
+                },
+            )
+
+        # Comprehensive logging for inventory validation
+        print(f"[INVENTORY_VALIDATION] Seller: {seller_id}")
+        print(f"[INVENTORY_VALIDATION] Item: {item_type} x{quantity_to_list}")
+        print(f"[INVENTORY_VALIDATION] Existing listings: {existing_quantity}")
+        print(f"[INVENTORY_VALIDATION] Total after listing: {total_after_listing}")
+        print("[INVENTORY_VALIDATION] Server validation passed - within limits")
+
         # Create listing object
         listing = {
             "listing_id": str(uuid.uuid4()),

@@ -1324,6 +1324,13 @@ func _show_item_posting_dialog() -> void:
 	if not posting_dialog_initialized:
 		_initialize_posting_dialog()
 
+	# INVENTORY VALIDATION ENHANCEMENT: Refresh listings cache for accurate validation
+	if TradingMarketplace:
+		print("[LobbyZone2D] Refreshing marketplace cache before posting dialog")
+		TradingMarketplace.refresh_listings_for_validation()
+		# Wait a brief moment for cache refresh, then populate
+		await get_tree().create_timer(0.5).timeout
+
 	# Populate with current inventory
 	_populate_posting_dialog()
 
@@ -1454,19 +1461,31 @@ func _populate_posting_dialog() -> void:
 		if item_type != "":
 			item_counts[item_type] = item_counts.get(item_type, 0) + item.get("quantity", 0)
 
-	# Check which items can be sold (using TradingMarketplace validation)
+	# Check which items can be sold (using enhanced TradingMarketplace validation)
 	var sellable_items = []
 	for item_type in item_counts:
-		var quantity = item_counts[item_type]
+		var inventory_quantity = item_counts[item_type]
 		if TradingMarketplace and TradingMarketplace.can_sell_item(item_type, item_type, 1):
 			var display_name = _format_item_name(item_type)
-			posting_item_dropdown.add_item("%s (%d available)" % [display_name, quantity])
+
+			# INVENTORY VALIDATION ENHANCEMENT: Show available quantity accounting for already-listed items
+			var validation_result = TradingMarketplace.can_sell_item_enhanced(item_type, 1)
+			var available_to_list = validation_result.get("available_to_list", inventory_quantity)
+			var listed_quantity = TradingMarketplace.get_player_listed_quantity(item_type)
+
+			# Enhanced display with listing information
+			var display_text = "%s (%d in inventory, %d listed, %d available)" % [display_name, inventory_quantity, listed_quantity, available_to_list]
+			posting_item_dropdown.add_item(display_text)
 			posting_item_dropdown.set_item_metadata(posting_item_dropdown.get_item_count() - 1, {
 				"type": item_type,
-				"available": quantity,
+				"available": available_to_list,  # Use available_to_list instead of raw inventory
+				"inventory_total": inventory_quantity,
+				"already_listed": listed_quantity,
 				"base_value": _get_actual_item_value_for_dialog(inventory, item_type)
 			})
 			sellable_items.append(item_type)
+
+			print("[LobbyZone2D] ENHANCED VALIDATION - %s: %d inventory, %d listed, %d available to list" % [item_type, inventory_quantity, listed_quantity, available_to_list])
 
 	if sellable_items.is_empty():
 		posting_item_dropdown.add_item("No sellable items (need 100+ credit value items)")
