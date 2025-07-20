@@ -325,7 +325,7 @@ func _complete_loading() -> void:
 	loading_complete.emit()
 
 	# Handle scene transition directly (don't wait for signal)
-	print("LoadingScreen: ✅ Handling scene transition directly...")
+	print("LoadingScreen: Handling scene transition directly...")
 	await _transition_to_main_game()
 
 func _transition_to_main_game() -> void:
@@ -336,30 +336,30 @@ func _transition_to_main_game() -> void:
 	print("LoadingScreen: Validating scene file exists: ", scene_path)
 
 	if not ResourceLoader.exists(scene_path):
-		print("LoadingScreen: ❌ CRITICAL ERROR - Scene file does not exist: ", scene_path)
+		print("LoadingScreen: CRITICAL ERROR - Scene file does not exist: ", scene_path)
 		return
 
-	print("LoadingScreen: ✅ Scene file confirmed to exist")
+	print("LoadingScreen: Scene file confirmed to exist")
 
 	# Check if scene is already loaded from preloading
 	var preloaded_scene = ResourceLoader.load_threaded_get(scene_path)
 	if preloaded_scene:
-		print("LoadingScreen: ✅ Using preloaded scene resource")
+		print("LoadingScreen: Using preloaded scene resource")
 	else:
-		print("LoadingScreen: ⚠️  Scene not preloaded, will load fresh")
+		print("LoadingScreen: Scene not preloaded, will load fresh")
 
 	print("LoadingScreen: Attempting scene change to: ", scene_path)
-	print("LoadingScreen: 🔄 KEEPING LOADING SCREEN VISIBLE during transition...")
+	print("LoadingScreen: KEEPING LOADING SCREEN VISIBLE during transition...")
 
 	# Attempt scene transition with error checking (KEEP LOADING SCREEN VISIBLE)
 	var error = get_tree().change_scene_to_file(scene_path)
 
 	if error != OK:
-		print("LoadingScreen: ❌ CRITICAL ERROR - Scene change failed with error code: ", error)
+		print("LoadingScreen: CRITICAL ERROR - Scene change failed with error code: ", error)
 		print("LoadingScreen: Error codes: OK=0, FAILED=1, ERR_UNAVAILABLE=2, ERR_UNCONFIGURED=3")
 		return
 
-		print("LoadingScreen: ✅ Scene change call completed successfully")
+		print("LoadingScreen: Scene change call completed successfully")
 	print("LoadingScreen: Waiting for ZoneMain3D zone_ready signal...")
 
 	# Wait a moment for scene to initialize, then connect to its signal
@@ -367,12 +367,12 @@ func _transition_to_main_game() -> void:
 	print("LoadingScreen: Post-transition check - Current scene: ", get_tree().current_scene)
 
 	if get_tree().current_scene and get_tree().current_scene.name == "ZoneMain3D":
-		print("LoadingScreen: ✅ ZoneMain3D scene active - Connecting to zone_ready signal")
+		print("LoadingScreen: ZoneMain3D scene active - Connecting to zone_ready signal")
 
 		# Try multiple approaches for instant transition
 		var zone_main_3d = get_tree().current_scene as ZoneMain3D
 		if zone_main_3d:
-			print("LoadingScreen: ✅ ZoneMain3D found - Attempting instant transition")
+			print("LoadingScreen: ZoneMain3D found - Attempting instant transition")
 
 			# Method 1: Check if zone is already ready (most likely case)
 			if zone_main_3d.has_method("_ready") or true:  # Zone is already initialized since _ready ran
@@ -384,7 +384,7 @@ func _transition_to_main_game() -> void:
 			if zone_main_3d.has_signal("zone_ready"):
 				if not zone_main_3d.zone_ready.is_connected(_on_zone_ready):
 					zone_main_3d.zone_ready.connect(_on_zone_ready)
-					print("LoadingScreen: ✅ Connected to zone_ready signal as backup")
+					print("LoadingScreen: Connected to zone_ready signal as backup")
 
 					# Give signal a moment to fire, then fallback
 					await get_tree().create_timer(0.2).timeout
@@ -394,15 +394,15 @@ func _transition_to_main_game() -> void:
 				else:
 					_on_zone_ready()
 		else:
-			print("LoadingScreen: ⚠️ ZoneMain3D not available, using timer fallback")
+			print("LoadingScreen: ZoneMain3D not available, using timer fallback")
 			await get_tree().create_timer(0.5).timeout
 			_on_zone_ready()
 	else:
-		print("LoadingScreen: ❌ CRITICAL ERROR - No current scene after transition!")
+		print("LoadingScreen: CRITICAL ERROR - No current scene after transition!")
 
 func _on_zone_ready() -> void:
 	##Called when ZoneMain3D emits zone_ready signal - INSTANT transition
-	print("LoadingScreen: 🎯 ZoneMain3D is ready! INSTANT transition to gameplay!")
+	print("LoadingScreen: ZoneMain3D is ready! INSTANT transition to gameplay!")
 
 	# INSTANT hide - no fade animation
 	print("LoadingScreen: Hiding loading screen instantly")
@@ -412,7 +412,7 @@ func _on_zone_ready() -> void:
 	print("LoadingScreen: Cleaning up loading system")
 	cleanup_loading()
 
-	print("LoadingScreen: ✅ INSTANT transition complete - No overlap!")
+	print("LoadingScreen: INSTANT transition complete - No overlap!")
 
 func fade_out() -> void:
 	##Fade out the loading screen

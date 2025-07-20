@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://cfyo4n74f64jt" path="res://assets/trading_hub_pixel_horizontal.png" id="3_background"]
 [ext_resource type="Texture2D" uid="uid://b6cqeexl126ff" path="res://assets/schlorp_guy_sprite.png" id="4_player_sprite"]
 [ext_resource type="Texture2D" uid="uid://bmxhgnlqpqujy" path="res://assets/computer_trading_hub_sprite.png" id="5_computer_sprite"]
-[ext_resource type="Theme" uid="uid://bq1qdtl0gehde" path="res://resources/themes/SpaceCustomTheme.tres" id="6_ui_theme"]
+[ext_resource type="Theme" uid="uid://bh2qdtl0gehdf" path="res://resources/themes/SpaceOrangeTheme.tres" id="6_ui_theme"]
 
 [sub_resource type="RectangleShape2D" id="computer_collision_shape"]
 size = Vector2(585, 555)
@@ -184,7 +184,7 @@ layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.2
 theme_type_variation = &"HeaderLabel"
-text = "📊 PLAYER STATS"
+text = "PLAYER STATS"
 horizontal_alignment = 1
 
 [node name="CreditsLabel" type="Label" parent="UILayer/HUD/StatsPanel"]
@@ -224,7 +224,7 @@ layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.2
 theme_type_variation = &"HeaderLabel"
-text = "⚡ UPGRADES"
+text = "UPGRADES"
 horizontal_alignment = 1
 
 [node name="UpgradeStatusText" type="Label" parent="UILayer/HUD/UpgradeStatusPanel"]
@@ -249,7 +249,7 @@ layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.15
 theme_type_variation = &"HeaderLabel"
-text = "🎮 CONTROLS"
+text = "CONTROLS"
 horizontal_alignment = 1
 
 [node name="ControlsText" type="Label" parent="UILayer/HUD/ControlsPanel"]

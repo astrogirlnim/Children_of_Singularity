@@ -160,6 +160,11 @@ var connection_status: String = "disconnected"
 var remote_players: Dictionary = {}  # player_id -> RemoteLobbyPlayer2D instance
 var remote_player_scene: PackedScene
 
+# Loading screen management
+var loading_screen_scene: PackedScene
+var loading_screen_instance: LoadingScreen
+var is_transitioning: bool = false
+
 func _ready() -> void:
 	print("[LobbyZone2D] Initializing 2D trading lobby with dynamic scaling")
 
@@ -195,6 +200,9 @@ func _ready() -> void:
 	# Setup WebSocket connection and multiplayer
 	_setup_websocket_connection()
 	_load_remote_player_scene()
+
+	# Preload loading screen for smooth lobby exit transitions
+	_preload_loading_screen()
 
 	# Mark lobby as ready
 	lobby_loaded = true
@@ -1277,8 +1285,13 @@ func _on_trading_computer_area_exited(area: Area2D) -> void:
 		print("[LobbyZone2D] Player exited trading computer interaction area")
 
 func return_to_3d_world() -> void:
-	##Return player to the 3D world
-	print("[LobbyZone2D] Returning to 3D world")
+	##Return player to the 3D world with loading screen
+	if is_transitioning:
+		print("[LobbyZone2D] Already transitioning, ignoring additional exit request")
+		return
+
+	print("[LobbyZone2D] Starting transition to 3D world with loading screen")
+	is_transitioning = true
 
 	# Disconnect from WebSocket before leaving
 	_disconnect_from_lobby()
@@ -1286,8 +1299,72 @@ func return_to_3d_world() -> void:
 	# Store lobby state if needed
 	if LocalPlayerData:
 		LocalPlayerData.save_player_data()
+		print("[LobbyZone2D] Player data saved before lobby exit")
 
-	# Change scene back to 3D zone
+	# Show loading screen and handle transition
+	_show_loading_screen_for_exit()
+
+func _show_loading_screen_for_exit() -> void:
+	##Show loading screen and transition to 3D world
+	print("[LobbyZone2D] Displaying loading screen for lobby exit")
+
+	# IMMEDIATELY hide all UI elements to prevent overlay with loading screen
+	_hide_lobby_ui_for_loading()
+
+	# Create loading screen instance if not already created
+	if not loading_screen_scene:
+		loading_screen_scene = preload("res://scenes/ui/LoadingScreen.tscn")
+
+	if loading_screen_scene:
+		loading_screen_instance = loading_screen_scene.instantiate() as LoadingScreen
+		if loading_screen_instance:
+			print("[LobbyZone2D] ✅ Loading screen instantiated successfully")
+
+			# Add loading screen to scene tree (above everything else)
+			get_tree().root.add_child(loading_screen_instance)
+
+			# Start loading process (LoadingScreen will handle scene transition to ZoneMain3D)
+			loading_screen_instance.start_loading()
+
+			print("[LobbyZone2D] Loading screen started - lobby will be cleaned up automatically")
+		else:
+			print("[LobbyZone2D] ERROR - Failed to instantiate loading screen, falling back to direct scene change")
+			_fallback_to_direct_scene_change()
+	else:
+		print("[LobbyZone2D] ERROR - Loading screen scene not available, falling back to direct scene change")
+		_fallback_to_direct_scene_change()
+
+func _hide_lobby_ui_for_loading() -> void:
+	##Hide all lobby UI elements immediately when loading screen appears
+	print("[LobbyZone2D] Hiding UI elements for loading screen transition")
+
+	# Hide main UI panels that would overlay with loading screen
+	if hud:
+		hud.visible = false
+		print("[LobbyZone2D] ✅ HUD hidden for loading screen")
+
+	# Also ensure trading interface is closed if it was open
+	if trading_interface and trading_interface.visible:
+		close_trading_interface()
+		print("[LobbyZone2D] ✅ Trading interface closed for loading screen")
+
+	# Hide interaction prompt if visible
+	if interaction_prompt and interaction_prompt.visible:
+		interaction_prompt.visible = false
+		print("[LobbyZone2D] ✅ Interaction prompt hidden for loading screen")
+
+func _preload_loading_screen() -> void:
+	##Preload the loading screen for smooth lobby exit transitions
+	print("[LobbyZone2D] Preloading loading screen for lobby exit")
+	loading_screen_scene = preload("res://scenes/ui/LoadingScreen.tscn")
+	if loading_screen_scene:
+		print("[LobbyZone2D] ✅ Loading screen preloaded successfully")
+	else:
+		print("[LobbyZone2D] ⚠️ Failed to preload loading screen")
+
+func _fallback_to_direct_scene_change() -> void:
+	##Fallback to direct scene change if loading screen fails
+	print("[LobbyZone2D] Using fallback direct scene change method")
 	get_tree().change_scene_to_file("res://scenes/zones/ZoneMain3D.tscn")
 
 ## MARKETPLACE BUTTON HANDLERS - Phase 1.1 Implementation
@@ -2165,7 +2242,7 @@ func _on_remote_player_joined(player_data: Dictionary) -> void:
 		return
 
 	# Create remote player instance
-	print("[LobbyZone2D] 🔧 Creating remote player instance...")
+	print("[LobbyZone2D] Creating remote player instance...")
 	_spawn_remote_player(player_data)
 
 	# Update player count display
@@ -2238,7 +2315,7 @@ func _spawn_remote_player(player_data: Dictionary) -> void:
 	print("[LobbyZone2D] ✅ Added remote player to scene")
 
 	# Initialize the remote player
-	print("[LobbyZone2D] 🔧 Initializing remote player...")
+	print("[LobbyZone2D] Initializing remote player...")
 	remote_player.initialize_remote_player(player_data)
 	print("[LobbyZone2D] ✅ Remote player initialized")
 

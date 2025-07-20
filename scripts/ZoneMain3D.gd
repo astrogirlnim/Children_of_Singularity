@@ -115,9 +115,9 @@ var last_inventory_size: int = 0
 var last_inventory_hash: String = ""
 
 func _ready() -> void:
-	print("🔴 ZoneMain3D._ready() CALLED - Scene is initializing!")
-	print("🔴 ZoneMain3D: Current scene tree node count: ", get_tree().get_node_count())
-	print("🔴 ZoneMain3D: Starting initialization...")
+	print("ZoneMain3D._ready() CALLED - Scene is initializing!")
+	print("ZoneMain3D: Current scene tree node count: ", get_tree().get_node_count())
+	print("ZoneMain3D: Starting initialization...")
 
 	_log_message("ZoneMain3D: Initializing 3D zone controller")
 	_initialize_3d_zone()
