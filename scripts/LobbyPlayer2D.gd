@@ -145,7 +145,7 @@ func _update_facing_direction() -> void:
 				player_sprite.flip_h = true   # Facing left
 
 func _check_position_change() -> void:
-	##Check if position changed significantly and emit signal
+	##Check if position changed significantly and emit signal + send to WebSocket
 	var current_position = global_position
 	var distance_moved = last_position.distance_to(current_position)
 
@@ -153,6 +153,14 @@ func _check_position_change() -> void:
 	if distance_moved > 5.0:
 		position_changed.emit(current_position)
 		last_position = current_position
+
+		# Also send directly to LobbyController for WebSocket transmission
+		_broadcast_position_to_websocket(current_position)
+
+func _broadcast_position_to_websocket(position: Vector2) -> void:
+	##Send position update directly to LobbyController for WebSocket broadcasting
+	if LobbyController and LobbyController.is_lobby_connected():
+		LobbyController.send_position_update(position)
 
 ## Movement Control Methods
 

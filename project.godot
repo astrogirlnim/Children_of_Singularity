@@ -22,6 +22,7 @@ AudioManager="*res://scripts/AudioManager.gd"
 LocalPlayerData="*res://scripts/LocalPlayerData.gd"
 TradingConfig="*res://scripts/TradingConfig.gd"
 TradingMarketplace="*res://scripts/TradingMarketplace.gd"
+LobbyController="*res://scripts/LobbyController.gd"
 
 [debug]
 
