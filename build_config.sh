@@ -71,6 +71,14 @@ inject_trading_config() {
         exit 1
     fi
 
+    # Validate that we don't have placeholder values
+    if [[ "$api_endpoint" == *"YOUR_API_ID"* ]] || [[ "$api_endpoint" == *"YOUR_REGION"* ]] || [[ "$api_endpoint" == *"your-api"* ]]; then
+        echo "❌ Error: API_GATEWAY_ENDPOINT contains placeholder values: $api_endpoint"
+        echo "💡 Please configure API_GATEWAY_ENDPOINT secret in GitHub repository settings"
+        echo "   Go to: Settings → Secrets and variables → Actions → Secrets"
+        exit 1
+    fi
+
     echo "🔗 Using API endpoint: $api_endpoint"
 
     # Create backup of original file
@@ -93,6 +101,14 @@ inject_lobby_config() {
 
     if [[ -z "$websocket_url" ]]; then
         echo "❌ Error: WEBSOCKET_URL not found in $LOBBY_ENV_FILE"
+        exit 1
+    fi
+
+    # Validate that we don't have placeholder values
+    if [[ "$websocket_url" == *"YOUR_API_ID"* ]] || [[ "$websocket_url" == *"YOUR_REGION"* ]] || [[ "$websocket_url" == *"your-api"* ]]; then
+        echo "❌ Error: WEBSOCKET_URL contains placeholder values: $websocket_url"
+        echo "💡 Please configure WEBSOCKET_URL secret in GitHub repository settings"
+        echo "   Go to: Settings → Secrets and variables → Actions → Secrets"
         exit 1
     fi
 
