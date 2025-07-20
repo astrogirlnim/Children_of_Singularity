@@ -1333,18 +1333,53 @@ func _populate_marketplace_listings() -> void:
 
 	if marketplace_listings.is_empty():
 		_update_marketplace_status("No items for sale in the marketplace", Color.GRAY)
+		_add_no_listings_message()
 		return
 
-	# Add each listing to the grid
+	# Create centering structure like the upgrades panel
+	var center_container = CenterContainer.new()
+	center_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var listings_grid = GridContainer.new()
+	listings_grid.columns = 1
+	listings_grid.add_theme_constant_override("v_separation", 10)
+
+	center_container.add_child(listings_grid)
+	marketplace_listings_container.add_child(center_container)
+
+	print("[LobbyZone2D] Created centered structure for marketplace listings")
+
+	# Add each listing to the centered grid
 	for listing in marketplace_listings:
-		_create_marketplace_listing_item(listing)
+		_create_marketplace_listing_item_for_grid(listing, listings_grid)
 
 	_update_marketplace_status("Marketplace loaded - %d items available" % marketplace_listings.size(), Color.GREEN)
 
 func _create_marketplace_listing_item(listing: Dictionary) -> void:
 	##Create a UI item for a marketplace listing
-	var listing_container = VBoxContainer.new()
-	listing_container.custom_minimum_size = Vector2(200, 100)
+	var listing_container = PanelContainer.new()
+	listing_container.custom_minimum_size = Vector2(400, 120)
+	listing_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Add a subtle background panel
+	var style_box = StyleBoxFlat.new()
+	style_box.bg_color = Color(0.1, 0.1, 0.15, 0.8)
+	style_box.border_color = Color(0.2, 0.4, 0.6, 0.6)
+	style_box.border_width_left = 2
+	style_box.border_width_right = 2
+	style_box.border_width_top = 2
+	style_box.border_width_bottom = 2
+	style_box.corner_radius_top_left = 8
+	style_box.corner_radius_top_right = 8
+	style_box.corner_radius_bottom_left = 8
+	style_box.corner_radius_bottom_right = 8
+	listing_container.add_theme_stylebox_override("panel", style_box)
+
+	# Main content container
+	var content_vbox = VBoxContainer.new()
+	content_vbox.add_theme_constant_override("separation", 8)
+	listing_container.add_child(content_vbox)
 
 	# Item name and quantity
 	var item_label = Label.new()
@@ -1354,6 +1389,8 @@ func _create_marketplace_listing_item(listing: Dictionary) -> void:
 	item_label.text = "[%s] x%d" % [display_name, quantity]
 	item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	item_label.add_theme_color_override("font_color", Color.CYAN)
+	item_label.add_theme_font_size_override("font_size", 16)
+	content_vbox.add_child(item_label)
 
 	# Seller info
 	var seller_label = Label.new()
@@ -1361,30 +1398,143 @@ func _create_marketplace_listing_item(listing: Dictionary) -> void:
 	seller_label.text = "Seller: %s" % seller_name
 	seller_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	seller_label.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	seller_label.add_theme_font_size_override("font_size", 12)
+	content_vbox.add_child(seller_label)
 
-	# Price info
+	# Price info - FIXED: Use asking_price and calculate total properly
 	var price_label = Label.new()
-	var total_price = listing.get("total_price", 0)
-	price_label.text = "Price: %d credits" % total_price
+	var asking_price = listing.get("asking_price", 0)
+	var total_price = asking_price * quantity
+
+	if quantity > 1:
+		price_label.text = "Price: %d credits each\nTotal: %d credits" % [asking_price, total_price]
+	else:
+		price_label.text = "Price: %d credits" % total_price
+
 	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	price_label.add_theme_color_override("font_color", Color.YELLOW)
+	price_label.add_theme_font_size_override("font_size", 14)
+	content_vbox.add_child(price_label)
 
 	# Buy button (placeholder for Phase 1.5)
 	var buy_button = Button.new()
 	buy_button.text = "BUY NOW"
 	buy_button.disabled = true  # Will enable in Phase 1.5
+	buy_button.custom_minimum_size = Vector2(120, 30)
 
-	# Add components to container
-	listing_container.add_child(item_label)
-	listing_container.add_child(seller_label)
-	listing_container.add_child(price_label)
-	listing_container.add_child(buy_button)
+	# Style the button
+	buy_button.add_theme_color_override("font_color", Color.WHITE)
+	var button_style = StyleBoxFlat.new()
+	button_style.bg_color = Color(0.2, 0.2, 0.3, 0.8)
+	button_style.border_color = Color(0.3, 0.3, 0.4)
+	button_style.border_width_left = 1
+	button_style.border_width_right = 1
+	button_style.border_width_top = 1
+	button_style.border_width_bottom = 1
+	buy_button.add_theme_stylebox_override("normal", button_style)
 
-	# Add separator
+	content_vbox.add_child(buy_button)
+
+	# Create a container for this listing with separator
+	var listing_wrapper = VBoxContainer.new()
+	listing_wrapper.add_child(listing_container)
+
+	# Add separator like the upgrades panel
 	var separator = HSeparator.new()
-	listing_container.add_child(separator)
+	separator.custom_minimum_size = Vector2(0, 5)
+	listing_wrapper.add_child(separator)
 
-	marketplace_listings_container.add_child(listing_container)
+	marketplace_listings_container.add_child(listing_wrapper)
+
+func _create_marketplace_listing_item_for_grid(listing: Dictionary, target_grid: GridContainer) -> void:
+	##Create a UI item for a marketplace listing and add it to the specified grid
+	var listing_container = PanelContainer.new()
+	listing_container.custom_minimum_size = Vector2(400, 120)
+	listing_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Add a subtle background panel
+	var style_box = StyleBoxFlat.new()
+	style_box.bg_color = Color(0.1, 0.1, 0.15, 0.8)
+	style_box.border_color = Color(0.2, 0.4, 0.6, 0.6)
+	style_box.border_width_left = 2
+	style_box.border_width_right = 2
+	style_box.border_width_top = 2
+	style_box.border_width_bottom = 2
+	style_box.corner_radius_top_left = 8
+	style_box.corner_radius_top_right = 8
+	style_box.corner_radius_bottom_left = 8
+	style_box.corner_radius_bottom_right = 8
+	listing_container.add_theme_stylebox_override("panel", style_box)
+
+	# Main content container
+	var content_vbox = VBoxContainer.new()
+	content_vbox.add_theme_constant_override("separation", 8)
+	listing_container.add_child(content_vbox)
+
+	# Item name and quantity
+	var item_label = Label.new()
+	var item_name = listing.get("item_name", "Unknown Item")
+	var quantity = listing.get("quantity", 1)
+	var display_name = _format_item_name(item_name)
+	item_label.text = "[%s] x%d" % [display_name, quantity]
+	item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	item_label.add_theme_color_override("font_color", Color.CYAN)
+	item_label.add_theme_font_size_override("font_size", 16)
+	content_vbox.add_child(item_label)
+
+	# Seller info
+	var seller_label = Label.new()
+	var seller_name = listing.get("seller_name", "Unknown")
+	seller_label.text = "Seller: %s" % seller_name
+	seller_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	seller_label.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	seller_label.add_theme_font_size_override("font_size", 12)
+	content_vbox.add_child(seller_label)
+
+	# Price info - FIXED: Use asking_price and calculate total properly
+	var price_label = Label.new()
+	var asking_price = listing.get("asking_price", 0)
+	var total_price = asking_price * quantity
+
+	if quantity > 1:
+		price_label.text = "Price: %d credits each\nTotal: %d credits" % [asking_price, total_price]
+	else:
+		price_label.text = "Price: %d credits" % total_price
+
+	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	price_label.add_theme_color_override("font_color", Color.YELLOW)
+	price_label.add_theme_font_size_override("font_size", 14)
+	content_vbox.add_child(price_label)
+
+	# Buy button (placeholder for Phase 1.5)
+	var buy_button = Button.new()
+	buy_button.text = "BUY NOW"
+	buy_button.disabled = true  # Will enable in Phase 1.5
+	buy_button.custom_minimum_size = Vector2(120, 30)
+
+	# Style the button
+	buy_button.add_theme_color_override("font_color", Color.WHITE)
+	var button_style = StyleBoxFlat.new()
+	button_style.bg_color = Color(0.2, 0.2, 0.3, 0.8)
+	button_style.border_color = Color(0.3, 0.3, 0.4)
+	button_style.border_width_left = 1
+	button_style.border_width_right = 1
+	button_style.border_width_top = 1
+	button_style.border_width_bottom = 1
+	buy_button.add_theme_stylebox_override("normal", button_style)
+
+	content_vbox.add_child(buy_button)
+
+	# Create a container for this listing with separator (like upgrades panel)
+	var listing_wrapper = VBoxContainer.new()
+	listing_wrapper.add_child(listing_container)
+
+	# Add separator like the upgrades panel
+	var separator = HSeparator.new()
+	separator.custom_minimum_size = Vector2(0, 5)
+	listing_wrapper.add_child(separator)
+
+	target_grid.add_child(listing_wrapper)
 
 func _update_marketplace_status(message: String, color: Color) -> void:
 	##Update marketplace status display
@@ -1413,61 +1563,54 @@ func _initialize_marketplace_interface() -> void:
 
 func _show_mock_marketplace_data() -> void:
 	##Show mock marketplace data for development/testing when API is unavailable
-	print("[LobbyZone2D] Displaying mock marketplace data for testing")
+	print("[LobbyZone2D] Mock data disabled - showing empty marketplace")
 
-	# Create mock marketplace listings
-	marketplace_listings = [
-		{
-			"listing_id": "mock_001",
-			"seller_id": "player_dev1",
-			"seller_name": "SpaceExplorer_42",
-			"item_name": "ai_component",
-			"quantity": 2,
-			"price_per_unit": 180,
-			"total_price": 360,
-			"description": "High-quality AI components from deep space",
-			"posted_at": "2025-01-14T10:30:00Z"
-		},
-		{
-			"listing_id": "mock_002",
-			"seller_id": "player_dev2",
-			"seller_name": "QuantumScavenger",
-			"item_name": "unknown_artifact",
-			"quantity": 1,
-			"price_per_unit": 750,
-			"total_price": 750,
-			"description": "Mysterious artifact of unknown origin",
-			"posted_at": "2025-01-14T09:15:00Z"
-		},
-		{
-			"listing_id": "mock_003",
-			"seller_id": "player_dev3",
-			"seller_name": "DebrisHunter_99",
-			"item_name": "broken_satellite",
-			"quantity": 5,
-			"price_per_unit": 65,
-			"total_price": 325,
-			"description": "Salvaged satellite parts in good condition",
-			"posted_at": "2025-01-14T08:45:00Z"
-		},
-		{
-			"listing_id": "mock_004",
-			"seller_id": "player_dev4",
-			"seller_name": "CyberSalvager",
-			"item_name": "quantum_core",
-			"quantity": 1,
-			"price_per_unit": 1200,
-			"total_price": 1200,
-			"description": "Legendary quantum core - extremely rare!",
-			"posted_at": "2025-01-14T07:20:00Z"
-		}
-	]
+	# Clear mock marketplace listings (no test data)
+	marketplace_listings = []
 
-	# Populate the UI with mock data
+	# Populate the UI with empty data (will show "no listings" message)
 	_populate_marketplace_listings()
 
-	# Update status to indicate this is mock data
-	_update_marketplace_status("⚠️ DEMO MODE: Showing mock listings (API unavailable)", Color.YELLOW)
+	# Update status to indicate API is unavailable but no mock data
+	_update_marketplace_status("Marketplace unavailable - API not configured", Color.ORANGE)
+
+func _add_no_listings_message() -> void:
+	##Add a message when no listings are available
+	if not marketplace_listings_container:
+		return
+
+	# Create the same centering structure as regular listings
+	var center_container = CenterContainer.new()
+	center_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var message_grid = GridContainer.new()
+	message_grid.columns = 1
+
+	var message_wrapper = VBoxContainer.new()
+	message_wrapper.custom_minimum_size = Vector2(400, 200)
+	message_wrapper.add_theme_constant_override("separation", 10)
+
+	# Main message
+	var no_listings_label = Label.new()
+	no_listings_label.text = "No items for sale in the marketplace"
+	no_listings_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	no_listings_label.add_theme_color_override("font_color", Color.YELLOW)
+	no_listings_label.add_theme_font_size_override("font_size", 18)
+	message_wrapper.add_child(no_listings_label)
+
+	# Helpful tip
+	var tip_label = Label.new()
+	tip_label.text = "Be the first to post something for sale!\nCollect valuable debris in the 3D world and return here to trade."
+	tip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tip_label.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	tip_label.add_theme_font_size_override("font_size", 14)
+	tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message_wrapper.add_child(tip_label)
+
+	message_grid.add_child(message_wrapper)
+	center_container.add_child(message_grid)
+	marketplace_listings_container.add_child(center_container)
 
 func _format_item_name(item_name: String) -> String:
 	##Format item names for better display in marketplace
