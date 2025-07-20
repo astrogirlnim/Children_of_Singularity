@@ -55,6 +55,7 @@ var fade_in_duration: float = 0.5
 var fade_out_duration: float = 0.3
 var spawn_scale_effect: bool = true
 var alpha_when_spawning: float = 0.0
+var target_node_scale: Vector2 = Vector2(1.78828, 1.78317)  # Match local player node scale
 
 func _ready() -> void:
 	print("[RemoteLobbyPlayer2D] Initializing remote player: %s" % player_id)
@@ -158,9 +159,15 @@ func _setup_visual_components() -> void:
 	player_sprite.texture = default_sprite
 
 	# Make the sprite larger for better visibility (same as local player)
-	player_sprite.scale = Vector2(0.3, 0.3)  # Match local player scale
+	player_sprite.scale = Vector2(0.3, 0.3)  # Match local player sprite scale
 	sprite_scale = player_sprite.scale
+
+	# Apply the same node-level scaling as the local player (from LobbyZone2D.tscn)
+	# Local player has scale = Vector2(1.78828, 1.78317) on the node itself
+	self.scale = target_node_scale
+
 	print("[RemoteLobbyPlayer2D] Remote player sprite setup with walking frame 080 as idle and larger scale: %s" % sprite_scale)
+	print("[RemoteLobbyPlayer2D] Applied node scaling to match local player: %s" % self.scale)
 
 	# Setup player label
 	if not player_label:
@@ -285,8 +292,8 @@ func _play_spawn_effect() -> void:
 	var tween = create_tween()
 	tween.set_parallel(true)
 
-	# Scale animation
-	tween.tween_property(self, "scale", Vector2.ONE, fade_in_duration)
+	# Scale animation - animate to target node scale
+	tween.tween_property(self, "scale", target_node_scale, fade_in_duration)
 	tween.tween_method(_set_scale_with_easing, 0.0, 1.0, fade_in_duration)
 
 	# Fade in animation
@@ -312,7 +319,7 @@ func _play_despawn_effect() -> void:
 func _set_scale_with_easing(value: float) -> void:
 	"""Set scale with easing effect for spawn animation"""
 	var ease_value = ease_out_bounce(value)
-	scale = Vector2(ease_value, ease_value)
+	scale = target_node_scale * ease_value
 
 func ease_out_bounce(t: float) -> float:
 	"""Bounce easing function for spawn effect"""
