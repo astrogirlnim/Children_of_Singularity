@@ -25,6 +25,10 @@ func _ready():
 func load_config() -> void:
 	print("[TradingConfig] Loading configuration from %s" % config_file_path)
 
+	# Step 1: Try to load from .env file first (like LobbyController does)
+	_load_from_env_file()
+
+	# Step 2: Try to load from JSON config file
 	if FileAccess.file_exists(config_file_path):
 		var file = FileAccess.open(config_file_path, FileAccess.READ)
 		if file:
@@ -35,23 +39,104 @@ func load_config() -> void:
 			var parse_result = json.parse(json_text)
 
 			if parse_result == OK:
-				config = json.data
-				print("[TradingConfig] Configuration loaded from file")
+				# Merge JSON config over .env config (JSON takes priority)
+				var json_config = json.data
+				for key in json_config:
+					config[key] = json_config[key]
+				print("[TradingConfig] Configuration loaded from JSON file")
 				_merge_default_values()  # Ensure new fields are added
 			else:
 				print("[TradingConfig] Failed to parse config file, using defaults")
-				config = default_config.duplicate()
+				if config.is_empty():
+					config = default_config.duplicate()
 				save_config()
 		else:
 			print("[TradingConfig] Failed to open config file, using defaults")
-			config = default_config.duplicate()
+			if config.is_empty():
+				config = default_config.duplicate()
 			save_config()
 	else:
-		print("[TradingConfig] Config file not found, creating default configuration")
-		config = default_config.duplicate()
-		save_config()
+		print("[TradingConfig] Config file not found")
+		if config.is_empty():
+			print("[TradingConfig] No configuration loaded, creating default configuration")
+			config = default_config.duplicate()
+			save_config()
 
 	_validate_config()
+
+## Load configuration from .env file (matches LobbyController approach)
+func _load_from_env_file() -> void:
+	print("[TradingConfig] Checking for .env configuration...")
+
+	# Try different .env file locations (same as LobbyController)
+	var env_paths = [
+		"user://trading.env",  # User-specific trading config
+		"user://.env",       # User-specific general config
+		"res://infrastructure_setup.env",  # Project infrastructure config
+		"res://.env"         # Project root .env
+	]
+
+	for env_path in env_paths:
+		if FileAccess.file_exists(env_path):
+			print("[TradingConfig] Found .env file at: %s" % env_path)
+			if _parse_env_file(env_path):
+				print("[TradingConfig] ✅ Successfully loaded configuration from .env file")
+				return
+			else:
+				print("[TradingConfig] ⚠️ Failed to parse .env file, trying next location")
+
+	print("[TradingConfig] No valid .env file found")
+
+## Parse environment file and extract trading configuration
+func _parse_env_file(env_path: String) -> bool:
+	var file = FileAccess.open(env_path, FileAccess.READ)
+	if not file:
+		return false
+
+	config = {}  # Start with empty config to be filled from .env
+	var found_api_url = false
+
+	var line_number = 0
+	while not file.eof_reached():
+		line_number += 1
+		var line = file.get_line().strip_edges()
+
+		# Skip empty lines and comments
+		if line.is_empty() or line.begins_with("#"):
+			continue
+
+		# Parse KEY=VALUE format
+		if "=" in line:
+			var parts = line.split("=", false, 1)
+			if parts.size() == 2:
+				var key = parts[0].strip_edges()
+				var value = parts[1].strip_edges()
+
+				# Remove quotes if present
+				if (value.begins_with('"') and value.ends_with('"')) or (value.begins_with("'") and value.ends_with("'")):
+					value = value.substr(1, value.length() - 2)
+
+				# Map environment variables to trading configuration
+				match key:
+					"API_GATEWAY_ENDPOINT":
+						config["api_base_url"] = value
+						found_api_url = true
+						print("[TradingConfig] Found API_GATEWAY_ENDPOINT in .env: %s" % value)
+					"TRADING_TIMEOUT":
+						config["request_timeout"] = float(value)
+					"TRADING_DEBUG":
+						config["enable_debug_logs"] = value.to_lower() in ["true", "1", "yes"]
+					"TRADING_MAX_RETRIES":
+						config["max_retry_attempts"] = int(value)
+
+	file.close()
+
+	# Fill in any missing values with defaults
+	for key in default_config:
+		if not config.has(key):
+			config[key] = default_config[key]
+
+	return found_api_url  # Return true if we found at least the API URL
 
 ## Merge new default values into existing config (for updates)
 func _merge_default_values() -> void:
