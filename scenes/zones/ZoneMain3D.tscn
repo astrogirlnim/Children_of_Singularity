@@ -183,7 +183,7 @@ theme_type_variation = "SmallPanel"
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.2
-text = "📊 PLAYER STATS"
+text = "PLAYER STATS"
 horizontal_alignment = 1
 theme_type_variation = "HeaderLabel"
 
@@ -223,7 +223,7 @@ theme_type_variation = "SmallPanel"
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.2
-text = "⚡ UPGRADES"
+text = "UPGRADES"
 horizontal_alignment = 1
 theme_type_variation = "HeaderLabel"
 
@@ -248,7 +248,7 @@ theme_type_variation = "HorizontalPanel"
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 0.15
-text = "🎮 CONTROLS"
+text = "CONTROLS"
 horizontal_alignment = 1
 theme_type_variation = "HeaderLabel"
 

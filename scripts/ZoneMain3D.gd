@@ -125,7 +125,7 @@ func _ready() -> void:
 	_log_message("ZoneMain3D: 3D Zone ready for gameplay")
 	zone_ready.emit()
 
-	print("🔴 ZoneMain3D._ready() COMPLETED - Scene fully initialized!")
+	print("ZoneMain3D._ready() COMPLETED - Scene fully initialized!")
 
 func _process(delta: float) -> void:
 	##Handle periodic updates including position sync
