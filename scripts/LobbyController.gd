@@ -510,12 +510,17 @@ func _handle_position_update_message(message: Dictionary) -> void:
 		remote_players[player_id]["position"] = new_position
 	else:
 		# Player not in our list yet, add them
-		remote_players[player_id] = {
+		var player_data = {
 			"id": player_id,
 			"x": x,
 			"y": y,
 			"position": new_position
 		}
+		remote_players[player_id] = player_data
+
+		# Emit join signal for visual spawning (missed join message case)
+		print("[LobbyController] Auto-spawning player from position update: %s" % player_id)
+		remote_player_joined.emit(player_data)
 
 	if enable_debug_logs:
 		print("[LobbyController] Player %s moved to (%.1f, %.1f)" % [player_id, x, y])
