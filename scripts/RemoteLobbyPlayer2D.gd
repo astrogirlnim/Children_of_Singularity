@@ -131,7 +131,7 @@ func _setup_visual_components() -> void:
 	player_sprite.texture = sprite_texture
 
 	# Scale to match local player (same size for consistency)
-	sprite_scale = Vector2(0.1, 0.1)  # Same size as local player
+	sprite_scale = Vector2(0.2, 0.2)  # Same size as local player
 	player_sprite.scale = sprite_scale
 
 	# Setup player label
