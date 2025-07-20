@@ -192,10 +192,11 @@ func _setup_player_sprite() -> void:
 		default_sprite = preload("res://assets/sprites/player/walking_animation/walking_guy_frame_080.png")
 		player_sprite.texture = default_sprite
 
-		# Use editor-set scale instead of programmatic scaling
-		sprite_scale = player_sprite.scale  # Get the scale from editor
+		# Make the sprite larger for better visibility
+		player_sprite.scale = Vector2(0.3, 0.3)  # Increase from 0.1 to 0.3 for 3x larger
+		sprite_scale = player_sprite.scale
 
-		print("[LobbyPlayer2D] Player sprite loaded with walking frame 080 as idle and editor scale: %s" % sprite_scale)
+		print("[LobbyPlayer2D] Player sprite loaded with walking frame 080 as idle and larger scale: %s" % sprite_scale)
 
 func _setup_collision() -> void:
 	##Setup collision shape for the player

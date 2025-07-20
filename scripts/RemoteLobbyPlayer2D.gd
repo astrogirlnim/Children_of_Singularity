@@ -153,9 +153,10 @@ func _setup_visual_components() -> void:
 		default_sprite = preload("res://assets/sprites/player/walking_animation/walking_guy_frame_080.png")
 		player_sprite.texture = default_sprite
 
-		# Store original scale
+		# Make the sprite larger for better visibility (same as local player)
+		player_sprite.scale = Vector2(0.3, 0.3)  # Match local player scale
 		sprite_scale = player_sprite.scale
-		print("[RemoteLobbyPlayer2D] Player sprite setup with walking frame 080 as idle")
+		print("[RemoteLobbyPlayer2D] Remote player sprite setup with walking frame 080 as idle and larger scale: %s" % sprite_scale)
 
 	# Setup player label
 	if not player_label:
