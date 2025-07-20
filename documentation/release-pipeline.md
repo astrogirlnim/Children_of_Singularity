@@ -9,48 +9,100 @@ The release pipeline consists of:
 - **Release Manager**: `scripts/release-manager.sh` for managing versions and triggering releases
 - **AWS S3 Integration**: `scripts/s3-manager.sh` for cloud storage and distribution
 - **GitHub Actions**: Automated multi-platform builds and release creation with S3 upload
+- **Production Configuration**: Automated injection of production settings for releases
 - **Release Cleanup**: Automatic deletion of old releases (keeps only the latest)
 
-## Documentation Management
+## 🔐 Required GitHub Repository Configuration
 
-The documentation system is fully integrated with the S3 release pipeline:
+### Critical Secrets (Required for Full Functionality)
 
-### Upload Documentation
+Configure these in **Settings** → **Secrets and variables** → **Actions** → **Secrets**:
+
+| Secret | Description | Example | Required For |
+|--------|-------------|---------|--------------|
+| `API_GATEWAY_ENDPOINT` | AWS API Gateway URL for trading | `https://abc123.execute-api.us-east-2.amazonaws.com/prod` | Trading marketplace |
+| `WEBSOCKET_URL` | WebSocket endpoint for multiplayer | `wss://abc123.execute-api.us-east-2.amazonaws.com/prod` | Multiplayer lobby |
+| `AWS_ACCESS_KEY_ID` | AWS access key for S3 operations | `AKIA...` | S3 storage (optional) |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key for S3 operations | `secret...` | S3 storage (optional) |
+
+### Optional Variables (Have Sensible Defaults)
+
+Configure these in **Settings** → **Secrets and variables** → **Actions** → **Variables**:
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `AWS_REGION` | AWS region for your services | `us-west-2` | `us-east-2` |
+| `S3_BUCKET_NAME` | S3 bucket for releases | `children-of-singularity-releases` | `my-game-releases` |
+| `USE_S3_STORAGE` | Enable S3 features | `false` | `true` |
+| `USE_S3_ASSETS` | Enable S3 asset management | `false` | `true` |
+
+### Configuration Priority Matrix
+
+| Configuration Level | Priority | Usage |
+|---------------------|----------|-------|
+| **🔴 Critical** | `API_GATEWAY_ENDPOINT`, `WEBSOCKET_URL` | Core game functionality |
+| **🟡 Optional** | AWS credentials | Enhanced S3 features |
+| **🟢 Nice-to-have** | AWS region, bucket settings | Customization |
+
+**Note**: The pipeline works without optional secrets - missing secrets trigger graceful fallbacks.
+
+## Development Environment Setup
+
+### 1. Local Configuration
+
+Create your local environment files:
 
 ```bash
-# Upload all documentation
-./scripts/s3-manager.sh upload-doc
+# Setup development environment
+./setup_dev_env.sh
 
-# Upload specific sections
-./scripts/s3-manager.sh upload-doc documentation/core_concept/ core_concept/
-./scripts/s3-manager.sh upload-doc documentation/design/ design/
+# Or manually copy templates
+cp trading.env.template trading.env
+cp lobby.env.template lobby.env
+cp infrastructure_setup.env.template infrastructure_setup.env
 
-# List uploaded documentation
-./scripts/s3-manager.sh list-doc
+# Edit with your actual endpoints
+# trading.env: Update API_GATEWAY_ENDPOINT
+# lobby.env: Update WEBSOCKET_URL  
+# infrastructure_setup.env: Complete deployment configuration
 ```
 
-### Documentation Structure in S3
+### 2. Infrastructure Setup Template
 
+The new `infrastructure_setup.env.template` provides comprehensive deployment configuration:
+
+```bash
+# Copy and configure
+cp infrastructure_setup.env.template infrastructure_setup.env
+
+# Update all YOUR_* placeholders with actual values:
+API_GATEWAY_ENDPOINT=https://your-api-id.execute-api.your-region.amazonaws.com/prod
+WEBSOCKET_URL=wss://your-api-id.execute-api.your-region.amazonaws.com/prod
+AWS_REGION=your-region
 ```
-s3://children-of-singularity-releases/documentation/
-├── BrainLift/                   # AI learning and concepts
-├── core_concept/                # Project rules and guidelines
-├── design/                      # Visual assets and design docs
-├── godot_summarized/            # Godot engine documentation
-├── security/                    # Security setup guides
-└── README.md                    # Auto-generated index
-```
 
-### Documentation Features
-
-- **Automatic Indexing**: README.md is auto-generated with structure overview
-- **Version Control**: Documentation versioned alongside releases
-- **Metadata Tracking**: Upload timestamps and content types
-- **Access Control**: Same security model as release artifacts
+This file is referenced by:
+- TradingConfig.gd for API endpoint loading
+- LobbyController.gd for WebSocket URL loading  
+- build_config.sh for production configuration injection
+- GitHub Actions for CI/CD pipeline configuration
 
 ## Quick Start
 
-### 1. Create a New Release
+### 1. Setup GitHub Repository
+
+```bash
+# Configure repository secrets (critical)
+# Go to: Settings → Secrets and variables → Actions → Secrets
+# Add: API_GATEWAY_ENDPOINT, WEBSOCKET_URL
+# Add: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY (if using S3)
+
+# Configure repository variables (optional)
+# Go to: Settings → Secrets and variables → Actions → Variables  
+# Add: USE_S3_STORAGE=true, AWS_REGION=us-east-2, etc.
+```
+
+### 2. Create a New Release
 
 ```bash
 # Create a git tag and trigger automated release
@@ -64,7 +116,7 @@ s3://children-of-singularity-releases/documentation/
 ./scripts/release-manager.sh local v1.0.0 true
 ```
 
-### 1a. AWS S3 Setup (Optional but Recommended)
+### 3. AWS S3 Setup (Optional but Recommended)
 
 ```bash
 # Install AWS CLI
@@ -84,7 +136,7 @@ aws configure
 ./scripts/s3-manager.sh upload-doc
 ```
 
-### 2. Monitor Release Progress
+### 4. Monitor Release Progress
 
 ```bash
 # Check workflow status
@@ -94,10 +146,63 @@ gh run list --workflow=release.yml
 gh run view --log
 ```
 
-### 3. Download and Test
+### 5. Download and Test
 
 Once the workflow completes, releases are available at:
 `https://github.com/GauntletAI/Children_of_Singularity/releases`
+
+## GitHub Actions Workflow (Updated)
+
+### New Features & Improvements
+
+**🔧 Production Configuration Injection**
+- Automatically creates production `.env` files from GitHub secrets
+- Applies `build_config.sh production inject` before building
+- Falls back to templates if secrets aren't configured
+
+**🔍 Enhanced Verification**
+- Verifies project structure and Godot installation
+- Confirms export templates are properly installed
+- Validates export presets configuration
+- Comprehensive path verification for S3 operations
+
+**🧹 Automated Cleanup**
+- Restores original configuration files after builds
+- Removes temporary files created during build process
+- Runs even if previous steps fail (`if: always()`)
+
+### Workflow Steps
+
+1. **🏷️ Version Check**: Generate version numbers and determine if release should proceed
+2. **🎮 Build Game**:
+   - **Setup Environment**: Install Godot 4.4.1 and export templates
+   - **Verify Configuration**: Check project structure and export settings
+   - **Configure Production**: Inject production settings from secrets
+   - **Download Assets**: Get assets from S3 if configured
+   - **Build Platforms**: Create Windows, macOS, and Linux builds
+   - **Create Archives**: Generate compressed release packages
+   - **Upload to S3**: Store releases with extended retention (if enabled)
+   - **Cleanup**: Restore original configuration files
+3. **🏷️ Create Release**:
+   - Creates GitHub release with detailed notes
+   - Uploads all platform archives
+   - Generates S3 download URLs (if enabled)
+
+### Triggers
+
+The release workflow triggers on:
+1. **Git tags**: Push a tag matching `v*` pattern (e.g., `v1.0.0`)
+2. **Push to main/master**: Creates development releases
+3. **PR merge to main/master**: Creates pre-releases
+4. **Manual dispatch**: Run manually from GitHub Actions tab with custom options
+
+### Platform Support
+
+| Platform | Archive Format | Export Preset | Notes |
+|----------|---------------|---------------|--------|
+| Windows | ZIP | Windows Desktop | .exe executable |
+| macOS | ZIP | macOS | Universal .app bundle |
+| Linux | TAR.GZ | Linux/X11 | .x86_64 executable |
 
 ## Build System
 
@@ -124,6 +229,24 @@ export USE_S3_STORAGE=true     # Enable S3 upload for releases
 export USE_S3_ASSETS=true      # Enable S3 for assets
 export S3_BUCKET_NAME=my-bucket # Override default bucket name
 ```
+
+### Production Configuration System
+
+The build system now supports automatic production configuration injection:
+
+```bash
+# Apply production configuration (done automatically in GitHub Actions)
+./build_config.sh production inject
+
+# Restore development configuration
+./build_config.sh production restore
+```
+
+This system:
+- Injects real API endpoints into TradingConfig.gd
+- Updates WebSocket URLs in LobbyController.gd  
+- Backs up original files with `.original` extension
+- Can be safely run locally for testing production builds
 
 ### Release Manager
 
@@ -171,42 +294,49 @@ export S3_BUCKET_NAME=my-bucket # Override default bucket name
 ./scripts/s3-manager.sh storage-info             # Show storage usage
 ```
 
-## GitHub Actions Workflow
+## Documentation Management
 
-### Triggers
+The documentation system is fully integrated with the S3 release pipeline:
 
-The release workflow triggers on:
-1. **Git tags**: Push a tag matching `v*` pattern (e.g., `v1.0.0`)
-2. **Manual dispatch**: Run manually from GitHub Actions tab
+### Upload Documentation
 
-### Workflow Steps
+```bash
+# Upload all documentation
+./scripts/s3-manager.sh upload-doc
 
-1. **🧹 Cleanup Old Releases**: Deletes all existing releases to keep only the latest
-2. **🎮 Build Game**:
-   - Uses Godot 4.4.1 in Docker container
-   - Builds for Windows, macOS, and Linux
-   - Creates compressed archives for each platform
-   - Generates comprehensive release notes
-   - **☁️ Upload to S3** (if configured): Uploads builds to S3 with extended retention
-3. **🏷️ Create Release**:
-   - Creates new GitHub release
-   - Uploads all platform archives
-   - Adds detailed release notes with installation instructions
-   - **☁️ S3 Release Summary** (if configured): Shows S3 storage info and download URLs
+# Upload specific sections
+./scripts/s3-manager.sh upload-doc documentation/core_concept/ core_concept/
+./scripts/s3-manager.sh upload-doc documentation/design/ design/
 
-### Platform Support
+# List uploaded documentation
+./scripts/s3-manager.sh list-doc
+```
 
-| Platform | Archive Format | Export Preset | Notes |
-|----------|---------------|---------------|--------|
-| Windows | ZIP | Windows Desktop | .exe executable |
-| macOS | ZIP | macOS | Universal .app bundle |
-| Linux | TAR.GZ | Linux/X11 | .x86_64 executable |
+### Documentation Structure in S3
+
+```
+s3://children-of-singularity-releases/documentation/
+├── BrainLift/                   # AI learning and concepts
+├── core_concept/                # Project rules and guidelines
+├── design/                      # Visual assets and design docs
+├── godot_summarized/            # Godot engine documentation
+├── security/                    # Security setup guides
+└── README.md                    # Auto-generated index
+```
+
+### Documentation Features
+
+- **Automatic Indexing**: README.md is auto-generated with structure overview
+- **Version Control**: Documentation versioned alongside releases
+- **Metadata Tracking**: Upload timestamps and content types
+- **Access Control**: Same security model as release artifacts
 
 ## Release Versioning
 
 ### Version Format
 - **Production**: `v1.0.0`, `v1.2.5`, `v2.0.0`
 - **Pre-release**: `v1.1.0-beta`, `v2.0.0-rc1`
+- **Development**: `v1.0.0-build.123` (auto-generated)
 
 ### Semantic Versioning
 - **Major** (v2.0.0): Breaking changes, major new features
@@ -226,6 +356,7 @@ The release workflow triggers on:
 ### For GitHub Integration
 - GitHub CLI (`gh`) installed and authenticated
 - Proper repository permissions
+- **Repository secrets configured** (API_GATEWAY_ENDPOINT, WEBSOCKET_URL)
 
 ### For S3 Integration (Optional)
 - AWS CLI installed and configured
@@ -291,8 +422,10 @@ S3_BUCKET_NAME=children-of-singularity-releases  # optional
 AWS_REGION=us-west-2                             # optional
 
 # Set repository secrets (Settings → Secrets and variables → Actions → Secrets)
-AWS_ACCESS_KEY_ID=your_access_key_id
-AWS_SECRET_ACCESS_KEY=your_secret_access_key
+API_GATEWAY_ENDPOINT=https://your-api.execute-api.region.amazonaws.com/prod
+WEBSOCKET_URL=wss://your-api.execute-api.region.amazonaws.com/prod
+AWS_ACCESS_KEY_ID=your_access_key_id             # optional
+AWS_SECRET_ACCESS_KEY=your_secret_access_key     # optional
 ```
 
 ## Release Process
@@ -333,6 +466,7 @@ AWS_SECRET_ACCESS_KEY=your_secret_access_key
    - Check GitHub releases page
    - Download and test each platform
    - Verify release notes are correct
+   - Test trading marketplace and multiplayer lobby functionality
 
 ### Emergency Release Cleanup
 
@@ -384,6 +518,20 @@ Auto-generated with:
 
 ### Common Issues
 
+**Missing GitHub Secrets**
+```bash
+# Check if secrets are configured
+# Go to: Settings → Secrets and variables → Actions
+
+# Required secrets:
+API_GATEWAY_ENDPOINT=https://your-api.execute-api.region.amazonaws.com/prod
+WEBSOCKET_URL=wss://your-api.execute-api.region.amazonaws.com/prod
+
+# Optional (for S3):
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
+```
+
 **Export Templates Missing**
 ```bash
 # Check status
@@ -410,6 +558,18 @@ gh auth status
 # Clean and retry
 ./build.sh clean
 ./scripts/release-manager.sh local v1.0.0
+```
+
+**Production Configuration Issues**
+```bash
+# Test configuration injection locally
+./build_config.sh production inject
+
+# Check if files were created
+ls -la trading.env lobby.env
+
+# Restore if needed
+./build_config.sh production restore
 ```
 
 **Release Cleanup Issues**
@@ -442,6 +602,14 @@ gh run view --job=build-game --log
 ls -la releases/v1.0.0-test/
 ```
 
+**Configuration Testing**
+```bash
+# Test production configuration locally
+./build_config.sh production inject
+./build.sh debug  # Validate project
+./build_config.sh production restore
+```
+
 ## Security Considerations
 
 - Release artifacts are excluded from git (`.gitignore`)
@@ -452,6 +620,8 @@ ls -la releases/v1.0.0-test/
 - Pre-signed URLs for secure, time-limited downloads
 - Releases naturally versioned by path structure (v1.0.0/, v1.1.0/) - no S3 versioning needed
 - Lifecycle policies prevent indefinite storage costs
+- **Production secrets never committed to repository**
+- **Configuration files automatically cleaned up after builds**
 
 ## Performance
 
@@ -465,6 +635,26 @@ ls -la releases/v1.0.0-test/
   - Glacier (90+ days)
   - Development builds auto-deleted after 7 days
 
+## Recent Improvements (v2024.1)
+
+### ✅ Fixed Critical Issues
+- **Environment File Handling**: Removed missing .env files from export presets
+- **Production Configuration**: Added automatic injection of production settings
+- **Path Verification**: Enhanced validation of project structure and dependencies
+- **Export Template Verification**: Confirmed Godot setup before building
+- **Graceful Fallbacks**: Pipeline works even without optional secrets configured
+
+### 🔧 Enhanced Features
+- **Infrastructure Template**: New `infrastructure_setup.env.template` for deployment
+- **Comprehensive Logging**: Better error messages and debugging information
+- **Automated Cleanup**: Proper restoration of configuration files
+- **Security Improvements**: No secrets in committed files, proper credential handling
+
+### 🚀 Performance Optimizations
+- **Parallel Operations**: Optimized build steps for faster execution
+- **Smart Caching**: Improved asset download and verification processes
+- **Error Recovery**: Better handling of transient failures and retries
+
 ---
 
 ## Support
@@ -472,12 +662,15 @@ ls -la releases/v1.0.0-test/
 For issues with the release pipeline:
 1. Check this documentation
 2. Review GitHub Actions logs
-3. Test locally with release manager
-4. Check Godot export preset configuration
+3. Verify repository secrets are configured
+4. Test locally with release manager
+5. Check Godot export preset configuration
 
 **Pro Tips:**
-- Always test locally before creating GitHub releases
+- Always configure API_GATEWAY_ENDPOINT and WEBSOCKET_URL secrets for full functionality
+- Test locally before creating GitHub releases
 - Use semantic versioning consistently
 - Include meaningful commit messages in release tags
 - Monitor GitHub Actions workflow runs
 - Keep export templates updated with Godot version
+- Use infrastructure_setup.env.template for team development coordination

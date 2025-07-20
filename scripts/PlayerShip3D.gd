@@ -574,7 +574,7 @@ func _collect_debris_object(debris_object: RigidBody3D) -> void:
 
 	# Play debris collection sound effect
 	if AudioManager:
-		AudioManager.play_sfx("pickup_debris")
+		AudioManager.play_sfx("debris_pickup")
 		_log_message("PlayerShip3D: Played debris collection sound effect")
 
 	# CRITICAL FIX: Sync inventory item with LocalPlayerData (for 2D lobby scene)
