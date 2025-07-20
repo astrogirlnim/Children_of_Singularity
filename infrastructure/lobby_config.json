@@ -1,5 +1,5 @@
 {
-  "websocket_url": "wss://37783owd23.execute-api.us-east-2.amazonaws.com/prod",
+  "websocket_url": "wss://bktpsfy4rb.execute-api.us-east-2.amazonaws.com/prod",
   "connection_timeout": 10,
   "position_broadcast_interval": 0.2,
   "enable_debug_logs": true,

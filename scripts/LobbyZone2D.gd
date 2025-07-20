@@ -1309,12 +1309,15 @@ func _on_websocket_connection_failed(reason: String) -> void:
 func _on_remote_player_joined(player_data: Dictionary) -> void:
 	"""Handle remote player joining the lobby"""
 	var player_id = player_data.get("id", "")
-	print("[LobbyZone2D] Remote player joined: %s" % player_id)
+	print("[LobbyZone2D] 🎉 Remote player joined signal received: %s" % player_id)
+	print("[LobbyZone2D] 🎉 Player data: %s" % player_data)
 
 	if player_id.is_empty() or player_id in remote_players:
+		print("[LobbyZone2D] ⚠️ Ignoring player join - empty ID or already exists")
 		return
 
 	# Create remote player instance
+	print("[LobbyZone2D] 🔧 Creating remote player instance...")
 	_spawn_remote_player(player_data)
 
 	# Update player count display
@@ -1369,29 +1372,38 @@ func _spawn_remote_player(player_data: Dictionary) -> void:
 		print("[LobbyZone2D] ERROR: Cannot spawn remote player without ID")
 		return
 
-	print("[LobbyZone2D] Spawning remote player: %s" % player_id)
+	print("[LobbyZone2D] 🏗️ Spawning remote player: %s" % player_id)
+	print("[LobbyZone2D] 🏗️ Player data: %s" % player_data)
 
 	# Create RemoteLobbyPlayer2D instance
 	var remote_player = CharacterBody2D.new()
 	remote_player.name = "RemotePlayer_%s" % player_id
+	print("[LobbyZone2D] ✅ Created CharacterBody2D node: %s" % remote_player.name)
 
 	# Add the RemoteLobbyPlayer2D script
 	var remote_script = preload("res://scripts/RemoteLobbyPlayer2D.gd")
 	remote_player.set_script(remote_script)
+	print("[LobbyZone2D] ✅ Attached RemoteLobbyPlayer2D script")
 
 	# Add to scene
 	add_child(remote_player)
+	print("[LobbyZone2D] ✅ Added remote player to scene")
 
 	# Initialize the remote player
+	print("[LobbyZone2D] 🔧 Initializing remote player...")
 	remote_player.initialize_remote_player(player_data)
+	print("[LobbyZone2D] ✅ Remote player initialized")
 
 	# Connect removal signal
 	remote_player.remote_player_removed.connect(_on_remote_player_removed)
+	print("[LobbyZone2D] ✅ Connected removal signal")
 
 	# Store reference
 	remote_players[player_id] = remote_player
 
-	print("[LobbyZone2D] Remote player %s spawned successfully" % player_id)
+	print("[LobbyZone2D] 🎊 Remote player %s spawned successfully at position (%.1f, %.1f)" % [
+		player_id, player_data.get("x", 0), player_data.get("y", 0)
+	])
 
 func _on_remote_player_removed(player_id: String) -> void:
 	"""Handle remote player removal from scene"""

@@ -18,6 +18,7 @@ import json
 import boto3
 import time
 import logging
+from decimal import Decimal
 from typing import Dict, List, Any, Optional
 
 # Configure logging
@@ -95,8 +96,8 @@ def handle_connect(event: Dict[str, Any], connection_id: str) -> Dict[str, Any]:
         ttl_timestamp = current_time + TTL_SECONDS
 
         # Default lobby center position (matches LobbyZone2D coordinates)
-        default_x = 400.0  # Player spawn position in lobby
-        default_y = 300.0
+        default_x = Decimal('400.0')  # Player spawn position in lobby
+        default_y = Decimal('300.0')
 
         table.put_item(
             Item={
@@ -113,11 +114,12 @@ def handle_connect(event: Dict[str, Any], connection_id: str) -> Dict[str, Any]:
         logger.info(f"Stored connection for player {player_id} at position ({default_x}, {default_y})")
 
         # Broadcast join message to all other connected players
+        # Convert Decimal to float for JSON serialization
         join_message = {
             'type': 'join',
             'id': player_id,
-            'x': default_x,
-            'y': default_y
+            'x': float(default_x),
+            'y': float(default_y)
         }
 
         broadcast_to_all_except(join_message, connection_id)
@@ -231,8 +233,8 @@ def handle_position_update(event: Dict[str, Any], connection_id: str) -> Dict[st
             Key={'connectionId': connection_id},
             UpdateExpression='SET x = :x, y = :y, last_update = :time',
             ExpressionAttributeValues={
-                ':x': x,
-                ':y': y,
+                ':x': Decimal(str(x)),
+                ':y': Decimal(str(y)),
                 ':time': current_time
             }
         )
@@ -355,10 +357,14 @@ def get_current_lobby_players(exclude_connection_id: str) -> List[Dict[str, Any]
         players = []
         for connection in connections:
             if connection['connectionId'] != exclude_connection_id:
+                # Convert Decimal objects to float for JSON serialization
+                x_value = connection.get('x')
+                y_value = connection.get('y')
+
                 players.append({
                     'id': connection.get('player_id'),
-                    'x': connection.get('x'),
-                    'y': connection.get('y')
+                    'x': float(x_value) if x_value is not None else 0.0,
+                    'y': float(y_value) if y_value is not None else 0.0
                 })
 
         return players
