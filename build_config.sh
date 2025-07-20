@@ -73,13 +73,13 @@ inject_trading_config() {
 
     echo "🔗 Using API endpoint: $api_endpoint"
 
-    # Create configured version
-    cp "$TRADING_CONFIG_TEMPLATE" "$BUILD_CONFIG_DIR/TradingConfig.gd"
+    # Create backup of original file
+    cp "$TRADING_CONFIG_TEMPLATE" "$TRADING_CONFIG_TEMPLATE.original"
 
-    # Inject production API endpoint
-    sed -i.bak "s|\"api_base_url\": \"\"|\"api_base_url\": \"$api_endpoint\"|g" "$BUILD_CONFIG_DIR/TradingConfig.gd"
+    # Inject production API endpoint directly into source file
+    sed -i.bak "s|\"api_base_url\": \"\"|\"api_base_url\": \"$api_endpoint\"|g" "$TRADING_CONFIG_TEMPLATE"
 
-    echo "✅ Trading configuration injected"
+    echo "✅ Trading configuration injected into $TRADING_CONFIG_TEMPLATE"
 }
 
 # Function to inject lobby configuration
@@ -98,26 +98,21 @@ inject_lobby_config() {
 
     echo "🔗 Using WebSocket URL: $websocket_url"
 
-    # Create configured version
-    cp "$LOBBY_CONFIG_TEMPLATE" "$BUILD_CONFIG_DIR/LobbyController.gd"
+    # Create backup of original file
+    cp "$LOBBY_CONFIG_TEMPLATE" "$LOBBY_CONFIG_TEMPLATE.original"
 
-    # Inject production WebSocket URL into the _use_default_configuration function
-    sed -i.bak "s|websocket_url = \"wss://.*\"|websocket_url = \"$websocket_url\"|g" "$BUILD_CONFIG_DIR/LobbyController.gd"
+    # Inject production WebSocket URL directly into source file
+    sed -i.bak "s|websocket_url = \"wss://.*\"|websocket_url = \"$websocket_url\"|g" "$LOBBY_CONFIG_TEMPLATE"
 
-    echo "✅ Lobby configuration injected"
+    echo "✅ Lobby configuration injected into $LOBBY_CONFIG_TEMPLATE"
 }
 
 # Function to backup original files and replace with configured versions
 apply_build_config() {
     echo "🔄 Applying build configuration..."
 
-    # Backup originals
-    cp "$TRADING_CONFIG_TEMPLATE" "$TRADING_CONFIG_TEMPLATE.original"
-    cp "$LOBBY_CONFIG_TEMPLATE" "$LOBBY_CONFIG_TEMPLATE.original"
-
-    # Replace with configured versions
-    cp "$BUILD_CONFIG_DIR/TradingConfig.gd" "$TRADING_CONFIG_TEMPLATE"
-    cp "$BUILD_CONFIG_DIR/LobbyController.gd" "$LOBBY_CONFIG_TEMPLATE"
+    # Note: inject_trading_config and inject_lobby_config now handle
+    # their own backups and in-place modifications
 
     echo "✅ Build configuration applied"
     echo "📁 Original files backed up with .original extension"
