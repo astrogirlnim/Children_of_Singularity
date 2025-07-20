@@ -27,6 +27,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         path_parameters = event.get("pathParameters") or {}
 
         print(f"Processing {method} {path}")
+        print(f"Path parameters: {path_parameters}")
+        print(
+            f"Event debug: method={method}, path={path}, resource={event.get('resource', 'N/A')}"
+        )
 
         # Route requests
         if method == "GET" and path == "/listings":
