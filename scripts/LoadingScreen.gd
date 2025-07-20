@@ -26,6 +26,9 @@ var message_change_timer: float = 0.0
 var spinner_timer: float = 0.0
 var active_threaded_loads: Dictionary = {}  # Track which resources are actively loading
 
+## Target scene management
+var target_scene_path: String = "res://scenes/zones/ZoneMain3D.tscn"  # Default to 3D zone
+
 ## Loading messages for immersive feedback
 var loading_messages: Array[String] = [
 	"Initializing quantum drive systems...",
@@ -168,6 +171,11 @@ func start_loading() -> void:
 		loading_progress.value = 0
 
 	# Show initial message
+
+func set_target_scene(scene_path: String) -> void:
+	##Set the target scene for loading
+	target_scene_path = scene_path
+	print("LoadingScreen: Target scene set to: %s" % target_scene_path)
 	_update_loading_message()
 
 	# Start preloading resources
@@ -329,10 +337,10 @@ func _complete_loading() -> void:
 	await _transition_to_main_game()
 
 func _transition_to_main_game() -> void:
-	print("LoadingScreen: Starting transition to main game")
+	print("LoadingScreen: Starting transition to target scene")
 
 	# Critical debug: Validate scene file exists before transition
-	var scene_path = "res://scenes/zones/ZoneMain3D.tscn"
+	var scene_path = target_scene_path
 	print("LoadingScreen: Validating scene file exists: ", scene_path)
 
 	if not ResourceLoader.exists(scene_path):
@@ -360,49 +368,58 @@ func _transition_to_main_game() -> void:
 		return
 
 		print("LoadingScreen: Scene change call completed successfully")
-	print("LoadingScreen: Waiting for ZoneMain3D zone_ready signal...")
 
-	# Wait a moment for scene to initialize, then connect to its signal
-	await get_tree().create_timer(0.1).timeout
-	print("LoadingScreen: Post-transition check - Current scene: ", get_tree().current_scene)
-
-	if get_tree().current_scene and get_tree().current_scene.name == "ZoneMain3D":
-		print("LoadingScreen: ZoneMain3D scene active - Connecting to zone_ready signal")
-
-		# Try multiple approaches for instant transition
-		var zone_main_3d = get_tree().current_scene as ZoneMain3D
-		if zone_main_3d:
-			print("LoadingScreen: ZoneMain3D found - Attempting instant transition")
-
-			# Method 1: Check if zone is already ready (most likely case)
-			if zone_main_3d.has_method("_ready") or true:  # Zone is already initialized since _ready ran
-				print("LoadingScreen: Zone already ready - INSTANT transition!")
-				_on_zone_ready()
-				return
-
-			# Method 2: Connect to signal as backup
-			if zone_main_3d.has_signal("zone_ready"):
-				if not zone_main_3d.zone_ready.is_connected(_on_zone_ready):
-					zone_main_3d.zone_ready.connect(_on_zone_ready)
-					print("LoadingScreen: Connected to zone_ready signal as backup")
-
-					# Give signal a moment to fire, then fallback
-					await get_tree().create_timer(0.2).timeout
-					if self.visible:  # Still visible? Force instant transition
-						print("LoadingScreen: Signal backup - forcing instant transition")
-						_on_zone_ready()
-				else:
-					_on_zone_ready()
-		else:
-			print("LoadingScreen: ZoneMain3D not available, using timer fallback")
-			await get_tree().create_timer(0.5).timeout
-			_on_zone_ready()
+	# Handle different scene types appropriately
+	if "LobbyZone2D" in target_scene_path:
+		print("LoadingScreen: Transitioning to 2D lobby - using immediate transition")
+		# For lobby, wait a moment for scene to load then immediately hide loading screen
+		await get_tree().create_timer(0.3).timeout
+		_on_scene_ready()
 	else:
-		print("LoadingScreen: CRITICAL ERROR - No current scene after transition!")
+		print("LoadingScreen: Waiting for ZoneMain3D zone_ready signal...")
 
-func _on_zone_ready() -> void:
-	##Called when ZoneMain3D emits zone_ready signal - INSTANT transition
-	print("LoadingScreen: ZoneMain3D is ready! INSTANT transition to gameplay!")
+		# Wait a moment for scene to initialize, then connect to its signal
+		await get_tree().create_timer(0.1).timeout
+		print("LoadingScreen: Post-transition check - Current scene: ", get_tree().current_scene)
+
+		if get_tree().current_scene and get_tree().current_scene.name == "ZoneMain3D":
+			print("LoadingScreen: ZoneMain3D scene active - Connecting to zone_ready signal")
+
+			# Try multiple approaches for instant transition
+			var zone_main_3d = get_tree().current_scene as ZoneMain3D
+			if zone_main_3d:
+				print("LoadingScreen: ZoneMain3D found - Attempting instant transition")
+
+				# Method 1: Check if zone is already ready (most likely case)
+				if zone_main_3d.has_method("_ready") or true:  # Zone is already initialized since _ready ran
+					print("LoadingScreen: Zone already ready - INSTANT transition!")
+					_on_scene_ready()
+					return
+
+				# Method 2: Connect to signal as backup
+				if zone_main_3d.has_signal("zone_ready"):
+					if not zone_main_3d.zone_ready.is_connected(_on_scene_ready):
+						zone_main_3d.zone_ready.connect(_on_scene_ready)
+						print("LoadingScreen: Connected to zone_ready signal as backup")
+
+						# Give signal a moment to fire, then fallback
+						await get_tree().create_timer(0.2).timeout
+						if self.visible:  # Still visible? Force instant transition
+							print("LoadingScreen: Signal backup - forcing instant transition")
+							_on_scene_ready()
+					else:
+						_on_scene_ready()
+			else:
+				print("LoadingScreen: ZoneMain3D not available, using timer fallback")
+				await get_tree().create_timer(0.5).timeout
+				_on_scene_ready()
+		else:
+			print("LoadingScreen: Non-ZoneMain3D scene loaded, using immediate transition")
+			_on_scene_ready()
+
+func _on_scene_ready() -> void:
+	##Called when target scene is ready - INSTANT transition
+	print("LoadingScreen: Target scene is ready! INSTANT transition complete!")
 
 	# INSTANT hide - no fade animation
 	print("LoadingScreen: Hiding loading screen instantly")
