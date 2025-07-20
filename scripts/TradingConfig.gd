@@ -26,10 +26,10 @@ func load_config() -> void:
 	print("[TradingConfig] Loading configuration from %s" % config_file_path)
 
 	# Step 1: Try to load from .env file first (like LobbyController does)
-	_load_from_env_file()
+	var env_loaded = _load_from_env_file()
 
-	# Step 2: Try to load from JSON config file
-	if FileAccess.file_exists(config_file_path):
+	# Step 2: Only try JSON config if .env loading failed (for backwards compatibility)
+	if not env_loaded and FileAccess.file_exists(config_file_path):
 		var file = FileAccess.open(config_file_path, FileAccess.READ)
 		if file:
 			var json_text = file.get_as_text()
@@ -39,11 +39,11 @@ func load_config() -> void:
 			var parse_result = json.parse(json_text)
 
 			if parse_result == OK:
-				# Merge JSON config over .env config (JSON takes priority)
+				# Use JSON config as fallback only (when .env not found)
 				var json_config = json.data
 				for key in json_config:
 					config[key] = json_config[key]
-				print("[TradingConfig] Configuration loaded from JSON file")
+				print("[TradingConfig] Configuration loaded from JSON file (fallback)")
 				_merge_default_values()  # Ensure new fields are added
 			else:
 				print("[TradingConfig] Failed to parse config file, using defaults")
@@ -56,22 +56,25 @@ func load_config() -> void:
 				config = default_config.duplicate()
 			save_config()
 	else:
-		print("[TradingConfig] Config file not found")
+		print("[TradingConfig] No JSON config file found")
 		if config.is_empty():
 			print("[TradingConfig] No configuration loaded, creating default configuration")
 			config = default_config.duplicate()
 			save_config()
-
+	
+	# Always validate and fill in missing defaults
 	_validate_config()
+	_merge_default_values()
 
 ## Load configuration from .env file (matches LobbyController approach)
-func _load_from_env_file() -> void:
+func _load_from_env_file() -> bool:
 	print("[TradingConfig] Checking for .env configuration...")
 
 	# Try different .env file locations (same as LobbyController)
 	var env_paths = [
 		"user://trading.env",  # User-specific trading config
 		"user://.env",       # User-specific general config
+		"res://trading.env",  # Project root trading.env
 		"res://infrastructure_setup.env",  # Project infrastructure config
 		"res://.env"         # Project root .env
 	]
@@ -81,11 +84,12 @@ func _load_from_env_file() -> void:
 			print("[TradingConfig] Found .env file at: %s" % env_path)
 			if _parse_env_file(env_path):
 				print("[TradingConfig] ✅ Successfully loaded configuration from .env file")
-				return
+				return true
 			else:
 				print("[TradingConfig] ⚠️ Failed to parse .env file, trying next location")
 
 	print("[TradingConfig] No valid .env file found")
+	return false
 
 ## Parse environment file and extract trading configuration
 func _parse_env_file(env_path: String) -> bool:
