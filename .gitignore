@@ -6,6 +6,8 @@
 
 #Infrastructure info
 infrastructure_setup.env
+lobby.env
+.env
 
 # Documentation
 documentation/godot_summarized/repomix-output.md

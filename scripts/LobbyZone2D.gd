@@ -114,6 +114,12 @@ var last_upgrades_hash: String = ""
 var inventory_items: Array[Control] = []
 var ui_update_timer: float = 0.0
 
+# WebSocket and multiplayer state
+var websocket_connected: bool = false
+var connection_status: String = "disconnected"
+var remote_players: Dictionary = {}  # player_id -> RemoteLobbyPlayer2D instance
+var remote_player_scene: PackedScene
+
 func _ready() -> void:
 	print("[LobbyZone2D] Initializing 2D trading lobby with dynamic scaling")
 
@@ -140,15 +146,20 @@ func _ready() -> void:
 
 	# Setup UI data connections and load current player data
 	_setup_ui_data_connections()
+	_setup_player_position_broadcasting()
 	_load_and_display_player_data()
 
 	print("[LobbyZone2D] Exit boundaries ready for signal detection")
 	print("[LobbyZone2D] Trading computer interaction ready")
 
+	# Setup WebSocket connection and multiplayer
+	_setup_websocket_connection()
+	_load_remote_player_scene()
+
 	# Mark lobby as ready
 	lobby_loaded = true
 	lobby_ready.emit()
-	print("[LobbyZone2D] Lobby initialization complete with dynamic scaling")
+	print("[LobbyZone2D] Lobby initialization complete with dynamic scaling and WebSocket ready")
 
 func _verify_essential_nodes() -> bool:
 	##Verify that all essential @onready nodes were resolved correctly
@@ -1174,12 +1185,282 @@ func return_to_3d_world() -> void:
 	##Return player to the 3D world
 	print("[LobbyZone2D] Returning to 3D world")
 
+	# Disconnect from WebSocket before leaving
+	_disconnect_from_lobby()
+
 	# Store lobby state if needed
 	if LocalPlayerData:
 		LocalPlayerData.save_player_data()
 
 	# Change scene back to 3D zone
 	get_tree().change_scene_to_file("res://scenes/zones/ZoneMain3D.tscn")
+
+## WebSocket and Multiplayer Methods
+
+func _setup_websocket_connection() -> void:
+	"""Setup WebSocket connection and signal handlers"""
+	print("[LobbyZone2D] Setting up WebSocket connection")
+
+	if not LobbyController:
+		print("[LobbyZone2D] ERROR: LobbyController not available!")
+		return
+
+	# Connect to LobbyController signals
+	if not LobbyController.connected_to_lobby.is_connected(_on_websocket_connected):
+		LobbyController.connected_to_lobby.connect(_on_websocket_connected)
+
+	if not LobbyController.disconnected_from_lobby.is_connected(_on_websocket_disconnected):
+		LobbyController.disconnected_from_lobby.connect(_on_websocket_disconnected)
+
+	if not LobbyController.connection_failed.is_connected(_on_websocket_connection_failed):
+		LobbyController.connection_failed.connect(_on_websocket_connection_failed)
+
+	if not LobbyController.remote_player_joined.is_connected(_on_remote_player_joined):
+		LobbyController.remote_player_joined.connect(_on_remote_player_joined)
+
+	if not LobbyController.remote_player_left.is_connected(_on_remote_player_left):
+		LobbyController.remote_player_left.connect(_on_remote_player_left)
+
+	if not LobbyController.remote_player_position_updated.is_connected(_on_remote_player_position_updated):
+		LobbyController.remote_player_position_updated.connect(_on_remote_player_position_updated)
+
+	if not LobbyController.lobby_state_received.is_connected(_on_lobby_state_received):
+		LobbyController.lobby_state_received.connect(_on_lobby_state_received)
+
+	if not LobbyController.connection_status_changed.is_connected(_on_connection_status_changed):
+		LobbyController.connection_status_changed.connect(_on_connection_status_changed)
+
+	print("[LobbyZone2D] WebSocket signal handlers connected")
+
+	# Start connection to lobby
+	_connect_to_lobby()
+
+func _load_remote_player_scene() -> void:
+	"""Load the remote player scene for spawning"""
+	# Since RemoteLobbyPlayer2D is just a script, we'll create the scene structure programmatically
+	print("[LobbyZone2D] Remote player scene will be created programmatically")
+
+func _connect_to_lobby() -> void:
+	"""Connect to the lobby WebSocket"""
+	print("[LobbyZone2D] Connecting to lobby WebSocket...")
+
+	if LobbyController:
+		LobbyController.connect_to_lobby()
+		_update_connection_status_display("connecting")
+	else:
+		print("[LobbyZone2D] ERROR: LobbyController not available for connection")
+
+func _disconnect_from_lobby() -> void:
+	"""Disconnect from the lobby WebSocket"""
+	print("[LobbyZone2D] Disconnecting from lobby WebSocket...")
+
+	if LobbyController and LobbyController.is_lobby_connected():
+		LobbyController.disconnect_from_lobby()
+
+	# Clean up remote players
+	_cleanup_remote_players()
+
+func _cleanup_remote_players() -> void:
+	"""Remove all remote players from the lobby"""
+	print("[LobbyZone2D] Cleaning up %d remote players" % remote_players.size())
+
+	for player_id in remote_players.keys():
+		var remote_player = remote_players[player_id]
+		if is_instance_valid(remote_player):
+			remote_player.queue_free()
+
+	remote_players.clear()
+
+## WebSocket Signal Handlers
+
+func _on_websocket_connected() -> void:
+	"""Handle successful WebSocket connection"""
+	print("[LobbyZone2D] ✅ Connected to lobby WebSocket")
+	websocket_connected = true
+	_update_connection_status_display("connected")
+
+	# Update lobby status
+	if lobby_status:
+		lobby_status.text = "Connected to Lobby - %d players online" % LobbyController.get_lobby_player_count()
+
+func _on_websocket_disconnected() -> void:
+	"""Handle WebSocket disconnection"""
+	print("[LobbyZone2D] ❌ Disconnected from lobby WebSocket")
+	websocket_connected = false
+	_update_connection_status_display("disconnected")
+
+	# Clean up remote players
+	_cleanup_remote_players()
+
+	# Update lobby status
+	if lobby_status:
+		lobby_status.text = "Offline Mode - Single Player"
+
+func _on_websocket_connection_failed(reason: String) -> void:
+	"""Handle WebSocket connection failure"""
+	print("[LobbyZone2D] ❌ Connection failed: %s" % reason)
+	websocket_connected = false
+	_update_connection_status_display("failed")
+
+	# Update lobby status
+	if lobby_status:
+		lobby_status.text = "Connection Failed - Offline Mode"
+
+func _on_remote_player_joined(player_data: Dictionary) -> void:
+	"""Handle remote player joining the lobby"""
+	var player_id = player_data.get("id", "")
+	print("[LobbyZone2D] 🎉 Remote player joined signal received: %s" % player_id)
+	print("[LobbyZone2D] 🎉 Player data: %s" % player_data)
+
+	if player_id.is_empty() or player_id in remote_players:
+		print("[LobbyZone2D] ⚠️ Ignoring player join - empty ID or already exists")
+		return
+
+	# Create remote player instance
+	print("[LobbyZone2D] 🔧 Creating remote player instance...")
+	_spawn_remote_player(player_data)
+
+	# Update player count display
+	_update_player_count_display()
+
+func _on_remote_player_left(player_id: String) -> void:
+	"""Handle remote player leaving the lobby"""
+	print("[LobbyZone2D] Remote player left: %s" % player_id)
+
+	if player_id in remote_players:
+		var remote_player = remote_players[player_id]
+		if is_instance_valid(remote_player):
+			remote_player.remove_remote_player()  # This will trigger fade out and removal
+		remote_players.erase(player_id)
+
+	# Update player count display
+	_update_player_count_display()
+
+func _on_remote_player_position_updated(player_id: String, position: Vector2) -> void:
+	"""Handle remote player position update"""
+	if player_id in remote_players:
+		var remote_player = remote_players[player_id]
+		if is_instance_valid(remote_player):
+			remote_player.update_remote_position(position)
+
+func _on_lobby_state_received(lobby_players: Array) -> void:
+	"""Handle initial lobby state with existing players"""
+	print("[LobbyZone2D] Received lobby state with %d existing players" % lobby_players.size())
+
+	# Spawn existing players
+	for player_data in lobby_players:
+		var player_id = player_data.get("id", "")
+		if not player_id.is_empty() and player_id not in remote_players:
+			_spawn_remote_player(player_data)
+
+	# Update displays
+	_update_player_count_display()
+
+func _on_connection_status_changed(status: String) -> void:
+	"""Handle connection status changes"""
+	connection_status = status
+	print("[LobbyZone2D] Connection status changed: %s" % status)
+	_update_connection_status_display(status)
+
+## Remote Player Management
+
+func _spawn_remote_player(player_data: Dictionary) -> void:
+	"""Spawn a new remote player in the lobby"""
+	var player_id = player_data.get("id", "")
+
+	if player_id.is_empty():
+		print("[LobbyZone2D] ERROR: Cannot spawn remote player without ID")
+		return
+
+	print("[LobbyZone2D] 🏗️ Spawning remote player: %s" % player_id)
+	print("[LobbyZone2D] 🏗️ Player data: %s" % player_data)
+
+	# Create RemoteLobbyPlayer2D instance
+	var remote_player = CharacterBody2D.new()
+	remote_player.name = "RemotePlayer_%s" % player_id
+	print("[LobbyZone2D] ✅ Created CharacterBody2D node: %s" % remote_player.name)
+
+	# Add the RemoteLobbyPlayer2D script
+	var remote_script = preload("res://scripts/RemoteLobbyPlayer2D.gd")
+	remote_player.set_script(remote_script)
+	print("[LobbyZone2D] ✅ Attached RemoteLobbyPlayer2D script")
+
+	# Add to scene
+	add_child(remote_player)
+	print("[LobbyZone2D] ✅ Added remote player to scene")
+
+	# Initialize the remote player
+	print("[LobbyZone2D] 🔧 Initializing remote player...")
+	remote_player.initialize_remote_player(player_data)
+	print("[LobbyZone2D] ✅ Remote player initialized")
+
+	# Connect removal signal
+	remote_player.remote_player_removed.connect(_on_remote_player_removed)
+	print("[LobbyZone2D] ✅ Connected removal signal")
+
+	# Store reference
+	remote_players[player_id] = remote_player
+
+	print("[LobbyZone2D] 🎊 Remote player %s spawned successfully at position (%.1f, %.1f)" % [
+		player_id, player_data.get("x", 0), player_data.get("y", 0)
+	])
+
+func _on_remote_player_removed(player_id: String) -> void:
+	"""Handle remote player removal from scene"""
+	print("[LobbyZone2D] Remote player removed from scene: %s" % player_id)
+
+	if player_id in remote_players:
+		remote_players.erase(player_id)
+
+	_update_player_count_display()
+
+## UI Updates for Multiplayer
+
+func _update_connection_status_display(status: String) -> void:
+	"""Update connection status display in UI"""
+	var status_text = ""
+	var color = Color.WHITE
+
+	match status:
+		"connecting":
+			status_text = "Connecting to lobby..."
+			color = Color.YELLOW
+		"connected":
+			status_text = "Connected to lobby"
+			color = Color.GREEN
+		"disconnected":
+			status_text = "Offline mode"
+			color = Color.GRAY
+		"failed":
+			status_text = "Connection failed"
+			color = Color.RED
+
+	# Update lobby status label color
+	if lobby_status:
+		lobby_status.modulate = color
+
+func _update_player_count_display() -> void:
+	"""Update the player count display"""
+	var player_count = remote_players.size() + 1  # +1 for local player
+
+	if lobby_status and websocket_connected:
+		lobby_status.text = "Trading Lobby - %d players online" % player_count
+	elif lobby_status:
+		lobby_status.text = "Trading Lobby - Offline Mode"
+
+## Player Position Broadcasting
+
+func _setup_player_position_broadcasting() -> void:
+	"""Setup position broadcasting from local player"""
+	if lobby_player and lobby_player.has_signal("position_changed"):
+		if not lobby_player.position_changed.is_connected(_on_local_player_position_changed):
+			lobby_player.position_changed.connect(_on_local_player_position_changed)
+			print("[LobbyZone2D] Connected to local player position updates")
+
+func _on_local_player_position_changed(new_position: Vector2) -> void:
+	"""Handle local player position change for broadcasting"""
+	if websocket_connected and LobbyController:
+		LobbyController.send_position_update(new_position)
 
 
 
