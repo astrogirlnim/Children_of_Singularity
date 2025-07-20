@@ -204,8 +204,8 @@ def handle_position_update(event: Dict[str, Any], connection_id: str) -> Dict[st
             logger.warning(f"Invalid position data from {connection_id}: x={x}, y={y}")
             return {'statusCode': 400}
 
-        # Validate position bounds (lobby screen size)
-        if x < -100 or x > 1100 or y < -100 or y > 500:
+        # Validate position bounds (actual lobby screen size)
+        if x < -100 or x > 2000 or y < -100 or y > 1200:
             logger.warning(f"Position out of bounds from {connection_id}: ({x}, {y})")
             return {'statusCode': 400}
 
