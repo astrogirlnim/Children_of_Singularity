@@ -22,7 +22,7 @@
 **2. WebSocket Connection Test (2 minutes)**
 ```bash
 # In terminal
-wscat -c 'wss://37783owd23.execute-api.us-east-2.amazonaws.com/prod?pid=test_player'
+wscat -c 'wss://bktpsfy4rb.execute-api.us-east-2.amazonaws.com/prod?pid=test_player'
 
 # Send test message:
 {"action":"pos","x":150,"y":200}
@@ -137,7 +137,7 @@ Invalid call to non-existent function (script not attached)
 1. Test infrastructure: `./simple_test.sh`
 2. Check internet connection
 3. Verify WebSocket URL in `infrastructure/lobby_config.json`
-4. Test manually: `wscat -c 'wss://37783owd23.execute-api.us-east-2.amazonaws.com/prod'`
+4. Test manually: `wscat -c 'wss://bktpsfy4rb.execute-api.us-east-2.amazonaws.com/prod'`
 
 #### **Problem: Remote players don't appear**
 **Solution:**

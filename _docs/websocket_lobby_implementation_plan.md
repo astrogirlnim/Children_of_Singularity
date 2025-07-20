@@ -516,7 +516,7 @@ wscat -c wss://$WEBSOCKET_API_ID.execute-api.$AWS_REGION.amazonaws.com/prod
 - [x] Environment configuration files created ✅
 
 **🎉 Infrastructure Deployed:**
-- **WebSocket API**: `wss://37783owd23.execute-api.us-east-2.amazonaws.com/prod`
+- **WebSocket API**: `wss://bktpsfy4rb.execute-api.us-east-2.amazonaws.com/prod`
 - **Lambda Function**: `children-singularity-lobby-ws`
 - **DynamoDB Table**: `LobbyConnections` with TTL
 - **Cost**: ~$0.88/month for real-time multiplayer
@@ -886,7 +886,7 @@ func _ready():
 **AWS Infrastructure Deployed:**
 1. **WebSocket Lambda Function** - `backend/trading_lobby_ws.py` with full position sync
 2. **DynamoDB Table** - `LobbyConnections` with TTL auto-cleanup  
-3. **WebSocket API Gateway** - Live at `wss://37783owd23.execute-api.us-east-2.amazonaws.com/prod`
+3. **WebSocket API Gateway** - Live at `wss://bktpsfy4rb.execute-api.us-east-2.amazonaws.com/prod`
 4. **IAM Permissions** - Complete role and policy configuration
 5. **Automated Setup** - `infrastructure/lobby-setup.sh` script
 6. **Configuration Files** - `infrastructure/lobby_config.json` ready for Godot

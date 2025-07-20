@@ -128,7 +128,7 @@ func _apply_configuration() -> void:
 
 func _use_default_configuration() -> void:
 	"""Use default configuration when no config file is found"""
-	websocket_url = "wss://37783owd23.execute-api.us-east-2.amazonaws.com/prod"
+	websocket_url = "wss://bktpsfy4rb.execute-api.us-east-2.amazonaws.com/prod"
 	connection_timeout = 10.0
 	position_broadcast_interval = 0.2
 	enable_debug_logs = true
