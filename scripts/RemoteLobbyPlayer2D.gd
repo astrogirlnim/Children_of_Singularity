@@ -147,15 +147,15 @@ func _setup_visual_components() -> void:
 	"""Initialize visual components with walking animation support"""
 	print("[RemoteLobbyPlayer2D] Setting up visual components for %s" % player_id)
 
-	# Setup sprite with default texture
+	# Setup sprite with walking animation idle texture
 	if player_sprite:
-		# Load the default schlorp guy sprite for idle state
-		default_sprite = preload("res://assets/schlorp_guy_sprite.png")
+		# Load the walking guy frame 080 as the idle/default sprite
+		default_sprite = preload("res://assets/sprites/player/walking_animation/walking_guy_frame_080.png")
 		player_sprite.texture = default_sprite
 
 		# Store original scale
 		sprite_scale = player_sprite.scale
-		print("[RemoteLobbyPlayer2D] Player sprite setup with default texture")
+		print("[RemoteLobbyPlayer2D] Player sprite setup with walking frame 080 as idle")
 
 	# Setup player label
 	if not player_label:
@@ -391,10 +391,11 @@ func _load_walking_animation_textures() -> void:
 		var texture_path = "res://assets/sprites/player/walking_animation/walking_guy_frame_%03d.png" % i
 		var texture = load(texture_path) as Texture2D
 		if texture:
-			walking_animation_textures["walking_left"].append(texture)
-			# Create flipped version for walking right
+			# Original frames face right, so use them for walking_right
+			walking_animation_textures["walking_right"].append(texture)
+			# Create flipped version for walking left
 			var flipped_texture = _create_flipped_texture(texture)
-			walking_animation_textures["walking_right"].append(flipped_texture)
+			walking_animation_textures["walking_left"].append(flipped_texture)
 			loaded_count += 2
 		else:
 			print("[RemoteLobbyPlayer2D] Failed to load texture: %s" % texture_path)
