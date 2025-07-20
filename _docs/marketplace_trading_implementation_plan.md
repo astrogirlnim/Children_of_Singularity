@@ -190,7 +190,13 @@ Total: 360 credits
 **Dependencies**: Phase 1.4 complete
 **Success Criteria**: Players can purchase items from marketplace
 
-**Phase 1 Current Status**: ✅ 100% COMPLETE - Full marketplace functionality with item posting, purchasing, real inventory value integration, and proper key matching
+**Phase 1 Current Status**: ✅ 100% COMPLETE - Full marketplace functionality with item posting, purchasing, listing removal, real inventory value integration, and proper key matching
+
+**✅ LISTING REMOVAL FEATURE COMPLETE:**
+- Sellers can remove their own listings with confirmation dialog
+- DELETE API endpoint functional (authentication config needed)
+- Complete UI integration with remove buttons
+- Proper validation and error handling
 
 ---
 

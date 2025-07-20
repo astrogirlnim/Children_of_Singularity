@@ -112,8 +112,6 @@ func _initialize_defaults() -> void:
 		"master_volume": 1.0,
 		"sfx_volume": 1.0,
 		"music_volume": 0.8,
-		"music_muted": false,
-		"sfx_muted": false,
 		"graphics_quality": "high",
 		"fullscreen": false,
 		"vsync": true,

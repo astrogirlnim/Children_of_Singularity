@@ -1,7 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://bj8xvwgqjkm8nh"]
+[gd_scene load_steps=2 format=3 uid="uid://bj8xvwgqjkm8nh"]
 
 [ext_resource type="Script" path="res://scripts/StartupScreen.gd" id="1_startup_script"]
-[ext_resource type="Script" path="res://scripts/MuteButtonManager.gd" id="2_mute_button_manager"]
 
 [node name="StartupScreen" type="Control"]
 layout_mode = 3
@@ -47,10 +46,3 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0, 0, 0, 0)
 mouse_filter = 2
-
-[node name="MuteButtonManager" type="Control" parent="."]
-script = ExtResource("2_mute_button_manager")
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0

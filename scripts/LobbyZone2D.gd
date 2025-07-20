@@ -113,6 +113,14 @@ var purchase_confirm_button: Button
 var purchase_current_listing: Dictionary = {}
 var purchase_dialog_initialized: bool = false
 
+# Listing removal dialog variables
+var removal_dialog: AcceptDialog
+var removal_item_label: Label
+var removal_price_label: Label
+var removal_confirm_button: Button
+var removal_current_listing: Dictionary = {}
+var removal_dialog_initialized: bool = false
+
 # Selective trading UI elements (will be created dynamically)
 var debris_selection_container: ScrollContainer
 var debris_selection_list: VBoxContainer
@@ -1836,33 +1844,57 @@ func _create_marketplace_listing_item_for_grid(listing: Dictionary, target_grid:
 	price_label.add_theme_font_size_override("font_size", 14)
 	content_vbox.add_child(price_label)
 
-	# Buy button (Phase 1.5: Now enabled with purchase confirmation)
-	var buy_button = Button.new()
-	buy_button.text = "BUY NOW"
-	buy_button.custom_minimum_size = Vector2(120, 30)
+	# Action button - either BUY or REMOVE depending on ownership
+	var action_button = Button.new()
+	action_button.custom_minimum_size = Vector2(120, 30)
 
-	# Phase 1.5: Enable buy button and connect to purchase handler
-	var can_purchase = _validate_listing_purchase(listing)
-	buy_button.disabled = not can_purchase.success
+	# Check if this is the player's own listing
+	var seller_id = listing.get("seller_id", "")
+	var player_id = LocalPlayerData.get_player_id() if LocalPlayerData else ""
+	var is_own_listing = (seller_id == player_id)
 
-	if can_purchase.success:
-		buy_button.pressed.connect(_on_buy_button_pressed.bind(listing))
-		buy_button.add_theme_color_override("font_color", Color.GREEN)
+	if is_own_listing:
+		# Show REMOVE LISTING button for own listings
+		action_button.text = "REMOVE LISTING"
+		action_button.pressed.connect(_on_remove_button_pressed.bind(listing))
+		action_button.add_theme_color_override("font_color", Color.ORANGE)
+		action_button.tooltip_text = "Remove your listing from marketplace"
+
+		# Style for remove button
+		var remove_style = StyleBoxFlat.new()
+		remove_style.bg_color = Color(0.3, 0.2, 0.1, 0.8)
+		remove_style.border_color = Color(0.4, 0.3, 0.2)
+		remove_style.border_width_left = 1
+		remove_style.border_width_right = 1
+		remove_style.border_width_top = 1
+		remove_style.border_width_bottom = 1
+		action_button.add_theme_stylebox_override("normal", remove_style)
 	else:
-		buy_button.tooltip_text = can_purchase.error_message
-		buy_button.add_theme_color_override("font_color", Color.GRAY)
+		# Show BUY button for other players' listings (Phase 1.5: Now enabled with purchase confirmation)
+		action_button.text = "BUY NOW"
 
-	# Style the button
-	var button_style = StyleBoxFlat.new()
-	button_style.bg_color = Color(0.2, 0.2, 0.3, 0.8) if can_purchase.success else Color(0.15, 0.15, 0.2, 0.6)
-	button_style.border_color = Color(0.3, 0.3, 0.4) if can_purchase.success else Color(0.2, 0.2, 0.3)
-	button_style.border_width_left = 1
-	button_style.border_width_right = 1
-	button_style.border_width_top = 1
-	button_style.border_width_bottom = 1
-	buy_button.add_theme_stylebox_override("normal", button_style)
+		# Phase 1.5: Enable buy button and connect to purchase handler
+		var can_purchase = _validate_listing_purchase(listing)
+		action_button.disabled = not can_purchase.success
 
-	content_vbox.add_child(buy_button)
+		if can_purchase.success:
+			action_button.pressed.connect(_on_buy_button_pressed.bind(listing))
+			action_button.add_theme_color_override("font_color", Color.GREEN)
+		else:
+			action_button.tooltip_text = can_purchase.error_message
+			action_button.add_theme_color_override("font_color", Color.GRAY)
+
+		# Style for buy button
+		var buy_style = StyleBoxFlat.new()
+		buy_style.bg_color = Color(0.2, 0.2, 0.3, 0.8) if can_purchase.success else Color(0.15, 0.15, 0.2, 0.6)
+		buy_style.border_color = Color(0.3, 0.3, 0.4) if can_purchase.success else Color(0.2, 0.2, 0.3)
+		buy_style.border_width_left = 1
+		buy_style.border_width_right = 1
+		buy_style.border_width_top = 1
+		buy_style.border_width_bottom = 1
+		action_button.add_theme_stylebox_override("normal", buy_style)
+
+	content_vbox.add_child(action_button)
 
 	# Create a container for this listing with separator (like upgrades panel)
 	var listing_wrapper = VBoxContainer.new()
@@ -3114,3 +3146,158 @@ func _on_item_purchase_result(success: bool, item_name: String) -> void:
 		_update_lobby_ui_with_player_data()
 	else:
 		_update_marketplace_status("Purchase failed. Please try again.", Color.RED)
+
+## LISTING REMOVAL SYSTEM
+
+func _on_remove_button_pressed(listing: Dictionary) -> void:
+	##Handle remove button press for player's own listing
+	print("[LobbyZone2D] Remove button pressed for listing: %s" % listing.get("listing_id", "unknown"))
+
+	# Store current listing for removal dialog
+	removal_current_listing = listing
+
+	# Initialize removal dialog if needed
+	if not removal_dialog_initialized:
+		_initialize_removal_dialog()
+
+	# Populate removal dialog with listing details
+	_populate_removal_dialog(listing)
+
+	# Show removal confirmation dialog
+	if removal_dialog:
+		removal_dialog.popup_centered()
+
+func _initialize_removal_dialog() -> void:
+	##Initialize the listing removal confirmation dialog
+	print("[LobbyZone2D] Initializing removal confirmation dialog")
+
+	# Create dialog
+	removal_dialog = AcceptDialog.new()
+	removal_dialog.title = "Remove Listing"
+	removal_dialog.size = Vector2(400, 300)
+	removal_dialog.add_theme_color_override("title_color", Color.ORANGE)
+
+	# Create content container
+	var content_vbox = VBoxContainer.new()
+	content_vbox.add_theme_constant_override("separation", 15)
+
+	# Warning message
+	var warning_label = Label.new()
+	warning_label.text = "Are you sure you want to remove this listing?"
+	warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	warning_label.add_theme_color_override("font_color", Color.YELLOW)
+	warning_label.add_theme_font_size_override("font_size", 14)
+	content_vbox.add_child(warning_label)
+
+	# Item details
+	removal_item_label = Label.new()
+	removal_item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	removal_item_label.add_theme_color_override("font_color", Color.CYAN)
+	removal_item_label.add_theme_font_size_override("font_size", 16)
+	content_vbox.add_child(removal_item_label)
+
+	removal_price_label = Label.new()
+	removal_price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	removal_price_label.add_theme_color_override("font_color", Color.YELLOW)
+	removal_price_label.add_theme_font_size_override("font_size", 14)
+	content_vbox.add_child(removal_price_label)
+
+	# Info message
+	var info_label = Label.new()
+	info_label.text = "The item will be returned to your inventory."
+	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info_label.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	info_label.add_theme_font_size_override("font_size", 12)
+	content_vbox.add_child(info_label)
+
+	# Button container
+	var button_hbox = HBoxContainer.new()
+	button_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	button_hbox.add_theme_constant_override("separation", 20)
+
+	# Confirm button
+	removal_confirm_button = Button.new()
+	removal_confirm_button.text = "REMOVE LISTING"
+	removal_confirm_button.custom_minimum_size = Vector2(140, 40)
+	removal_confirm_button.pressed.connect(_on_removal_confirm_pressed)
+	removal_confirm_button.add_theme_color_override("font_color", Color.ORANGE)
+	button_hbox.add_child(removal_confirm_button)
+
+	# Cancel button
+	var removal_cancel_button = Button.new()
+	removal_cancel_button.text = "CANCEL"
+	removal_cancel_button.custom_minimum_size = Vector2(100, 40)
+	removal_cancel_button.pressed.connect(_on_removal_cancel_pressed)
+	removal_cancel_button.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	button_hbox.add_child(removal_cancel_button)
+
+	content_vbox.add_child(button_hbox)
+
+	# Add content to dialog
+	removal_dialog.add_child(content_vbox)
+
+	# Add dialog to scene
+	add_child(removal_dialog)
+
+	removal_dialog_initialized = true
+	print("[LobbyZone2D] Removal dialog initialized")
+
+func _populate_removal_dialog(listing: Dictionary) -> void:
+	##Populate removal dialog with listing details
+	var item_name = listing.get("item_name", "Unknown Item")
+	var quantity = listing.get("quantity", 1)
+	var asking_price = listing.get("asking_price", 0)
+	var total_price = asking_price * quantity
+
+	removal_item_label.text = "%s x%d" % [item_name, quantity]
+
+	if quantity > 1:
+		removal_price_label.text = "Listed at: %d credits each (%d total)" % [asking_price, total_price]
+	else:
+		removal_price_label.text = "Listed at: %d credits" % asking_price
+
+func _on_removal_confirm_pressed() -> void:
+	##Handle removal confirmation
+	print("[LobbyZone2D] Confirming marketplace listing removal")
+
+	if removal_current_listing.is_empty():
+		print("[LobbyZone2D] ERROR: No current listing for removal")
+		return
+
+	var listing_id = removal_current_listing.get("listing_id", "")
+
+	print("[LobbyZone2D] Removing listing ID: %s" % listing_id)
+
+	# Connect to removal result if not already connected
+	if TradingMarketplace:
+		if not TradingMarketplace.listing_removed.is_connected(_on_listing_removal_result):
+			TradingMarketplace.listing_removed.connect(_on_listing_removal_result)
+		if not TradingMarketplace.api_error.is_connected(_on_marketplace_api_error):
+			TradingMarketplace.api_error.connect(_on_marketplace_api_error)
+
+		# Remove the listing
+		TradingMarketplace.remove_listing(listing_id)
+
+	# Close dialog
+	removal_dialog.hide()
+
+	# Show removal status
+	_update_marketplace_status("Removing listing...", Color.WHITE)
+
+func _on_removal_cancel_pressed() -> void:
+	##Handle removal cancellation
+	print("[LobbyZone2D] Cancelling marketplace listing removal")
+	removal_dialog.hide()
+
+func _on_listing_removal_result(success: bool, listing_id: String) -> void:
+	##Handle result of listing removal
+	print("[LobbyZone2D] Listing removal result - Success: %s, ID: %s" % [success, listing_id])
+
+	if success:
+		_update_marketplace_status("Listing removed successfully! Item returned to inventory.", Color.GREEN)
+		# Refresh marketplace to remove the listing from display
+		_refresh_marketplace_listings()
+		# Update UI to show updated inventory
+		_update_lobby_ui_with_player_data()
+	else:
+		_update_marketplace_status("Failed to remove listing. Please try again.", Color.RED)

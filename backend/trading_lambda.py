@@ -46,6 +46,18 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     listing_id = match.group(1)
             body = json.loads(event.get("body", "{}"))
             return buy_listing(listing_id, body)
+        elif method == "DELETE" and path.startswith("/listings/"):
+            # Handle DELETE /listings/{listing_id}
+            listing_id = path_parameters.get("listing_id") or path_parameters.get("id")
+            if not listing_id:
+                # Try to extract from path
+                import re
+
+                match = re.search(r"/listings/([\w\-]+)", path)
+                if match:
+                    listing_id = match.group(1)
+            body = json.loads(event.get("body", "{}"))
+            return delete_listing(listing_id, body)
         elif method == "GET" and path.startswith("/history/"):
             player_id = path_parameters.get("player_id")
             return get_trade_history(player_id)
@@ -297,6 +309,89 @@ def buy_listing(listing_id: str, buyer_data: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         print(f"Error buying listing: {str(e)}")
         return create_response(500, {"error": "Failed to complete purchase"})
+
+
+def delete_listing(listing_id: str, seller_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove a trading listing (only by the seller)"""
+    try:
+        if not listing_id:
+            return create_response(400, {"error": "Missing listing ID"})
+
+        # Validate seller data
+        if "seller_id" not in seller_data:
+            return create_response(400, {"error": "Missing seller_id"})
+
+        seller_id = seller_data["seller_id"]
+
+        # Implement optimistic locking with retries
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Load current listings with ETag
+                listings, etag = load_from_s3(LISTINGS_KEY)
+
+                # Find the listing
+                target_listing = None
+
+                for listing in listings:
+                    if (
+                        listing["listing_id"] == listing_id
+                        and listing["status"] == "active"
+                    ):
+                        target_listing = listing
+                        break
+
+                if not target_listing:
+                    return create_response(
+                        404, {"error": "Listing not found or already removed"}
+                    )
+
+                # Validate ownership - only seller can remove their listing
+                if target_listing["seller_id"] != seller_id:
+                    return create_response(
+                        403, {"error": "You can only remove your own listings"}
+                    )
+
+                # Mark listing as removed instead of deleting
+                target_listing["status"] = "removed"
+                target_listing["removed_at"] = datetime.now(timezone.utc).isoformat()
+
+                # Save updated listings with optimistic locking
+                save_to_s3_with_etag(LISTINGS_KEY, listings, etag)
+                break
+
+            except ClientError as e:
+                if (
+                    e.response["Error"]["Code"] == "PreconditionFailed"
+                    and attempt < max_retries - 1
+                ):
+                    print(f"Concurrent write detected, retrying attempt {attempt + 1}")
+                    continue
+                else:
+                    raise e
+
+        print(
+            f"Removed listing {listing_id}: "
+            f"{target_listing['item_name']} by {target_listing['seller_name']}"
+        )
+
+        return create_response(
+            200,
+            {
+                "success": True,
+                "listing_id": listing_id,
+                "message": "Listing removed successfully",
+                "removed_listing": {
+                    "item_name": target_listing["item_name"],
+                    "quantity": target_listing["quantity"],
+                    "asking_price": target_listing["asking_price"],
+                },
+            },
+        )
+
+    except Exception as e:
+        print(f"Error removing listing: {str(e)}")
+        return create_response(500, {"error": "Failed to remove listing"})
 
 
 def get_trade_history(player_id: str) -> Dict[str, Any]:

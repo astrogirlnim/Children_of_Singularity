@@ -11,6 +11,7 @@ var http_request: HTTPRequest
 # Signals for trading events
 signal listings_received(listings: Array[Dictionary])
 signal listing_posted(success: bool, listing_id: String)
+signal listing_removed(success: bool, listing_id: String)
 signal item_purchased(success: bool, item_name: String)
 signal trade_completed(success: bool, details: Dictionary)
 signal api_error(error_message: String)
@@ -80,6 +81,33 @@ func post_listing(item_type: String, quantity: int, price_per_unit: int, descrip
 	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, json_body)
 	if error != OK:
 		emit_signal("api_error", "Failed to send POST request: " + str(error))
+		return
+
+## Remove a listing posted by the current player
+func remove_listing(listing_id: String) -> void:
+	print("[TradingMarketplace] Removing listing: %s" % listing_id)
+
+	# Validate player data is available
+	if not local_player_data:
+		emit_signal("api_error", "Local player data not available")
+		return
+
+	# Create removal data with seller validation
+	var removal_data = {
+		"seller_id": local_player_data.get_player_id(),
+		"seller_name": local_player_data.get_player_name(),
+		"removed_at": Time.get_datetime_string_from_system()
+	}
+
+	var url = TradingConfig.get_api_base_url() + TradingConfig.get_listings_endpoint() + "/" + listing_id
+	var headers = ["Content-Type: application/json"]
+	var json_body = JSON.stringify(removal_data)
+
+	print("[TradingMarketplace] Sending DELETE request for listing %s: %s" % [listing_id, json_body])
+
+	var error = http_request.request(url, headers, HTTPClient.METHOD_DELETE, json_body)
+	if error != OK:
+		emit_signal("api_error", "Failed to send removal request: " + str(error))
 		return
 
 ## Purchase an item from another player with concurrency protection
@@ -203,6 +231,27 @@ func _handle_api_response(data: Dictionary, _response_code: int):
 				print("[TradingMarketplace] Removed %d %s from local inventory" % [quantity, item_name])
 
 		emit_signal("listing_posted", success, listing_id)
+		return
+
+	# Handle successful listing removal (DELETE /listings/{id})
+	if data.has("listing_id") and data.has("message") and data.get("message", "").find("removed") != -1:
+		var listing_id = data.get("listing_id", "")
+		var success = data.get("success", false)
+		print("[TradingMarketplace] Listing removed - Success: %s, ID: %s" % [success, listing_id])
+
+		if success:
+			# Return item to local inventory since it's no longer for sale
+			var removed_listing = data.get("removed_listing", {})
+			var item_name = removed_listing.get("item_name", "")
+			var quantity = removed_listing.get("quantity", 0)
+
+			if local_player_data and item_name != "":
+				# Convert display name back to item type for inventory
+				var item_type = _convert_display_name_to_type(item_name)
+				local_player_data.add_inventory_item(item_type, "", quantity, 0)
+				print("[TradingMarketplace] Returned %d %s to inventory after removal" % [quantity, item_type])
+
+		emit_signal("listing_removed", success, listing_id)
 		return
 
 	# Handle successful purchase (POST /listings/{id}/buy)
@@ -414,6 +463,20 @@ func _format_item_name(item_type: String) -> String:
 	}
 
 	return formatted_names.get(item_type, item_type.replace("_", " ").capitalize())
+
+## Convert display name back to item type for inventory storage
+func _convert_display_name_to_type(display_name: String) -> String:
+	# Convert display names back to snake_case item types
+	var type_mappings = {
+		"Scrap Metal": "scrap_metal",
+		"Broken Satellite": "broken_satellite",
+		"AI Component": "ai_component",
+		"Bio Waste": "bio_waste",
+		"Unknown Artifact": "unknown_artifact",
+		"Quantum Core": "quantum_core"
+	}
+
+	return type_mappings.get(display_name, display_name.to_lower().replace(" ", "_"))
 
 ## Find listing by ID in current marketplace listings
 func _find_listing_by_id(listing_id: String) -> Dictionary:
