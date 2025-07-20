@@ -479,6 +479,29 @@ func _connect_trading_interface_buttons() -> void:
 			post_item_button.pressed.connect(_on_post_item_pressed)
 			print("[LobbyZone2D] Connected post_item_button")
 
+	# CRITICAL FIX: Connect TradingMarketplace signals during initialization
+	if TradingMarketplace:
+		# Connect marketplace signals if not already connected
+		if not TradingMarketplace.listings_received.is_connected(_on_marketplace_listings_received):
+			TradingMarketplace.listings_received.connect(_on_marketplace_listings_received)
+			print("[LobbyZone2D] Connected TradingMarketplace listings_received signal")
+
+		if not TradingMarketplace.listing_posted.is_connected(_on_item_posting_result):
+			TradingMarketplace.listing_posted.connect(_on_item_posting_result)
+			print("[LobbyZone2D] Connected TradingMarketplace listing_posted signal")
+
+		if not TradingMarketplace.listing_removed.is_connected(_on_listing_removal_result):
+			TradingMarketplace.listing_removed.connect(_on_listing_removal_result)
+			print("[LobbyZone2D] Connected TradingMarketplace listing_removed signal")
+
+		if not TradingMarketplace.item_purchased.is_connected(_on_item_purchase_result):
+			TradingMarketplace.item_purchased.connect(_on_item_purchase_result)
+			print("[LobbyZone2D] Connected TradingMarketplace item_purchased signal")
+
+		if not TradingMarketplace.api_error.is_connected(_on_marketplace_api_error):
+			TradingMarketplace.api_error.connect(_on_marketplace_api_error)
+			print("[LobbyZone2D] Connected TradingMarketplace api_error signal")
+
 	print("[LobbyZone2D] All trading interface buttons connected successfully")
 
 func _initialize_upgrade_interface() -> void:
@@ -1549,12 +1572,14 @@ func _on_posting_confirm_pressed() -> void:
 
 	print("[LobbyZone2D] Posting %d %s for %d credits each" % [quantity, item_name, price_each])
 
-	# Connect to posting result if not already connected
-	if TradingMarketplace and not TradingMarketplace.listing_posted.is_connected(_on_item_posting_result):
-		TradingMarketplace.listing_posted.connect(_on_item_posting_result)
-
-	# FIXED: Pass the original item_type (key) for inventory validation, not the formatted name
-	TradingMarketplace.post_item_for_sale(item_type, item_type, quantity, price_each)
+	# CRITICAL FIX: Remove conditional signal connections - they're now connected during initialization
+	if TradingMarketplace:
+		# FIXED: Pass the original item_type (key) for inventory validation, not the formatted name
+		TradingMarketplace.post_item_for_sale(item_type, item_type, quantity, price_each)
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+		_update_marketplace_status("Trading system not available", Color.RED)
+		return
 
 	# Close dialog
 	posting_dialog.hide()
@@ -1608,12 +1633,8 @@ func _refresh_marketplace_listings() -> void:
 
 	# Get listings from TradingMarketplace API
 	if TradingMarketplace:
-		# Connect to TradingMarketplace signals if not already connected
-		if not TradingMarketplace.listings_received.is_connected(_on_marketplace_listings_received):
-			TradingMarketplace.listings_received.connect(_on_marketplace_listings_received)
-		if not TradingMarketplace.api_error.is_connected(_on_marketplace_api_error):
-			TradingMarketplace.api_error.connect(_on_marketplace_api_error)
-
+		# CRITICAL FIX: Remove conditional signal connections - they're now connected during initialization
+		# Signals are already connected, just call the API method
 		TradingMarketplace.get_marketplace_listings()
 	else:
 		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
@@ -3112,15 +3133,14 @@ func _on_purchase_confirm_pressed() -> void:
 
 	print("[LobbyZone2D] Purchasing listing ID: %s from seller: %s" % [listing_id, seller_id])
 
-	# Connect to purchase result if not already connected
+	# CRITICAL FIX: Remove conditional signal connections - they're now connected during initialization
 	if TradingMarketplace:
-		if not TradingMarketplace.item_purchased.is_connected(_on_item_purchase_result):
-			TradingMarketplace.item_purchased.connect(_on_item_purchase_result)
-		if not TradingMarketplace.api_error.is_connected(_on_marketplace_api_error):
-			TradingMarketplace.api_error.connect(_on_marketplace_api_error)
-
-		# Make the purchase
+		# Make the purchase - signals are already connected
 		TradingMarketplace.purchase_marketplace_item(listing_id, seller_id)
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+		_update_marketplace_status("Trading system not available", Color.RED)
+		return
 
 	# Close dialog
 	purchase_dialog.hide()
@@ -3268,15 +3288,14 @@ func _on_removal_confirm_pressed() -> void:
 
 	print("[LobbyZone2D] Removing listing ID: %s" % listing_id)
 
-	# Connect to removal result if not already connected
+	# CRITICAL FIX: Remove conditional signal connections - they're now connected during initialization
 	if TradingMarketplace:
-		if not TradingMarketplace.listing_removed.is_connected(_on_listing_removal_result):
-			TradingMarketplace.listing_removed.connect(_on_listing_removal_result)
-		if not TradingMarketplace.api_error.is_connected(_on_marketplace_api_error):
-			TradingMarketplace.api_error.connect(_on_marketplace_api_error)
-
-		# Remove the listing
+		# Remove the listing - signals are already connected
 		TradingMarketplace.remove_listing(listing_id)
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+		_update_marketplace_status("Trading system not available", Color.RED)
+		return
 
 	# Close dialog
 	removal_dialog.hide()
