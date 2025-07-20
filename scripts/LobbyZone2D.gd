@@ -502,6 +502,14 @@ func _connect_trading_interface_buttons() -> void:
 			TradingMarketplace.api_error.connect(_on_marketplace_api_error)
 			print("[LobbyZone2D] Connected TradingMarketplace api_error signal")
 
+		# PHASE 1.2: Connect purchase state change signal
+		if not TradingMarketplace.purchase_state_changed.is_connected(_on_purchase_state_changed):
+			TradingMarketplace.purchase_state_changed.connect(_on_purchase_state_changed)
+			print("[LobbyZone2D] Connected TradingMarketplace purchase_state_changed signal")
+
+		# PHASE 1.4: Verify all connections are successful
+		_verify_and_recover_trading_signals()
+
 	print("[LobbyZone2D] All trading interface buttons connected successfully")
 
 func _initialize_upgrade_interface() -> void:
@@ -3332,10 +3340,129 @@ func _on_listing_removal_result(success: bool, listing_id: String) -> void:
 	print("[LobbyZone2D] Listing removal result - Success: %s, ID: %s" % [success, listing_id])
 
 	if success:
-		_update_marketplace_status("Listing removed successfully! Item returned to inventory.", Color.GREEN)
-		# Refresh marketplace to remove the listing from display
+		_update_marketplace_status("Listing removed successfully! ID: %s" % listing_id, Color.GREEN)
+		# Refresh marketplace to remove the removed listing
 		_refresh_marketplace_listings()
-		# Update UI to show updated inventory
+		# Update UI to show returned inventory item
 		_update_lobby_ui_with_player_data()
 	else:
 		_update_marketplace_status("Failed to remove listing. Please try again.", Color.RED)
+
+# PHASE 1.2: Purchase State Management Handler
+func _on_purchase_state_changed(new_state: int, state_data: Dictionary) -> void:
+	"""Handle purchase state changes for UI updates"""
+	var state_name = _purchase_state_to_string(new_state)
+	print("[LobbyZone2D] Purchase state changed: %s" % state_name)
+
+	match new_state:
+		0: # IDLE
+			_update_marketplace_status("Ready for marketplace operations", Color.WHITE)
+		1: # VALIDATING
+			_update_marketplace_status("Validating purchase...", Color.YELLOW)
+		2: # SENDING_REQUEST
+			_update_marketplace_status("Sending purchase request...", Color.YELLOW)
+		3: # PROCESSING
+			_update_marketplace_status("Processing purchase...", Color.YELLOW)
+		4: # COMPLETED
+			var item_name = state_data.get("item_name", "item")
+			_update_marketplace_status("Purchase successful! %s added to inventory." % item_name, Color.GREEN)
+		5: # FAILED
+			var error = state_data.get("error", "Unknown error")
+			var error_category = state_data.get("error_category", "unknown_error")
+			_update_marketplace_status("Purchase failed: %s" % error, Color.RED)
+
+			# Show recovery suggestions if available
+			var suggestions = state_data.get("recovery_suggestions", [])
+			if suggestions.size() > 0:
+				var suggestion_text = "\n\nSuggestions:\n" + "\n".join(suggestions)
+				_update_marketplace_status("Purchase failed: %s%s" % [error, suggestion_text], Color.RED)
+		6: # TIMED_OUT
+			_update_marketplace_status("Purchase timed out. Credits have been restored.", Color.ORANGE)
+
+func _purchase_state_to_string(state: int) -> String:
+	"""Convert purchase state enum to readable string"""
+	match state:
+		0: return "IDLE"
+		1: return "VALIDATING"
+		2: return "SENDING_REQUEST"
+		3: return "PROCESSING"
+		4: return "COMPLETED"
+		5: return "FAILED"
+		6: return "TIMED_OUT"
+		_: return "UNKNOWN"
+
+# PHASE 1.4: Signal Connection Verification & Auto-Recovery
+func _verify_and_recover_trading_signals() -> bool:
+	"""Verify and recover TradingMarketplace signal connections"""
+	print("[LobbyZone2D] Verifying TradingMarketplace signal connections...")
+
+	if not TradingMarketplace:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available for verification")
+		return false
+
+	var signal_connections = [
+		{"signal": "listings_received", "method": "_on_marketplace_listings_received"},
+		{"signal": "listing_posted", "method": "_on_item_posting_result"},
+		{"signal": "listing_removed", "method": "_on_listing_removal_result"},
+		{"signal": "item_purchased", "method": "_on_item_purchase_result"},
+		{"signal": "api_error", "method": "_on_marketplace_api_error"},
+		{"signal": "purchase_state_changed", "method": "_on_purchase_state_changed"}
+	]
+
+	var all_connected = true
+	var failed_connections = []
+
+	for connection in signal_connections:
+		var signal_name = connection.signal
+		var method_name = connection.method
+
+		# Check if connection exists
+		if not TradingMarketplace.is_connected(signal_name, Callable(self, method_name)):
+			print("[LobbyZone2D] WARNING: Signal '%s' not connected, attempting recovery..." % signal_name)
+
+			# Attempt to reconnect
+			var connect_result = TradingMarketplace.connect(signal_name, Callable(self, method_name))
+			if connect_result == OK:
+				print("[LobbyZone2D] Successfully recovered connection for '%s'" % signal_name)
+			else:
+				print("[LobbyZone2D] ERROR: Failed to recover connection for '%s'" % signal_name)
+				all_connected = false
+				failed_connections.append(signal_name)
+
+		# Double-check connection was successful
+		if not TradingMarketplace.is_connected(signal_name, Callable(self, method_name)):
+			print("[LobbyZone2D] ERROR: Signal '%s' still not connected after recovery attempt" % signal_name)
+			all_connected = false
+			failed_connections.append(signal_name)
+
+	if all_connected:
+		print("[LobbyZone2D] ✅ All TradingMarketplace signals verified and connected")
+	else:
+		print("[LobbyZone2D] ❌ Signal verification failed. Failed connections: %s" % str(failed_connections))
+		_show_signal_connection_error(failed_connections)
+
+	return all_connected
+
+func _show_signal_connection_error(failed_signals: Array) -> void:
+	"""Show error message for failed signal connections"""
+	var error_message = "Marketplace connection error!\n\nFailed to connect signals: %s\n\nSome marketplace features may not work correctly." % str(failed_signals)
+	_update_marketplace_status(error_message, Color.RED)
+
+func get_marketplace_connection_status() -> Dictionary:
+	"""Get current marketplace connection status"""
+	if not TradingMarketplace:
+		return {
+			"marketplace_available": false,
+			"error": "TradingMarketplace singleton not found"
+		}
+
+	# Get connection health report from TradingMarketplace
+	var health_report = TradingMarketplace.get_connection_health_report()
+
+	return {
+		"marketplace_available": true,
+		"health_report": health_report,
+		"last_check": Time.get_unix_time_from_system()
+	}
+
+## WebSocket and Multiplayer Methods

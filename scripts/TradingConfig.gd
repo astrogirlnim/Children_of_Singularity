@@ -1,120 +1,29 @@
 extends Node
 
-# TradingConfig autoload singleton for Children of the Singularity
-# Default configuration (should be overridden by local config file)
-var config = {
+# Default configuration values (used if config file doesn't exist)
+var default_config = {
 	"api_base_url": "https://your-api-gateway-id.execute-api.your-region.amazonaws.com/prod",
 	"listings_endpoint": "/listings",
 	"timeout_seconds": 30,
-	"enable_debug_logs": true
+	"enable_debug_logs": true,
+	# PHASE 1.1: Timeout configuration
+	"request_timeout": 15.0,  # 15-second timeout for HTTP requests
+	"max_retry_attempts": 3,  # Maximum retry attempts for failed requests
+	"retry_delay": 2.0,  # Seconds to wait between retries
+	"connection_timeout": 10.0  # Connection timeout
 }
 
-var config_file_path = "user://trading_config.json"
+# Current configuration
+var config: Dictionary = {}
+var config_file_path: String = "user://trading_config.json"
 
 func _ready():
-	print("[TradingConfig] Loading trading marketplace configuration")
+	print("[TradingConfig] Initializing trading configuration")
 	load_config()
 
-func load_config():
-	"""Load configuration with environment variable precedence (like LobbyController)"""
-	print("[TradingConfig] Loading trading API configuration with environment precedence")
-
-	# Step 1: Try environment variables first (production)
-	_load_from_environment_variables()
-
-	# Step 2: Try .env files (development)
-	if config.api_base_url.contains("your-api-gateway-id"):
-		_load_from_env_files()
-
-	# Step 3: Try JSON config files (legacy fallback)
-	if config.api_base_url.contains("your-api-gateway-id"):
-		_load_from_json_config()
-
-	# Step 4: Use infrastructure_setup.env if available
-	if config.api_base_url.contains("your-api-gateway-id"):
-		_load_from_infrastructure_file()
-
-	print("[TradingConfig] Final API configuration:")
-	print("[TradingConfig]   API Base URL: %s" % config.api_base_url)
-	print("[TradingConfig]   Listings Endpoint: %s" % config.listings_endpoint)
-
-func _load_from_environment_variables() -> void:
-	"""Load configuration from OS environment variables (production)"""
-	print("[TradingConfig] Checking OS environment variables...")
-
-	var env_api_url = OS.get_environment("TRADING_API_URL")
-	if not env_api_url.is_empty():
-		config.api_base_url = env_api_url
-		print("[TradingConfig] ✅ Found TRADING_API_URL in environment: %s" % env_api_url)
-
-	var env_timeout = OS.get_environment("TRADING_TIMEOUT")
-	if not env_timeout.is_empty():
-		config.timeout_seconds = int(env_timeout)
-
-	var env_debug = OS.get_environment("TRADING_DEBUG_LOGS")
-	if not env_debug.is_empty():
-		config.enable_debug_logs = env_debug.to_lower() in ["true", "1", "yes"]
-
-func _load_from_env_files() -> void:
-	"""Load configuration from .env files (development)"""
-	print("[TradingConfig] Checking for .env files...")
-
-	var env_paths = [
-		"res://infrastructure_setup.env",  # Project infrastructure config
-		"res://lobby.env",                 # Lobby config file
-		"user://trading.env",              # User-specific trading config
-		"res://.env"                       # Project root .env
-	]
-
-	for env_path in env_paths:
-		if FileAccess.file_exists(env_path):
-			print("[TradingConfig] Found .env file at: %s" % env_path)
-			if _parse_env_file(env_path):
-				print("[TradingConfig] ✅ Successfully loaded configuration from .env file")
-				return
-
-	print("[TradingConfig] No valid .env file found")
-
-func _parse_env_file(env_path: String) -> bool:
-	"""Parse environment file for trading configuration"""
-	var file = FileAccess.open(env_path, FileAccess.READ)
-	if not file:
-		return false
-
-	while not file.eof_reached():
-		var line = file.get_line().strip_edges()
-
-		# Skip empty lines and comments
-		if line.is_empty() or line.begins_with("#"):
-			continue
-
-		# Parse KEY=VALUE format
-		if "=" in line:
-			var parts = line.split("=", false, 1)
-			if parts.size() == 2:
-				var key = parts[0].strip_edges()
-				var value = parts[1].strip_edges()
-
-				# Remove quotes if present
-				if (value.begins_with('"') and value.ends_with('"')) or (value.begins_with("'") and value.ends_with("'")):
-					value = value.substr(1, value.length() - 2)
-
-				# Map environment variables to configuration
-				match key:
-					"API_GATEWAY_ENDPOINT", "TRADING_API_URL":
-						config.api_base_url = value
-						print("[TradingConfig] Found trading API URL in .env: %s" % value)
-					"TRADING_TIMEOUT":
-						config.timeout_seconds = int(value)
-					"TRADING_DEBUG_LOGS":
-						config.enable_debug_logs = value.to_lower() in ["true", "1", "yes"]
-
-	file.close()
-	return not config.api_base_url.contains("your-api-gateway-id")
-
-func _load_from_json_config() -> void:
-	"""Load configuration from JSON files (legacy fallback)"""
-	print("[TradingConfig] Checking JSON configuration files...")
+## Load configuration from file or create default
+func load_config() -> void:
+	print("[TradingConfig] Loading configuration from %s" % config_file_path)
 
 	if FileAccess.file_exists(config_file_path):
 		var file = FileAccess.open(config_file_path, FileAccess.READ)
@@ -124,49 +33,128 @@ func _load_from_json_config() -> void:
 
 			var json = JSON.new()
 			var parse_result = json.parse(json_text)
+
 			if parse_result == OK:
-				var loaded_config = json.data
-				for key in loaded_config:
-					config[key] = loaded_config[key]
-				print("[TradingConfig] ✅ Loaded configuration from JSON: %s" % config_file_path)
+				config = json.data
+				print("[TradingConfig] Configuration loaded from file")
+				_merge_default_values()  # Ensure new fields are added
+			else:
+				print("[TradingConfig] Failed to parse config file, using defaults")
+				config = default_config.duplicate()
+				save_config()
+		else:
+			print("[TradingConfig] Failed to open config file, using defaults")
+			config = default_config.duplicate()
+			save_config()
+	else:
+		print("[TradingConfig] Config file not found, creating default configuration")
+		config = default_config.duplicate()
+		save_config()
 
-func _load_from_infrastructure_file() -> void:
-	"""Load from infrastructure_setup.env as last resort"""
-	print("[TradingConfig] Checking infrastructure_setup.env...")
+	_validate_config()
 
-	var infra_path = "res://infrastructure_setup.env"
-	if FileAccess.file_exists(infra_path):
-		_parse_env_file(infra_path)
+## Merge new default values into existing config (for updates)
+func _merge_default_values() -> void:
+	var config_updated = false
 
-func create_default_config_file():
-	"""Create a default configuration file for the user to modify"""
+	for key in default_config:
+		if not config.has(key):
+			config[key] = default_config[key]
+			config_updated = true
+			print("[TradingConfig] Added missing config key: %s = %s" % [key, default_config[key]])
 
-	var default_config = {
-		"_note": "Edit this file to configure your trading marketplace API endpoint",
-		"_instructions": "Copy values from infrastructure_setup.env after AWS deployment",
-		"api_base_url": "https://your-api-gateway-id.execute-api.your-region.amazonaws.com/prod",
-		"listings_endpoint": "/listings",
-		"timeout_seconds": 30,
-		"enable_debug_logs": true
-	}
+	if config_updated:
+		save_config()
+		print("[TradingConfig] Configuration updated with new defaults")
 
+## Validate configuration values
+func _validate_config() -> void:
+	# Validate timeout values
+	if config.get("request_timeout", 0) <= 0:
+		config["request_timeout"] = default_config["request_timeout"]
+		print("[TradingConfig] Fixed invalid request_timeout")
+
+	if config.get("connection_timeout", 0) <= 0:
+		config["connection_timeout"] = default_config["connection_timeout"]
+		print("[TradingConfig] Fixed invalid connection_timeout")
+
+	if config.get("max_retry_attempts", 0) < 0:
+		config["max_retry_attempts"] = default_config["max_retry_attempts"]
+		print("[TradingConfig] Fixed invalid max_retry_attempts")
+
+	if config.get("retry_delay", 0) < 0:
+		config["retry_delay"] = default_config["retry_delay"]
+		print("[TradingConfig] Fixed invalid retry_delay")
+
+## Save configuration to file
+func save_config() -> void:
 	var file = FileAccess.open(config_file_path, FileAccess.WRITE)
 	if file:
-		file.store_string(JSON.stringify(default_config, "\t"))
+		var json_text = JSON.stringify(config, "\t")
+		file.store_string(json_text)
 		file.close()
-		print("[TradingConfig] Created default config file at %s" % config_file_path)
+		print("[TradingConfig] Configuration saved to %s" % config_file_path)
+	else:
+		print("[TradingConfig] ERROR: Failed to save configuration file")
 
+## Get API base URL
 func get_api_base_url() -> String:
-	return config.get("api_base_url", "")
+	return config.get("api_base_url", default_config["api_base_url"])
 
+## Get listings endpoint
 func get_listings_endpoint() -> String:
-	return config.get("listings_endpoint", "/listings")
+	return config.get("listings_endpoint", default_config["listings_endpoint"])
 
-func get_timeout_seconds() -> int:
-	return config.get("timeout_seconds", 30)
-
-func is_debug_enabled() -> bool:
-	return config.get("enable_debug_logs", true)
-
+## Get full listings URL (base + endpoint)
 func get_full_listings_url() -> String:
 	return get_api_base_url() + get_listings_endpoint()
+
+## Get timeout in seconds for HTTP requests
+func get_timeout_seconds() -> int:
+	return config.get("timeout_seconds", default_config["timeout_seconds"])
+
+## Check if debug logs are enabled
+func is_debug_enabled() -> bool:
+	return config.get("enable_debug_logs", default_config["enable_debug_logs"])
+
+# PHASE 1.1: Timeout configuration getters
+## Get request timeout for HTTP operations
+func get_request_timeout() -> float:
+	return config.get("request_timeout", default_config["request_timeout"])
+
+## Get maximum retry attempts
+func get_max_retry_attempts() -> int:
+	return config.get("max_retry_attempts", default_config["max_retry_attempts"])
+
+## Get retry delay in seconds
+func get_retry_delay() -> float:
+	return config.get("retry_delay", default_config["retry_delay"])
+
+## Get connection timeout
+func get_connection_timeout() -> float:
+	return config.get("connection_timeout", default_config["connection_timeout"])
+
+## Update timeout configuration
+func update_timeout_config(request_timeout: float, max_retries: int = -1, retry_delay: float = -1) -> void:
+	config["request_timeout"] = request_timeout
+
+	if max_retries >= 0:
+		config["max_retry_attempts"] = max_retries
+
+	if retry_delay >= 0:
+		config["retry_delay"] = retry_delay
+
+	save_config()
+	print("[TradingConfig] Timeout configuration updated")
+
+## Get configuration summary for debugging
+func get_config_summary() -> Dictionary:
+	return {
+		"api_base_url": get_api_base_url(),
+		"listings_endpoint": get_listings_endpoint(),
+		"request_timeout": get_request_timeout(),
+		"max_retry_attempts": get_max_retry_attempts(),
+		"retry_delay": get_retry_delay(),
+		"connection_timeout": get_connection_timeout(),
+		"debug_enabled": is_debug_enabled()
+	}
