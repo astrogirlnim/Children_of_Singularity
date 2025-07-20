@@ -78,8 +78,133 @@ func _process(delta: float) -> void:
 		position_broadcast_timer += delta
 
 func _load_lobby_configuration() -> void:
-	"""Load lobby configuration from JSON file"""
-	print("[LobbyController] Loading lobby configuration")
+	"""Load lobby configuration with environment variable precedence"""
+	print("[LobbyController] Loading lobby configuration with environment precedence")
+
+	# Step 1: Try to load from environment variables (highest priority)
+	_load_from_environment_variables()
+
+	# Step 2: Try to load from .env file if environment vars not found
+	if websocket_url.is_empty():
+		_load_from_env_file()
+
+	# Step 3: Try to load from JSON config files if still not found
+	if websocket_url.is_empty():
+		_load_from_config_files()
+
+	# Step 4: Use hardcoded defaults as last resort
+	if websocket_url.is_empty():
+		print("[LobbyController] All configuration sources failed, using hardcoded defaults")
+		_use_default_configuration()
+	else:
+		# Apply any loaded configuration
+		_apply_loaded_configuration()
+		print("[LobbyController] Configuration loaded successfully")
+		print("[LobbyController] WebSocket URL: %s" % websocket_url)
+
+func _load_from_environment_variables() -> void:
+	"""Load configuration from OS environment variables (12-factor app approach)"""
+	print("[LobbyController] Checking OS environment variables...")
+
+	# Try to get WebSocket URL from environment
+	var env_websocket_url = OS.get_environment("WEBSOCKET_URL")
+	if not env_websocket_url.is_empty():
+		websocket_url = env_websocket_url
+		print("[LobbyController] ✅ Found WEBSOCKET_URL in environment: %s" % websocket_url)
+
+		# Load other optional environment configs
+		var env_timeout = OS.get_environment("LOBBY_CONNECTION_TIMEOUT")
+		if not env_timeout.is_empty():
+			connection_timeout = float(env_timeout)
+
+		var env_broadcast_interval = OS.get_environment("LOBBY_BROADCAST_INTERVAL")
+		if not env_broadcast_interval.is_empty():
+			position_broadcast_interval = float(env_broadcast_interval)
+
+		var env_debug = OS.get_environment("LOBBY_DEBUG_LOGS")
+		if not env_debug.is_empty():
+			enable_debug_logs = env_debug.to_lower() in ["true", "1", "yes"]
+
+		var env_max_retries = OS.get_environment("LOBBY_MAX_RETRIES")
+		if not env_max_retries.is_empty():
+			max_retry_attempts = int(env_max_retries)
+
+		print("[LobbyController] Environment configuration loaded")
+		return
+
+	print("[LobbyController] No environment variables found")
+
+func _load_from_env_file() -> void:
+	"""Load configuration from .env file"""
+	print("[LobbyController] Checking for .env file...")
+
+	# Try different .env file locations
+	var env_paths = [
+		"user://lobby.env",  # User-specific lobby config
+		"user://.env",       # User-specific general config
+		"res://infrastructure_setup.env",  # Project infrastructure config
+		"res://.env"         # Project root .env
+	]
+
+	for env_path in env_paths:
+		if FileAccess.file_exists(env_path):
+			print("[LobbyController] Found .env file at: %s" % env_path)
+			if _parse_env_file(env_path):
+				print("[LobbyController] ✅ Successfully loaded configuration from .env file")
+				return
+			else:
+				print("[LobbyController] ⚠️ Failed to parse .env file, trying next location")
+
+	print("[LobbyController] No valid .env file found")
+
+func _parse_env_file(env_path: String) -> bool:
+	"""Parse environment file and extract configuration"""
+	var file = FileAccess.open(env_path, FileAccess.READ)
+	if not file:
+		return false
+
+	var line_number = 0
+	while not file.eof_reached():
+		line_number += 1
+		var line = file.get_line().strip_edges()
+
+		# Skip empty lines and comments
+		if line.is_empty() or line.begins_with("#"):
+			continue
+
+		# Parse KEY=VALUE format
+		if "=" in line:
+			var parts = line.split("=", false, 1)
+			if parts.size() == 2:
+				var key = parts[0].strip_edges()
+				var value = parts[1].strip_edges()
+
+				# Remove quotes if present
+				if (value.begins_with('"') and value.ends_with('"')) or (value.begins_with("'") and value.ends_with("'")):
+					value = value.substr(1, value.length() - 2)
+
+				# Map environment variables to configuration
+				match key:
+					"WEBSOCKET_URL":
+						websocket_url = value
+						print("[LobbyController] Found WEBSOCKET_URL in .env: %s" % value)
+					"LOBBY_CONNECTION_TIMEOUT":
+						connection_timeout = float(value)
+					"LOBBY_BROADCAST_INTERVAL":
+						position_broadcast_interval = float(value)
+					"LOBBY_DEBUG_LOGS":
+						enable_debug_logs = value.to_lower() in ["true", "1", "yes"]
+					"LOBBY_MAX_RETRIES":
+						max_retry_attempts = int(value)
+
+	file.close()
+
+	# Return true if we found at least the WebSocket URL
+	return not websocket_url.is_empty()
+
+func _load_from_config_files() -> void:
+	"""Load configuration from JSON files (existing approach)"""
+	print("[LobbyController] Checking JSON configuration files...")
 
 	# Try to load from user://lobby_config.json first (runtime config)
 	var config_path = "user://lobby_config.json"
@@ -99,32 +224,47 @@ func _load_lobby_configuration() -> void:
 
 		if parse_result == OK:
 			lobby_config = json_parser.data
-			_apply_configuration()
-			print("[LobbyController] Configuration loaded from: %s" % config_path)
+			websocket_url = lobby_config.get("websocket_url", "")
+			if not websocket_url.is_empty():
+				print("[LobbyController] ✅ Found WebSocket URL in JSON config: %s" % websocket_url)
+				print("[LobbyController] Configuration loaded from: %s" % config_path)
+			else:
+				print("[LobbyController] ⚠️ JSON config found but no websocket_url specified")
 		else:
 			print("[LobbyController] ERROR: Failed to parse lobby config JSON")
-			_use_default_configuration()
 	else:
-		print("[LobbyController] WARNING: No lobby config found, using defaults")
-		_use_default_configuration()
+		print("[LobbyController] No JSON configuration files found")
 
-func _apply_configuration() -> void:
-	"""Apply loaded configuration settings"""
-	websocket_url = lobby_config.get("websocket_url", "")
-	connection_timeout = lobby_config.get("connection_timeout", 10.0)
-	position_broadcast_interval = lobby_config.get("position_broadcast_interval", 0.2)
-	enable_debug_logs = lobby_config.get("enable_debug_logs", true)
-	max_retry_attempts = lobby_config.get("max_retry_attempts", 3)
-	reconnect_delay = lobby_config.get("reconnect_delay", 2.0)
+func _apply_loaded_configuration() -> void:
+	"""Apply configuration that was loaded from environment or files"""
+	# Apply values from lobby_config if they weren't set by environment variables
+	if lobby_config.has("connection_timeout") and connection_timeout == 10.0:
+		connection_timeout = lobby_config.get("connection_timeout", 10.0)
+
+	if lobby_config.has("position_broadcast_interval") and position_broadcast_interval == 0.2:
+		position_broadcast_interval = lobby_config.get("position_broadcast_interval", 0.2)
+
+	if lobby_config.has("enable_debug_logs") and enable_debug_logs == true:
+		enable_debug_logs = lobby_config.get("enable_debug_logs", true)
+
+	if lobby_config.has("max_retry_attempts") and max_retry_attempts == 3:
+		max_retry_attempts = lobby_config.get("max_retry_attempts", 3)
+
+	if lobby_config.has("reconnect_delay") and reconnect_delay == 2.0:
+		reconnect_delay = lobby_config.get("reconnect_delay", 2.0)
 
 	# Development mode check
 	var dev_config = lobby_config.get("development", {})
 	if dev_config.get("use_local_server", false):
 		websocket_url = dev_config.get("local_websocket_url", "ws://localhost:8080")
-		print("[LobbyController] Using development WebSocket server: %s" % websocket_url)
+		print("[LobbyController] Development mode: Using local WebSocket server: %s" % websocket_url)
 
-	print("[LobbyController] WebSocket URL: %s" % websocket_url)
-	print("[LobbyController] Position broadcast interval: %.1fs" % position_broadcast_interval)
+	print("[LobbyController] Final configuration:")
+	print("[LobbyController]   WebSocket URL: %s" % websocket_url)
+	print("[LobbyController]   Connection timeout: %.1fs" % connection_timeout)
+	print("[LobbyController]   Broadcast interval: %.1fs" % position_broadcast_interval)
+	print("[LobbyController]   Debug logs: %s" % enable_debug_logs)
+	print("[LobbyController]   Max retries: %d" % max_retry_attempts)
 
 func _use_default_configuration() -> void:
 	"""Use default configuration when no config file is found"""
