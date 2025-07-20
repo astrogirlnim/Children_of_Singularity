@@ -2,7 +2,6 @@
 # WebSocket Client Manager for 2D Trading Lobby
 # Autoload singleton that handles real-time multiplayer connections
 
-class_name LobbyController
 extends Node
 
 ## Signal emitted when successfully connected to lobby WebSocket
