@@ -1291,7 +1291,7 @@ func _refresh_marketplace_listings() -> void:
 		marketplace_loading = false
 		_update_marketplace_status("Marketplace system not available", Color.RED)
 
-func _on_marketplace_listings_received(listings: Array) -> void:
+func _on_marketplace_listings_received(listings: Array[Dictionary]) -> void:
 	##Handle marketplace listings received from API
 	print("[LobbyZone2D] Received %d marketplace listings" % listings.size())
 

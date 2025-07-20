@@ -9,7 +9,7 @@ extends Node
 var http_request: HTTPRequest
 
 # Signals for trading events
-signal listings_received(listings: Array)
+signal listings_received(listings: Array[Dictionary])
 signal listing_posted(success: bool, listing_id: String)
 signal item_purchased(success: bool, item_name: String)
 signal trade_completed(success: bool, details: Dictionary)
@@ -176,7 +176,14 @@ func _handle_api_response(data: Dictionary, _response_code: int):
 
 	# Handle listings response (GET /listings)
 	if data.has("listings"):
-		var listings = data.get("listings", [])
+		var listings_data = data.get("listings", [])
+		var listings: Array[Dictionary] = []
+
+		# Ensure each item is a Dictionary and add to typed array
+		for item in listings_data:
+			if item is Dictionary:
+				listings.append(item as Dictionary)
+
 		var total = data.get("total", 0)
 		print("[TradingMarketplace] Received %d listings" % total)
 		emit_signal("listings_received", listings)

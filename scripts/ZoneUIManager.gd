@@ -649,7 +649,7 @@ func _clear_marketplace_listings_ui() -> void:
 	for child in marketplace_listings_grid.get_children():
 		child.queue_free()
 
-func _on_marketplace_listings_received(listings: Array) -> void:
+func _on_marketplace_listings_received(listings: Array[Dictionary]) -> void:
 	##Handle marketplace listings received from API
 	print("[ZoneUIManager] Received %d marketplace listings" % listings.size())
 
