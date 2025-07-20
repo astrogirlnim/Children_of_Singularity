@@ -256,6 +256,155 @@ func _handle_api_response(data: Dictionary, _response_code: int):
 	var error_msg = "Unknown API response format: %s" % str(data)
 	print("[TradingMarketplace] WARNING: %s" % error_msg)
 
+# MARKETPLACE-SPECIFIC METHODS - Phase 1.2 Implementation
+
+## Get marketplace listings specifically for the lobby UI
+func get_marketplace_listings() -> void:
+	print("[TradingMarketplace] Getting marketplace listings for lobby interface")
+	get_listings()  # Use existing method, same API endpoint
+
+## Check if player can sell a specific item in marketplace
+func can_sell_item(item_type: String, item_name: String, quantity: int) -> bool:
+	print("[TradingMarketplace] Validating if player can sell %d x %s" % [quantity, item_name])
+
+	if not local_player_data:
+		print("[TradingMarketplace] Cannot sell - LocalPlayerData not available")
+		return false
+
+	# Check if player has enough of this item in inventory
+	var inventory = local_player_data.get_inventory()
+	var available_quantity = _get_inventory_quantity(inventory, item_type)
+
+	if available_quantity < quantity:
+		print("[TradingMarketplace] Cannot sell - insufficient quantity. Have %d, need %d" % [available_quantity, quantity])
+		return false
+
+	# Additional validation - only allow selling high-value items (≥100 credits value)
+	var item_value = _get_item_base_value(item_type)
+	if item_value < 100:
+		print("[TradingMarketplace] Cannot sell - item value too low (%d credits). Minimum 100 credits." % item_value)
+		return false
+
+	print("[TradingMarketplace] Can sell %d x %s (have %d, value %d credits each)" % [quantity, item_name, available_quantity, item_value])
+	return true
+
+## Post item for sale in marketplace (wrapper for existing post_listing method)
+func post_item_for_sale(item_type: String, item_name: String, quantity: int, asking_price: int) -> void:
+	print("[TradingMarketplace] Posting item for sale: %s x%d for %d credits each" % [item_name, quantity, asking_price])
+
+	# Validate before posting
+	if not can_sell_item(item_type, item_name, quantity):
+		emit_signal("api_error", "Cannot sell item - validation failed")
+		return
+
+	# Validate asking price is reasonable (not too low or too high)
+	var item_value = _get_item_base_value(item_type)
+	var min_price = max(1, item_value * 0.5)  # Minimum 50% of base value
+	var max_price = item_value * 3.0  # Maximum 300% of base value
+
+	if asking_price < min_price:
+		emit_signal("api_error", "Asking price too low. Minimum: %d credits" % min_price)
+		return
+
+	if asking_price > max_price:
+		emit_signal("api_error", "Asking price too high. Maximum: %d credits" % max_price)
+		return
+
+	# Use existing post_listing method with proper description
+	var description = "High-quality %s from player inventory" % item_name.replace("_", " ")
+	post_listing(item_name, quantity, asking_price, description)
+
+## Purchase item from marketplace (wrapper for existing purchase_item method)
+func purchase_marketplace_item(listing_id: String, seller_id: String) -> bool:
+	print("[TradingMarketplace] Attempting to purchase marketplace item: %s from %s" % [listing_id, seller_id])
+
+	# Find the listing in current marketplace_listings to get details
+	var listing_details = _find_listing_by_id(listing_id)
+	if listing_details.is_empty():
+		emit_signal("api_error", "Listing not found. Please refresh marketplace.")
+		return false
+
+	# Validate purchase
+	var validation_result = validate_marketplace_purchase(listing_details)
+	if not validation_result.success:
+		emit_signal("api_error", validation_result.error_message)
+		return false
+
+	# Use existing purchase_item method
+	var item_name = listing_details.get("item_name", "")
+	var quantity = listing_details.get("quantity", 1)
+	var total_price = listing_details.get("total_price", 0)
+
+	purchase_item(listing_id, seller_id, item_name, quantity, total_price)
+	return true
+
+## Validate marketplace purchase before attempting
+func validate_marketplace_purchase(listing: Dictionary) -> Dictionary:
+	print("[TradingMarketplace] Validating marketplace purchase: %s" % listing)
+
+	var result = {"success": false, "error_message": ""}
+
+	# Check if LocalPlayerData is available
+	if not local_player_data:
+		result.error_message = "Player data not available"
+		return result
+
+	# Check if player has enough credits
+	var total_price = listing.get("total_price", 0)
+	var current_credits = local_player_data.get_credits()
+
+	if current_credits < total_price:
+		result.error_message = "Insufficient credits. Need %d, have %d" % [total_price, current_credits]
+		return result
+
+	# Check if player is not trying to buy their own item
+	var seller_id = listing.get("seller_id", "")
+	var player_id = local_player_data.get_player_id()
+
+	if seller_id == player_id:
+		result.error_message = "Cannot purchase your own items"
+		return result
+
+	# Check inventory space (if applicable)
+	var inventory = local_player_data.get_inventory()
+	var inventory_capacity = _get_inventory_capacity()
+
+	if inventory.size() >= inventory_capacity:
+		result.error_message = "Inventory full. Cannot purchase item."
+		return result
+
+	result.success = true
+	print("[TradingMarketplace] Purchase validation successful")
+	return result
+
+## Get base value of an item type for validation
+func _get_item_base_value(item_type: String) -> int:
+	# Define base values for different debris types
+	var base_values = {
+		"scrap_metal": 10,
+		"broken_satellite": 50,
+		"ai_component": 150,
+		"unknown_artifact": 500,
+		"quantum_core": 1000
+	}
+
+	return base_values.get(item_type, 50)  # Default to 50 if unknown
+
+## Find listing by ID in current marketplace listings
+func _find_listing_by_id(listing_id: String) -> Dictionary:
+	# This would need to be implemented by storing current listings
+	# For now, return empty dict as placeholder
+	print("[TradingMarketplace] Finding listing by ID: %s" % listing_id)
+	return {}
+
+## Get player inventory capacity for validation
+func _get_inventory_capacity() -> int:
+	if local_player_data:
+		var upgrades = local_player_data.get_all_upgrades()
+		var inventory_level = upgrades.get("inventory_expansion", 0)
+		return 10 + (inventory_level * 5)  # Base 10 + 5 per upgrade level
+	return 10
+
 # UTILITY METHODS
 
 ## Check if trading API is available

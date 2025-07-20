@@ -66,8 +66,15 @@ signal lobby_exit_requested()
 @onready var clear_upgrades_container: HBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer
 @onready var clear_upgrades_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer/ClearUpgradesButton
 
-# MARKETPLACE Tab UI references (future feature)
+# MARKETPLACE Tab UI references - Phase 1.1 Implementation
 @onready var marketplace_tab: Control = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE
+@onready var marketplace_content: VBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent
+@onready var marketplace_status_label: Label = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceStatus
+@onready var marketplace_listings_scroll: ScrollContainer = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceListings
+@onready var marketplace_listings_container: GridContainer = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceListings/MarketplaceGrid
+@onready var marketplace_controls: HBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceControls
+@onready var marketplace_refresh_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceControls/RefreshButton
+@onready var post_item_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceControls/SellItemButton
 
 # System references - will be set from LocalPlayerData
 var inventory_manager: Node
@@ -80,6 +87,12 @@ var current_selected_upgrade: String = ""
 var current_upgrade_cost: int = 0
 var upgrade_buttons: Dictionary = {}  # Store upgrade button references
 var trading_interface_open: bool = false
+
+# Marketplace state variables - Phase 1.1 Implementation
+var marketplace_listings: Array[Dictionary] = []  # Store current marketplace listings
+var marketplace_loading: bool = false
+var marketplace_last_refresh: float = 0.0
+var marketplace_refresh_cooldown: float = 2.0  # Minimum seconds between refreshes
 
 # Selective trading UI elements (will be created dynamically)
 var debris_selection_container: ScrollContainer
@@ -181,6 +194,16 @@ func _verify_essential_nodes() -> bool:
 	if not stats_panel: missing_nodes.append("stats_panel")
 	if not upgrade_status_panel: missing_nodes.append("upgrade_status_panel")
 	if not controls_panel: missing_nodes.append("controls_panel")
+
+	# Check marketplace UI references - Phase 1.1
+	if not marketplace_tab: missing_nodes.append("marketplace_tab")
+	if not marketplace_content: missing_nodes.append("marketplace_content")
+	if not marketplace_status_label: missing_nodes.append("marketplace_status_label")
+	if not marketplace_listings_scroll: missing_nodes.append("marketplace_listings_scroll")
+	if not marketplace_listings_container: missing_nodes.append("marketplace_listings_container")
+	if not marketplace_controls: missing_nodes.append("marketplace_controls")
+	if not marketplace_refresh_button: missing_nodes.append("marketplace_refresh_button")
+	if not post_item_button: missing_nodes.append("post_item_button")
 
 	if missing_nodes.size() > 0:
 		print("[LobbyZone2D] MISSING NODES: ", missing_nodes)
@@ -417,6 +440,17 @@ func _connect_trading_interface_buttons() -> void:
 		if not trading_close_button.pressed.is_connected(_on_trading_close_pressed):
 			trading_close_button.pressed.connect(_on_trading_close_pressed)
 			print("[LobbyZone2D] Connected trading_close_button")
+
+	# MARKETPLACE Tab button connections - Phase 1.1 Implementation
+	if marketplace_refresh_button:
+		if not marketplace_refresh_button.pressed.is_connected(_on_marketplace_refresh_pressed):
+			marketplace_refresh_button.pressed.connect(_on_marketplace_refresh_pressed)
+			print("[LobbyZone2D] Connected marketplace_refresh_button")
+
+	if post_item_button:
+		if not post_item_button.pressed.is_connected(_on_post_item_pressed):
+			post_item_button.pressed.connect(_on_post_item_pressed)
+			print("[LobbyZone2D] Connected post_item_button")
 
 	print("[LobbyZone2D] All trading interface buttons connected successfully")
 
@@ -1119,6 +1153,9 @@ func _interact_with_computer() -> void:
 		# CRITICAL FIX: Populate selective debris selection UI when interface opens
 		_populate_debris_selection_ui()
 
+		# Phase 1.1: Initialize marketplace when trading interface opens
+		_initialize_marketplace_interface()
+
 		# Set trading interface title
 		if trading_title:
 			trading_title.text = "TRADING TERMINAL - LOBBY"
@@ -1194,6 +1231,255 @@ func return_to_3d_world() -> void:
 
 	# Change scene back to 3D zone
 	get_tree().change_scene_to_file("res://scenes/zones/ZoneMain3D.tscn")
+
+## MARKETPLACE BUTTON HANDLERS - Phase 1.1 Implementation
+
+func _on_marketplace_refresh_pressed() -> void:
+	##Handle marketplace refresh button press
+	print("[LobbyZone2D] Marketplace refresh button pressed")
+
+	# Rate limiting - prevent spam refreshes
+	var current_time = Time.get_time_dict_from_system()
+	var current_timestamp = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
+
+	if current_timestamp - marketplace_last_refresh < marketplace_refresh_cooldown:
+		var remaining = marketplace_refresh_cooldown - (current_timestamp - marketplace_last_refresh)
+		_update_marketplace_status("Please wait %.1f seconds before refreshing again" % remaining, Color.YELLOW)
+		return
+
+	marketplace_last_refresh = current_timestamp
+	_refresh_marketplace_listings()
+
+func _on_post_item_pressed() -> void:
+	##Handle post item button press
+	print("[LobbyZone2D] Post item button pressed")
+
+	if not LocalPlayerData or not LocalPlayerData.is_initialized:
+		_update_marketplace_status("Player data not available!", Color.RED)
+		return
+
+	var inventory = LocalPlayerData.get_inventory()
+	if inventory.is_empty():
+		_update_marketplace_status("No items in inventory to sell!\n\nCollect debris in the 3D world first.", Color.YELLOW)
+		return
+
+	# For now, show a placeholder message - we'll implement the posting dialog in Phase 1.4
+	_update_marketplace_status("Item posting dialog coming in Phase 1.4!", Color.CYAN)
+
+func _refresh_marketplace_listings() -> void:
+	##Refresh marketplace listings from the API
+	print("[LobbyZone2D] Refreshing marketplace listings...")
+
+	if marketplace_loading:
+		print("[LobbyZone2D] Marketplace refresh already in progress")
+		return
+
+	marketplace_loading = true
+	_update_marketplace_status("Loading marketplace listings...", Color.WHITE)
+
+	# Get listings from TradingMarketplace API
+	if TradingMarketplace:
+		# Connect to TradingMarketplace signals if not already connected
+		if not TradingMarketplace.listings_received.is_connected(_on_marketplace_listings_received):
+			TradingMarketplace.listings_received.connect(_on_marketplace_listings_received)
+		if not TradingMarketplace.api_error.is_connected(_on_marketplace_api_error):
+			TradingMarketplace.api_error.connect(_on_marketplace_api_error)
+
+		TradingMarketplace.get_marketplace_listings()
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+		marketplace_loading = false
+		_update_marketplace_status("Marketplace system not available", Color.RED)
+
+func _on_marketplace_listings_received(listings: Array) -> void:
+	##Handle marketplace listings received from API
+	print("[LobbyZone2D] Received %d marketplace listings" % listings.size())
+
+	marketplace_loading = false
+	marketplace_listings = listings
+	_populate_marketplace_listings()
+
+func _on_marketplace_api_error(error_message: String) -> void:
+	##Handle marketplace API error
+	print("[LobbyZone2D] Marketplace API error: %s" % error_message)
+
+	marketplace_loading = false
+
+	# Check if this is a connection error (API unavailable) vs API error
+	if error_message.find("code 0") != -1 or error_message.find("Failed to send") != -1:
+		# Check if we have a configured AWS endpoint (real API)
+		var api_url = TradingConfig.get_api_base_url()
+		if api_url.contains("your-api-gateway-id") or api_url.contains("your-region"):
+			# Default/template URL - show mock data for development
+			print("[LobbyZone2D] Using mock data (API template URL not configured)")
+			_show_mock_marketplace_data()
+		else:
+			# Real AWS URL configured but not responding - show connection error
+			_update_marketplace_status("Cannot connect to trading API\nCheck your internet connection", Color.RED)
+	else:
+		_update_marketplace_status("Error loading marketplace: %s" % error_message, Color.RED)
+
+func _populate_marketplace_listings() -> void:
+	##Populate the marketplace UI with current listings
+	print("[LobbyZone2D] Populating marketplace with %d listings" % marketplace_listings.size())
+
+	if not marketplace_listings_container:
+		print("[LobbyZone2D] ERROR: Marketplace listings container not found")
+		return
+
+	# Clear existing listings
+	for child in marketplace_listings_container.get_children():
+		child.queue_free()
+
+	if marketplace_listings.is_empty():
+		_update_marketplace_status("No items for sale in the marketplace", Color.GRAY)
+		return
+
+	# Add each listing to the grid
+	for listing in marketplace_listings:
+		_create_marketplace_listing_item(listing)
+
+	_update_marketplace_status("Marketplace loaded - %d items available" % marketplace_listings.size(), Color.GREEN)
+
+func _create_marketplace_listing_item(listing: Dictionary) -> void:
+	##Create a UI item for a marketplace listing
+	var listing_container = VBoxContainer.new()
+	listing_container.custom_minimum_size = Vector2(200, 100)
+
+	# Item name and quantity
+	var item_label = Label.new()
+	var item_name = listing.get("item_name", "Unknown Item")
+	var quantity = listing.get("quantity", 1)
+	var display_name = _format_item_name(item_name)
+	item_label.text = "[%s] x%d" % [display_name, quantity]
+	item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	item_label.add_theme_color_override("font_color", Color.CYAN)
+
+	# Seller info
+	var seller_label = Label.new()
+	var seller_name = listing.get("seller_name", "Unknown")
+	seller_label.text = "Seller: %s" % seller_name
+	seller_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	seller_label.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+
+	# Price info
+	var price_label = Label.new()
+	var total_price = listing.get("total_price", 0)
+	price_label.text = "Price: %d credits" % total_price
+	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	price_label.add_theme_color_override("font_color", Color.YELLOW)
+
+	# Buy button (placeholder for Phase 1.5)
+	var buy_button = Button.new()
+	buy_button.text = "BUY NOW"
+	buy_button.disabled = true  # Will enable in Phase 1.5
+
+	# Add components to container
+	listing_container.add_child(item_label)
+	listing_container.add_child(seller_label)
+	listing_container.add_child(price_label)
+	listing_container.add_child(buy_button)
+
+	# Add separator
+	var separator = HSeparator.new()
+	listing_container.add_child(separator)
+
+	marketplace_listings_container.add_child(listing_container)
+
+func _update_marketplace_status(message: String, color: Color) -> void:
+	##Update marketplace status display
+	if marketplace_status_label:
+		marketplace_status_label.text = message
+		marketplace_status_label.modulate = color
+		print("[LobbyZone2D] Marketplace status: %s" % message)
+
+func _initialize_marketplace_interface() -> void:
+	##Initialize marketplace interface when trading interface opens
+	print("[LobbyZone2D] Initializing marketplace interface")
+
+	# Set initial marketplace status
+	_update_marketplace_status("Marketplace ready - Click REFRESH to load listings", Color.WHITE)
+
+	# Clear any existing listings
+	if marketplace_listings_container:
+		for child in marketplace_listings_container.get_children():
+			child.queue_free()
+
+	# Reset marketplace state
+	marketplace_listings.clear()
+	marketplace_loading = false
+
+	print("[LobbyZone2D] Marketplace interface initialized")
+
+func _show_mock_marketplace_data() -> void:
+	##Show mock marketplace data for development/testing when API is unavailable
+	print("[LobbyZone2D] Displaying mock marketplace data for testing")
+
+	# Create mock marketplace listings
+	marketplace_listings = [
+		{
+			"listing_id": "mock_001",
+			"seller_id": "player_dev1",
+			"seller_name": "SpaceExplorer_42",
+			"item_name": "ai_component",
+			"quantity": 2,
+			"price_per_unit": 180,
+			"total_price": 360,
+			"description": "High-quality AI components from deep space",
+			"posted_at": "2025-01-14T10:30:00Z"
+		},
+		{
+			"listing_id": "mock_002",
+			"seller_id": "player_dev2",
+			"seller_name": "QuantumScavenger",
+			"item_name": "unknown_artifact",
+			"quantity": 1,
+			"price_per_unit": 750,
+			"total_price": 750,
+			"description": "Mysterious artifact of unknown origin",
+			"posted_at": "2025-01-14T09:15:00Z"
+		},
+		{
+			"listing_id": "mock_003",
+			"seller_id": "player_dev3",
+			"seller_name": "DebrisHunter_99",
+			"item_name": "broken_satellite",
+			"quantity": 5,
+			"price_per_unit": 65,
+			"total_price": 325,
+			"description": "Salvaged satellite parts in good condition",
+			"posted_at": "2025-01-14T08:45:00Z"
+		},
+		{
+			"listing_id": "mock_004",
+			"seller_id": "player_dev4",
+			"seller_name": "CyberSalvager",
+			"item_name": "quantum_core",
+			"quantity": 1,
+			"price_per_unit": 1200,
+			"total_price": 1200,
+			"description": "Legendary quantum core - extremely rare!",
+			"posted_at": "2025-01-14T07:20:00Z"
+		}
+	]
+
+	# Populate the UI with mock data
+	_populate_marketplace_listings()
+
+	# Update status to indicate this is mock data
+	_update_marketplace_status("⚠️ DEMO MODE: Showing mock listings (API unavailable)", Color.YELLOW)
+
+func _format_item_name(item_name: String) -> String:
+	##Format item names for better display in marketplace
+	var name_map = {
+		"ai_component": "AI Component",
+		"unknown_artifact": "Unknown Artifact",
+		"broken_satellite": "Broken Satellite",
+		"quantum_core": "Quantum Core",
+		"scrap_metal": "Scrap Metal"
+	}
+
+	return name_map.get(item_name, item_name.capitalize().replace("_", " "))
 
 ## WebSocket and Multiplayer Methods
 
