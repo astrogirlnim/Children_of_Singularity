@@ -46,8 +46,8 @@ func get_listings() -> void:
 		return
 
 ## Post a new item for sale
-func post_listing(item_name: String, quantity: int, price_per_unit: int, description: String = "") -> void:
-	print("[TradingMarketplace] Posting listing: %s x%d for %d credits each" % [item_name, quantity, price_per_unit])
+func post_listing(item_type: String, quantity: int, price_per_unit: int, description: String = "") -> void:
+	print("[TradingMarketplace] Posting listing: %s x%d for %d credits each" % [item_type, quantity, price_per_unit])
 
 	# Validate player has the item locally
 	if not local_player_data:
@@ -55,21 +55,20 @@ func post_listing(item_name: String, quantity: int, price_per_unit: int, descrip
 		return
 
 	var player_inventory = local_player_data.get_inventory()
-	var available_quantity = _get_inventory_quantity(player_inventory, item_name)
+	var available_quantity = _get_inventory_quantity(player_inventory, item_type)
 	if available_quantity < quantity:
-		emit_signal("api_error", "Insufficient %s in inventory. Have %d, need %d" % [item_name, available_quantity, quantity])
+		emit_signal("api_error", "Insufficient %s in inventory. Have %d, need %d" % [item_type, available_quantity, quantity])
 		return
 
-	# Create listing data
+	# Create listing data - API expects both item_type and item_name, plus asking_price
 	var listing_data = {
 		"seller_id": local_player_data.get_player_id(),
 		"seller_name": local_player_data.get_player_name(),
-		"item_name": item_name,
+		"item_type": item_type,  # API expects snake_case value (e.g., "broken_satellite")
+		"item_name": _format_item_name(item_type),  # API expects formatted name (e.g., "Broken Satellite")
 		"quantity": quantity,
-		"price_per_unit": price_per_unit,
-		"total_price": quantity * price_per_unit,
-		"description": description,
-		"posted_at": Time.get_datetime_string_from_system()
+		"asking_price": price_per_unit,  # API expects asking_price (not price_per_item or price_per_unit)
+		"description": description
 	}
 
 	var url = TradingConfig.get_full_listings_url()
@@ -286,8 +285,8 @@ func can_sell_item(item_type: String, item_name: String, quantity: int) -> bool:
 		print("[TradingMarketplace] Cannot sell - insufficient quantity. Have %d, need %d" % [available_quantity, quantity])
 		return false
 
-	# Additional validation - only allow selling high-value items (≥100 credits value)
-	var item_value = _get_item_base_value(item_type)
+	# Get actual item value from inventory instead of hardcoded values
+	var item_value = _get_actual_item_value(inventory, item_type)
 	if item_value < 100:
 		print("[TradingMarketplace] Cannot sell - item value too low (%d credits). Minimum 100 credits." % item_value)
 		return false
@@ -304,10 +303,11 @@ func post_item_for_sale(item_type: String, item_name: String, quantity: int, ask
 		emit_signal("api_error", "Cannot sell item - validation failed")
 		return
 
-	# Validate asking price is reasonable (not too low or too high)
-	var item_value = _get_item_base_value(item_type)
-	var min_price = max(1, item_value * 0.5)  # Minimum 50% of base value
-	var max_price = item_value * 3.0  # Maximum 300% of base value
+	# Validate asking price is reasonable (not too low or too high) - use actual inventory value
+	var inventory = local_player_data.get_inventory()
+	var item_value = _get_actual_item_value(inventory, item_type)
+	var min_price = max(1, item_value * 0.5)  # Minimum 50% of actual value
+	var max_price = item_value * 3.0  # Maximum 300% of actual value
 
 	if asking_price < min_price:
 		emit_signal("api_error", "Asking price too low. Minimum: %d credits" % min_price)
@@ -317,9 +317,9 @@ func post_item_for_sale(item_type: String, item_name: String, quantity: int, ask
 		emit_signal("api_error", "Asking price too high. Maximum: %d credits" % max_price)
 		return
 
-	# Use existing post_listing method with proper description
+	# Use existing post_listing method with item_type (not item_name) and proper description
 	var description = "High-quality %s from player inventory" % item_name.replace("_", " ")
-	post_listing(item_name, quantity, asking_price, description)
+	post_listing(item_type, quantity, asking_price, description)  # Pass item_type (snake_case) not item_name (formatted)
 
 ## Purchase item from marketplace (wrapper for existing purchase_item method)
 func purchase_marketplace_item(listing_id: String, seller_id: String) -> bool:
@@ -384,18 +384,36 @@ func validate_marketplace_purchase(listing: Dictionary) -> Dictionary:
 	print("[TradingMarketplace] Purchase validation successful")
 	return result
 
-## Get base value of an item type for validation
-func _get_item_base_value(item_type: String) -> int:
-	# Define base values for different debris types
-	var base_values = {
+## Get actual value of an item type from player inventory
+func _get_actual_item_value(inventory: Array[Dictionary], item_type: String) -> int:
+	# Find the first item of this type in inventory and return its actual value
+	for item in inventory:
+		if item.get("type", "") == item_type:
+			return item.get("value", 0)
+
+	# Fallback to default values only if item not found in inventory
+	var default_values = {
 		"scrap_metal": 10,
-		"broken_satellite": 50,
+		"broken_satellite": 150,
 		"ai_component": 150,
 		"unknown_artifact": 500,
 		"quantum_core": 1000
 	}
+	return default_values.get(item_type, 50)
 
-	return base_values.get(item_type, 50)  # Default to 50 if unknown
+## Format item type to display name for API
+func _format_item_name(item_type: String) -> String:
+	# Convert snake_case item types to proper display names
+	var formatted_names = {
+		"scrap_metal": "Scrap Metal",
+		"broken_satellite": "Broken Satellite",
+		"ai_component": "AI Component",
+		"bio_waste": "Bio Waste",
+		"unknown_artifact": "Unknown Artifact",
+		"quantum_core": "Quantum Core"
+	}
+
+	return formatted_names.get(item_type, item_type.replace("_", " ").capitalize())
 
 ## Find listing by ID in current marketplace listings
 func _find_listing_by_id(listing_id: String) -> Dictionary:

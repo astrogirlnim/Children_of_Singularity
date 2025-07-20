@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://b6cqeexl126ff" path="res://assets/schlorp_guy_sprite.png" id="4_player_sprite"]
 [ext_resource type="Texture2D" uid="uid://bmxhgnlqpqujy" path="res://assets/computer_trading_hub_sprite.png" id="5_computer_sprite"]
 [ext_resource type="Theme" uid="uid://bq1qdtl0gehde" path="res://resources/themes/SpaceCustomTheme.tres" id="6_ui_theme"]
+[ext_resource type="Script" path="res://scripts/MuteButtonManager.gd" id="7_mute_button_manager"]
 
 [sub_resource type="RectangleShape2D" id="computer_collision_shape"]
 size = Vector2(585, 555)
@@ -107,6 +108,13 @@ shape = SubResource("SegmentShape2D_hirm4")
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 layer = 10
+
+[node name="MuteButtonManager" type="Control" parent="UILayer"]
+script = ExtResource("7_mute_button_manager")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 
 [node name="HUD" type="Control" parent="UILayer"]
 layout_mode = 3

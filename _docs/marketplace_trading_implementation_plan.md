@@ -133,18 +133,21 @@ Total: 360 credits
 **Dependencies**: Phase 1.2 complete ✅
 **✅ Success Criteria**: Players can see marketplace listings in centered layout
 
-#### Phase 1.4: Basic Item Posting 🔄 **IN PROGRESS**
-**Files to Modify:**
-- `scripts/LobbyZone2D.gd` - Implement item posting dialog
+#### Phase 1.4: Basic Item Posting ✅ **COMPLETE**
+**Files Modified:**
+- ✅ `scripts/LobbyZone2D.gd` - Item posting dialog implemented with actual inventory values
 
 **Tasks:**
-- [ ] Populate item selection dropdown with sellable inventory
-- [ ] Implement posting validation (ownership, quantity, price limits)
-- [ ] Add posting confirmation dialog
-- [ ] Implement item removal from local inventory on successful posting
-- [ ] Add posting success/failure feedback
+- [x] Populate item selection dropdown with sellable inventory
+- [x] Implement posting validation (ownership, quantity, price limits)
+- [x] Add posting confirmation dialog  
+- [x] Implement item removal from local inventory on successful posting
+- [x] Add posting success/failure feedback
+- [x] **FIXED:** Use actual inventory item values instead of hardcoded values
+- [x] **FIXED:** Inventory key mismatch issue (item_type vs formatted display names)
+- [x] **FIXED:** API field mismatch - API expects both item_type and item_name, plus asking_price
 
-**Current Status:** ⚠️ Post button shows placeholder: "Item posting dialog coming in Phase 1.4!"
+**✅ Implementation Complete:** Dialog with item selection, quantity/price controls, validation using real inventory values, proper key matching for API calls, and correct API field formatting
 
 **Posting Flow:**
 1. Player clicks "Post Item for Sale"
@@ -156,18 +159,18 @@ Total: 360 credits
 **Dependencies**: Phase 1.3 complete ✅
 **Success Criteria**: Players can post high-value debris for sale
 
-#### Phase 1.5: Basic Purchasing 🔄 **BACKEND COMPLETE, UI PENDING**
-**Files to Modify:**
-- `scripts/LobbyZone2D.gd` - Connect buy buttons and implement purchase flow
+#### Phase 1.5: Basic Purchasing ✅ **COMPLETE**
+**Files Modified:**
+- ✅ `scripts/LobbyZone2D.gd` - Buy buttons connected and purchase flow implemented
 
 **Tasks:**
-- [ ] Add purchase confirmation dialog
-- [ ] Implement credit validation before purchase
-- [ ] Add purchased item to local inventory
-- [ ] Handle purchase success/failure scenarios
-- [ ] Update marketplace display after successful purchase
+- [x] Add purchase confirmation dialog
+- [x] Implement credit validation before purchase
+- [x] Add purchased item to local inventory
+- [x] Handle purchase success/failure scenarios
+- [x] Update marketplace display after successful purchase
 
-**Current Status:** ✅ Backend purchase system fully implemented, ❌ UI buttons disabled
+**✅ Implementation Complete:** Buy buttons enabled with validation, purchase confirmation dialog, full purchase flow
 
 **✅ Backend Implementation Complete:**
 - `purchase_item()` method with optimistic credit holding
@@ -187,7 +190,7 @@ Total: 360 credits
 **Dependencies**: Phase 1.4 complete
 **Success Criteria**: Players can purchase items from marketplace
 
-**Phase 1 Current Status**: ✅ 75% Complete - UI foundation and API integration done, purchase/posting flows need UI completion
+**Phase 1 Current Status**: ✅ 100% COMPLETE - Full marketplace functionality with item posting, purchasing, real inventory value integration, and proper key matching
 
 ---
 

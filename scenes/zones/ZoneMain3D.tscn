@@ -13,6 +13,7 @@
 [ext_resource type="Theme" path="res://resources/themes/SpaceCustomTheme.tres" id="10_custom_theme"]
 [ext_resource type="Texture2D" path="res://assets/ui/lorge_border.png" id="11_border_image"]
 [ext_resource type="Script" path="res://scripts/ScreenSpaceBorderManager.gd" id="12_screen_border_script"]
+[ext_resource type="Script" path="res://scripts/MuteButtonManager.gd" id="13_mute_button_manager"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -102,6 +103,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -20)
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 layer = 10
+
+[node name="MuteButtonManager" type="Control" parent="UILayer"]
+script = ExtResource("13_mute_button_manager")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 
 [node name="ScreenSpaceBorder" type="Control" parent="UILayer"]
 script = ExtResource("12_screen_border_script")
