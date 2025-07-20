@@ -909,8 +909,8 @@ func _create_thrust_particles(level: int) -> void:
 	var blend_factor = min(level / 5.0, 1.0)
 	material.color = base_color.lerp(boost_color, blend_factor)
 
-	material.amount = int(50 + (level * 20))  # More particles at higher levels
 	particles.process_material = material
+	particles.amount = int(50 + (level * 20))  # More particles at higher levels
 	particles.lifetime = 1.0
 
 	# Position behind the ship

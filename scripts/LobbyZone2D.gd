@@ -66,8 +66,15 @@ signal lobby_exit_requested()
 @onready var clear_upgrades_container: HBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer
 @onready var clear_upgrades_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/BUY/UpgradeContent/ClearUpgradesContainer/ClearUpgradesButton
 
-# MARKETPLACE Tab UI references (future feature)
+# MARKETPLACE Tab UI references - Phase 1.1 Implementation
 @onready var marketplace_tab: Control = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE
+@onready var marketplace_content: VBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent
+@onready var marketplace_status_label: Label = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceStatus
+@onready var marketplace_listings_scroll: ScrollContainer = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceListings
+@onready var marketplace_listings_container: GridContainer = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceListings/MarketplaceGrid
+@onready var marketplace_controls: HBoxContainer = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceControls
+@onready var marketplace_refresh_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceControls/RefreshButton
+@onready var post_item_button: Button = $UILayer/HUD/TradingInterface/TradingTabs/MARKETPLACE/MarketplaceContent/MarketplaceControls/SellItemButton
 
 # System references - will be set from LocalPlayerData
 var inventory_manager: Node
@@ -80,6 +87,39 @@ var current_selected_upgrade: String = ""
 var current_upgrade_cost: int = 0
 var upgrade_buttons: Dictionary = {}  # Store upgrade button references
 var trading_interface_open: bool = false
+
+# Marketplace state variables - Phase 1.1 Implementation
+var marketplace_listings: Array[Dictionary] = []  # Store current marketplace listings
+var marketplace_loading: bool = false
+var marketplace_last_refresh: float = 0.0
+var marketplace_refresh_cooldown: float = 2.0  # Minimum seconds between refreshes
+
+# Phase 1.4: Item posting dialog variables
+var posting_dialog: AcceptDialog
+var posting_item_dropdown: OptionButton
+var posting_quantity_spinbox: SpinBox
+var posting_price_spinbox: SpinBox
+var posting_confirm_button: Button
+var posting_total_label: Label
+var posting_validation_label: Label
+var posting_dialog_initialized: bool = false
+
+# Phase 1.5: Purchase confirmation dialog variables
+var purchase_dialog: AcceptDialog
+var purchase_item_label: Label
+var purchase_seller_label: Label
+var purchase_price_label: Label
+var purchase_confirm_button: Button
+var purchase_current_listing: Dictionary = {}
+var purchase_dialog_initialized: bool = false
+
+# Listing removal dialog variables
+var removal_dialog: AcceptDialog
+var removal_item_label: Label
+var removal_price_label: Label
+var removal_confirm_button: Button
+var removal_current_listing: Dictionary = {}
+var removal_dialog_initialized: bool = false
 
 # Selective trading UI elements (will be created dynamically)
 var debris_selection_container: ScrollContainer
@@ -181,6 +221,16 @@ func _verify_essential_nodes() -> bool:
 	if not stats_panel: missing_nodes.append("stats_panel")
 	if not upgrade_status_panel: missing_nodes.append("upgrade_status_panel")
 	if not controls_panel: missing_nodes.append("controls_panel")
+
+	# Check marketplace UI references - Phase 1.1
+	if not marketplace_tab: missing_nodes.append("marketplace_tab")
+	if not marketplace_content: missing_nodes.append("marketplace_content")
+	if not marketplace_status_label: missing_nodes.append("marketplace_status_label")
+	if not marketplace_listings_scroll: missing_nodes.append("marketplace_listings_scroll")
+	if not marketplace_listings_container: missing_nodes.append("marketplace_listings_container")
+	if not marketplace_controls: missing_nodes.append("marketplace_controls")
+	if not marketplace_refresh_button: missing_nodes.append("marketplace_refresh_button")
+	if not post_item_button: missing_nodes.append("post_item_button")
 
 	if missing_nodes.size() > 0:
 		print("[LobbyZone2D] MISSING NODES: ", missing_nodes)
@@ -417,6 +467,40 @@ func _connect_trading_interface_buttons() -> void:
 		if not trading_close_button.pressed.is_connected(_on_trading_close_pressed):
 			trading_close_button.pressed.connect(_on_trading_close_pressed)
 			print("[LobbyZone2D] Connected trading_close_button")
+
+	# MARKETPLACE Tab button connections - Phase 1.1 Implementation
+	if marketplace_refresh_button:
+		if not marketplace_refresh_button.pressed.is_connected(_on_marketplace_refresh_pressed):
+			marketplace_refresh_button.pressed.connect(_on_marketplace_refresh_pressed)
+			print("[LobbyZone2D] Connected marketplace_refresh_button")
+
+	if post_item_button:
+		if not post_item_button.pressed.is_connected(_on_post_item_pressed):
+			post_item_button.pressed.connect(_on_post_item_pressed)
+			print("[LobbyZone2D] Connected post_item_button")
+
+	# CRITICAL FIX: Connect TradingMarketplace signals during initialization
+	if TradingMarketplace:
+		# Connect marketplace signals if not already connected
+		if not TradingMarketplace.listings_received.is_connected(_on_marketplace_listings_received):
+			TradingMarketplace.listings_received.connect(_on_marketplace_listings_received)
+			print("[LobbyZone2D] Connected TradingMarketplace listings_received signal")
+
+		if not TradingMarketplace.listing_posted.is_connected(_on_item_posting_result):
+			TradingMarketplace.listing_posted.connect(_on_item_posting_result)
+			print("[LobbyZone2D] Connected TradingMarketplace listing_posted signal")
+
+		if not TradingMarketplace.listing_removed.is_connected(_on_listing_removal_result):
+			TradingMarketplace.listing_removed.connect(_on_listing_removal_result)
+			print("[LobbyZone2D] Connected TradingMarketplace listing_removed signal")
+
+		if not TradingMarketplace.item_purchased.is_connected(_on_item_purchase_result):
+			TradingMarketplace.item_purchased.connect(_on_item_purchase_result)
+			print("[LobbyZone2D] Connected TradingMarketplace item_purchased signal")
+
+		if not TradingMarketplace.api_error.is_connected(_on_marketplace_api_error):
+			TradingMarketplace.api_error.connect(_on_marketplace_api_error)
+			print("[LobbyZone2D] Connected TradingMarketplace api_error signal")
 
 	print("[LobbyZone2D] All trading interface buttons connected successfully")
 
@@ -1119,6 +1203,9 @@ func _interact_with_computer() -> void:
 		# CRITICAL FIX: Populate selective debris selection UI when interface opens
 		_populate_debris_selection_ui()
 
+		# Phase 1.1: Initialize marketplace when trading interface opens
+		_initialize_marketplace_interface()
+
 		# Set trading interface title
 		if trading_title:
 			trading_title.text = "TRADING TERMINAL - LOBBY"
@@ -1194,6 +1281,759 @@ func return_to_3d_world() -> void:
 
 	# Change scene back to 3D zone
 	get_tree().change_scene_to_file("res://scenes/zones/ZoneMain3D.tscn")
+
+## MARKETPLACE BUTTON HANDLERS - Phase 1.1 Implementation
+
+func _on_marketplace_refresh_pressed() -> void:
+	##Handle marketplace refresh button press
+	print("[LobbyZone2D] Marketplace refresh button pressed")
+
+	# Rate limiting - prevent spam refreshes
+	var current_time = Time.get_time_dict_from_system()
+	var current_timestamp = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
+
+	if current_timestamp - marketplace_last_refresh < marketplace_refresh_cooldown:
+		var remaining = marketplace_refresh_cooldown - (current_timestamp - marketplace_last_refresh)
+		_update_marketplace_status("Please wait %.1f seconds before refreshing again" % remaining, Color.YELLOW)
+		return
+
+	marketplace_last_refresh = current_timestamp
+	_refresh_marketplace_listings()
+
+func _on_post_item_pressed() -> void:
+	##Handle post item button press
+	print("[LobbyZone2D] Post item button pressed")
+
+	if not LocalPlayerData or not LocalPlayerData.is_initialized:
+		_update_marketplace_status("Player data not available!", Color.RED)
+		return
+
+	var inventory = LocalPlayerData.get_inventory()
+	if inventory.is_empty():
+		_update_marketplace_status("No items in inventory to sell!\n\nCollect debris in the 3D world first.", Color.YELLOW)
+		return
+
+	# Phase 1.4: Show item posting dialog
+	_show_item_posting_dialog()
+
+func _show_item_posting_dialog() -> void:
+	##Show the item posting dialog for Phase 1.4
+	print("[LobbyZone2D] Opening item posting dialog")
+
+	# Initialize dialog if not done yet
+	if not posting_dialog_initialized:
+		_initialize_posting_dialog()
+
+	# INVENTORY VALIDATION ENHANCEMENT: Refresh listings cache for accurate validation
+	if TradingMarketplace:
+		print("[LobbyZone2D] Refreshing marketplace cache before posting dialog")
+		TradingMarketplace.refresh_listings_for_validation()
+		# Wait a brief moment for cache refresh, then populate
+		await get_tree().create_timer(0.5).timeout
+
+	# Populate with current inventory
+	_populate_posting_dialog()
+
+	# Show the dialog
+	if posting_dialog:
+		posting_dialog.popup_centered()
+
+func _initialize_posting_dialog() -> void:
+	##Initialize the item posting dialog UI (Phase 1.4)
+	print("[LobbyZone2D] Initializing item posting dialog")
+
+	# Create main dialog
+	posting_dialog = AcceptDialog.new()
+	posting_dialog.title = "Post Item for Sale"
+	posting_dialog.size = Vector2(450, 350)
+	posting_dialog.unresizable = false
+
+	# Main container
+	var dialog_vbox = VBoxContainer.new()
+	dialog_vbox.add_theme_constant_override("separation", 15)
+	posting_dialog.add_child(dialog_vbox)
+
+	# Title label
+	var title_label = Label.new()
+	title_label.text = "Select an item to post for sale:"
+	title_label.add_theme_font_size_override("font_size", 16)
+	title_label.add_theme_color_override("font_color", Color.CYAN)
+	dialog_vbox.add_child(title_label)
+
+	# Item selection
+	var item_container = HBoxContainer.new()
+	var item_label = Label.new()
+	item_label.text = "Item:"
+	item_label.custom_minimum_size = Vector2(80, 0)
+	posting_item_dropdown = OptionButton.new()
+	posting_item_dropdown.custom_minimum_size = Vector2(250, 30)
+	posting_item_dropdown.item_selected.connect(_on_posting_item_selected)
+	item_container.add_child(item_label)
+	item_container.add_child(posting_item_dropdown)
+	dialog_vbox.add_child(item_container)
+
+	# Quantity selection
+	var quantity_container = HBoxContainer.new()
+	var quantity_label = Label.new()
+	quantity_label.text = "Quantity:"
+	quantity_label.custom_minimum_size = Vector2(80, 0)
+	posting_quantity_spinbox = SpinBox.new()
+	posting_quantity_spinbox.min_value = 1
+	posting_quantity_spinbox.max_value = 999
+	posting_quantity_spinbox.value = 1
+	posting_quantity_spinbox.custom_minimum_size = Vector2(100, 30)
+	posting_quantity_spinbox.value_changed.connect(_on_posting_quantity_changed)
+	quantity_container.add_child(quantity_label)
+	quantity_container.add_child(posting_quantity_spinbox)
+	dialog_vbox.add_child(quantity_container)
+
+	# Price per unit selection
+	var price_container = HBoxContainer.new()
+	var price_label = Label.new()
+	price_label.text = "Price Each:"
+	price_label.custom_minimum_size = Vector2(80, 0)
+	posting_price_spinbox = SpinBox.new()
+	posting_price_spinbox.min_value = 1
+	posting_price_spinbox.max_value = 10000
+	posting_price_spinbox.value = 100
+	posting_price_spinbox.custom_minimum_size = Vector2(100, 30)
+	posting_price_spinbox.value_changed.connect(_on_posting_price_changed)
+	var credits_suffix = Label.new()
+	credits_suffix.text = " credits"
+	price_container.add_child(price_label)
+	price_container.add_child(posting_price_spinbox)
+	price_container.add_child(credits_suffix)
+	dialog_vbox.add_child(price_container)
+
+	# Total price display
+	posting_total_label = Label.new()
+	posting_total_label.text = "Total: 100 credits"
+	posting_total_label.add_theme_color_override("font_color", Color.YELLOW)
+	posting_total_label.add_theme_font_size_override("font_size", 14)
+	posting_total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dialog_vbox.add_child(posting_total_label)
+
+	# Validation message area
+	posting_validation_label = Label.new()
+	posting_validation_label.text = ""
+	posting_validation_label.add_theme_color_override("font_color", Color.RED)
+	posting_validation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	posting_validation_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	posting_validation_label.custom_minimum_size = Vector2(0, 40)
+	dialog_vbox.add_child(posting_validation_label)
+
+	# Buttons
+	var button_container = HBoxContainer.new()
+	button_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	var cancel_button = Button.new()
+	cancel_button.text = "Cancel"
+	cancel_button.custom_minimum_size = Vector2(100, 35)
+	cancel_button.pressed.connect(_on_posting_cancel_pressed)
+	posting_confirm_button = Button.new()
+	posting_confirm_button.text = "Post for Sale"
+	posting_confirm_button.custom_minimum_size = Vector2(120, 35)
+	posting_confirm_button.pressed.connect(_on_posting_confirm_pressed)
+	button_container.add_child(cancel_button)
+	button_container.add_child(posting_confirm_button)
+	dialog_vbox.add_child(button_container)
+
+	# Add to scene
+	ui_layer.add_child(posting_dialog)
+	posting_dialog_initialized = true
+
+	print("[LobbyZone2D] Item posting dialog initialized")
+
+func _populate_posting_dialog() -> void:
+	##Populate the posting dialog with sellable inventory items
+	print("[LobbyZone2D] Populating posting dialog with inventory")
+
+	if not posting_item_dropdown or not LocalPlayerData:
+		return
+
+	posting_item_dropdown.clear()
+
+	# Get inventory and group by item type
+	var inventory = LocalPlayerData.get_inventory()
+	var item_counts = {}
+
+	for item in inventory:
+		var item_type = item.get("type", "")
+		if item_type != "":
+			item_counts[item_type] = item_counts.get(item_type, 0) + item.get("quantity", 0)
+
+	# Check which items can be sold (using enhanced TradingMarketplace validation)
+	var sellable_items = []
+	for item_type in item_counts:
+		var inventory_quantity = item_counts[item_type]
+		if TradingMarketplace and TradingMarketplace.can_sell_item(item_type, item_type, 1):
+			var display_name = _format_item_name(item_type)
+
+			# INVENTORY VALIDATION ENHANCEMENT: Show available quantity accounting for already-listed items
+			var validation_result = TradingMarketplace.can_sell_item_enhanced(item_type, 1)
+			var available_to_list = validation_result.get("available_to_list", inventory_quantity)
+			var listed_quantity = TradingMarketplace.get_player_listed_quantity(item_type)
+
+			# Enhanced display with listing information
+			var display_text = "%s (%d in inventory, %d listed, %d available)" % [display_name, inventory_quantity, listed_quantity, available_to_list]
+			posting_item_dropdown.add_item(display_text)
+			posting_item_dropdown.set_item_metadata(posting_item_dropdown.get_item_count() - 1, {
+				"type": item_type,
+				"available": available_to_list,  # Use available_to_list instead of raw inventory
+				"inventory_total": inventory_quantity,
+				"already_listed": listed_quantity,
+				"base_value": _get_actual_item_value_for_dialog(inventory, item_type)
+			})
+			sellable_items.append(item_type)
+
+			print("[LobbyZone2D] ENHANCED VALIDATION - %s: %d inventory, %d listed, %d available to list" % [item_type, inventory_quantity, listed_quantity, available_to_list])
+
+	if sellable_items.is_empty():
+		posting_item_dropdown.add_item("No sellable items (need 100+ credit value items)")
+		posting_item_dropdown.disabled = true
+		posting_confirm_button.disabled = true
+		posting_validation_label.text = "Collect high-value debris in the 3D world first!"
+	else:
+		posting_item_dropdown.disabled = false
+		posting_confirm_button.disabled = false
+		posting_validation_label.text = ""
+		# Select first item and update price suggestions
+		if posting_item_dropdown.get_item_count() > 0:
+			posting_item_dropdown.selected = 0
+			_on_posting_item_selected(0)
+
+func _on_posting_item_selected(index: int) -> void:
+	##Handle item selection in posting dialog
+	if not posting_item_dropdown or index < 0 or index >= posting_item_dropdown.get_item_count():
+		return
+
+	var item_data = posting_item_dropdown.get_item_metadata(index)
+	if not item_data:
+		return
+
+	var available_quantity = item_data.get("available", 1)
+	var base_value = item_data.get("base_value", 100)
+
+	# Update quantity limits
+	posting_quantity_spinbox.max_value = available_quantity
+	posting_quantity_spinbox.value = min(posting_quantity_spinbox.value, available_quantity)
+
+	# Suggest a reasonable price (base value + 25%)
+	var suggested_price = int(base_value * 1.25)
+	posting_price_spinbox.value = suggested_price
+
+	_update_posting_dialog_validation()
+
+func _on_posting_quantity_changed(value: float) -> void:
+	##Handle quantity change in posting dialog
+	_update_posting_dialog_validation()
+
+func _on_posting_price_changed(value: float) -> void:
+	##Handle price change in posting dialog
+	_update_posting_dialog_validation()
+
+func _update_posting_dialog_validation() -> void:
+	##Update validation and total price in posting dialog
+	if not posting_item_dropdown or not posting_quantity_spinbox or not posting_price_spinbox:
+		return
+
+	var selected_index = posting_item_dropdown.selected
+	if selected_index < 0:
+		return
+
+	var item_data = posting_item_dropdown.get_item_metadata(selected_index)
+	if not item_data:
+		return
+
+	var item_type = item_data.get("type", "")
+	var available_quantity = item_data.get("available", 1)
+	var base_value = item_data.get("base_value", 100)
+	var quantity = int(posting_quantity_spinbox.value)
+	var price_each = int(posting_price_spinbox.value)
+	var total_price = quantity * price_each
+
+	# Update total label
+	posting_total_label.text = "Total: %d credits (%d × %d)" % [total_price, quantity, price_each]
+
+	# Validate price range using actual item value (same as backend)
+	var min_price = max(1, base_value * 0.5)
+	var max_price = base_value * 3.0
+	var validation_message = ""
+
+	if quantity > available_quantity:
+		validation_message = "Quantity exceeds available items!"
+		posting_confirm_button.disabled = true
+	elif price_each < min_price:
+		validation_message = "Price too low! Minimum: %d credits" % min_price
+		posting_confirm_button.disabled = true
+	elif price_each > max_price:
+		validation_message = "Price too high! Maximum: %d credits" % max_price
+		posting_confirm_button.disabled = true
+	else:
+		validation_message = "Ready to post!"
+		posting_validation_label.add_theme_color_override("font_color", Color.GREEN)
+		posting_confirm_button.disabled = false
+
+	posting_validation_label.text = validation_message
+
+func _on_posting_confirm_pressed() -> void:
+	##Handle confirm button in posting dialog
+	print("[LobbyZone2D] Confirming item posting")
+
+	var selected_index = posting_item_dropdown.selected
+	if selected_index < 0:
+		return
+
+	var item_data = posting_item_dropdown.get_item_metadata(selected_index)
+	var item_type = item_data.get("type", "")
+	var item_name = _format_item_name(item_type)
+	var quantity = int(posting_quantity_spinbox.value)
+	var price_each = int(posting_price_spinbox.value)
+
+	print("[LobbyZone2D] Posting %d %s for %d credits each" % [quantity, item_name, price_each])
+
+	# CRITICAL FIX: Remove conditional signal connections - they're now connected during initialization
+	if TradingMarketplace:
+		# FIXED: Pass the original item_type (key) for inventory validation, not the formatted name
+		TradingMarketplace.post_item_for_sale(item_type, item_type, quantity, price_each)
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+		_update_marketplace_status("Trading system not available", Color.RED)
+		return
+
+	# Close dialog
+	posting_dialog.hide()
+
+	# Show posting status
+	_update_marketplace_status("Posting item for sale...", Color.WHITE)
+
+func _on_posting_cancel_pressed() -> void:
+	##Handle cancel button in posting dialog
+	print("[LobbyZone2D] Cancelling item posting")
+	posting_dialog.hide()
+
+func _on_item_posting_result(success: bool, listing_id: String) -> void:
+	##Handle result of item posting
+	print("[LobbyZone2D] Item posting result - Success: %s, ID: %s" % [success, listing_id])
+
+	if success:
+		_update_marketplace_status("Item posted successfully! ID: %s" % listing_id, Color.GREEN)
+		# Refresh marketplace to show new listing
+		_refresh_marketplace_listings()
+	else:
+		_update_marketplace_status("Failed to post item. Please try again.", Color.RED)
+
+func _get_actual_item_value_for_dialog(inventory: Array[Dictionary], item_type: String) -> int:
+	##Get actual value for item type from inventory (no hardcoded values)
+	# Find the first item of this type in inventory and return its actual value
+	for item in inventory:
+		if item.get("type", "") == item_type:
+			return item.get("value", 0)
+
+	# Fallback to default values only if item not found in inventory
+	var default_values = {
+		"scrap_metal": 10,
+		"broken_satellite": 150,
+		"ai_component": 150,
+		"unknown_artifact": 500,
+		"quantum_core": 1000
+	}
+	return default_values.get(item_type, 50)
+
+func _refresh_marketplace_listings() -> void:
+	##Refresh marketplace listings from the API
+	print("[LobbyZone2D] Refreshing marketplace listings...")
+
+	if marketplace_loading:
+		print("[LobbyZone2D] Marketplace refresh already in progress")
+		return
+
+	marketplace_loading = true
+	_update_marketplace_status("Loading marketplace listings...", Color.WHITE)
+
+	# Get listings from TradingMarketplace API
+	if TradingMarketplace:
+		# CRITICAL FIX: Remove conditional signal connections - they're now connected during initialization
+		# Signals are already connected, just call the API method
+		TradingMarketplace.get_marketplace_listings()
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+		marketplace_loading = false
+		_update_marketplace_status("Marketplace system not available", Color.RED)
+
+func _on_marketplace_listings_received(listings: Array[Dictionary]) -> void:
+	##Handle marketplace listings received from API
+	print("[LobbyZone2D] Received %d marketplace listings" % listings.size())
+
+	marketplace_loading = false
+	marketplace_listings = listings
+	_populate_marketplace_listings()
+
+func _on_marketplace_api_error(error_message: String) -> void:
+	##Handle marketplace API error
+	print("[LobbyZone2D] Marketplace API error: %s" % error_message)
+
+	marketplace_loading = false
+
+	# Check if this is a connection error (API unavailable) vs API error
+	if error_message.find("code 0") != -1 or error_message.find("Failed to send") != -1:
+		# Check if we have a configured AWS endpoint (real API)
+		var api_url = TradingConfig.get_api_base_url()
+		if api_url.contains("your-api-gateway-id") or api_url.contains("your-region"):
+			# Default/template URL - show mock data for development
+			print("[LobbyZone2D] Using mock data (API template URL not configured)")
+			_show_mock_marketplace_data()
+		else:
+			# Real AWS URL configured but not responding - show connection error
+			_update_marketplace_status("Cannot connect to trading API\nCheck your internet connection", Color.RED)
+	else:
+		_update_marketplace_status("Error loading marketplace: %s" % error_message, Color.RED)
+
+func _populate_marketplace_listings() -> void:
+	##Populate the marketplace UI with current listings
+	print("[LobbyZone2D] Populating marketplace with %d listings" % marketplace_listings.size())
+
+	if not marketplace_listings_container:
+		print("[LobbyZone2D] ERROR: Marketplace listings container not found")
+		return
+
+	# Clear existing listings
+	for child in marketplace_listings_container.get_children():
+		child.queue_free()
+
+	if marketplace_listings.is_empty():
+		_update_marketplace_status("No items for sale in the marketplace", Color.GRAY)
+		_add_no_listings_message()
+		return
+
+	# Create centering structure like the upgrades panel
+	var center_container = CenterContainer.new()
+	center_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var listings_grid = GridContainer.new()
+	listings_grid.columns = 1
+	listings_grid.add_theme_constant_override("v_separation", 10)
+
+	center_container.add_child(listings_grid)
+	marketplace_listings_container.add_child(center_container)
+
+	print("[LobbyZone2D] Created centered structure for marketplace listings")
+
+	# Add each listing to the centered grid
+	for listing in marketplace_listings:
+		_create_marketplace_listing_item_for_grid(listing, listings_grid)
+
+	_update_marketplace_status("Marketplace loaded - %d items available" % marketplace_listings.size(), Color.GREEN)
+
+func _create_marketplace_listing_item(listing: Dictionary) -> void:
+	##Create a UI item for a marketplace listing
+	var listing_container = PanelContainer.new()
+	listing_container.custom_minimum_size = Vector2(400, 120)
+	listing_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Add a subtle background panel
+	var style_box = StyleBoxFlat.new()
+	style_box.bg_color = Color(0.1, 0.1, 0.15, 0.8)
+	style_box.border_color = Color(0.2, 0.4, 0.6, 0.6)
+	style_box.border_width_left = 2
+	style_box.border_width_right = 2
+	style_box.border_width_top = 2
+	style_box.border_width_bottom = 2
+	style_box.corner_radius_top_left = 8
+	style_box.corner_radius_top_right = 8
+	style_box.corner_radius_bottom_left = 8
+	style_box.corner_radius_bottom_right = 8
+	listing_container.add_theme_stylebox_override("panel", style_box)
+
+	# Main content container
+	var content_vbox = VBoxContainer.new()
+	content_vbox.add_theme_constant_override("separation", 8)
+	listing_container.add_child(content_vbox)
+
+	# Item name and quantity
+	var item_label = Label.new()
+	var item_name = listing.get("item_name", "Unknown Item")
+	var quantity = listing.get("quantity", 1)
+	var display_name = _format_item_name(item_name)
+	item_label.text = "[%s] x%d" % [display_name, quantity]
+	item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	item_label.add_theme_color_override("font_color", Color.CYAN)
+	item_label.add_theme_font_size_override("font_size", 16)
+	content_vbox.add_child(item_label)
+
+	# Seller info
+	var seller_label = Label.new()
+	var seller_name = listing.get("seller_name", "Unknown")
+	seller_label.text = "Seller: %s" % seller_name
+	seller_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	seller_label.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	seller_label.add_theme_font_size_override("font_size", 12)
+	content_vbox.add_child(seller_label)
+
+	# Price info - FIXED: Use asking_price and calculate total properly
+	var price_label = Label.new()
+	var asking_price = listing.get("asking_price", 0)
+	var total_price = asking_price * quantity
+
+	if quantity > 1:
+		price_label.text = "Price: %d credits each\nTotal: %d credits" % [asking_price, total_price]
+	else:
+		price_label.text = "Price: %d credits" % total_price
+
+	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	price_label.add_theme_color_override("font_color", Color.YELLOW)
+	price_label.add_theme_font_size_override("font_size", 14)
+	content_vbox.add_child(price_label)
+
+	# Buy button (Phase 1.5: Now enabled with purchase confirmation)
+	var buy_button = Button.new()
+	buy_button.text = "BUY NOW"
+	buy_button.custom_minimum_size = Vector2(120, 30)
+
+	# Phase 1.5: Enable buy button and connect to purchase handler
+	var can_purchase = _validate_listing_purchase(listing)
+	buy_button.disabled = not can_purchase.success
+
+	if can_purchase.success:
+		buy_button.pressed.connect(_on_buy_button_pressed.bind(listing))
+		buy_button.add_theme_color_override("font_color", Color.GREEN)
+	else:
+		buy_button.tooltip_text = can_purchase.error_message
+		buy_button.add_theme_color_override("font_color", Color.GRAY)
+
+	# Style the button
+	var button_style = StyleBoxFlat.new()
+	button_style.bg_color = Color(0.2, 0.2, 0.3, 0.8) if can_purchase.success else Color(0.15, 0.15, 0.2, 0.6)
+	button_style.border_color = Color(0.3, 0.3, 0.4) if can_purchase.success else Color(0.2, 0.2, 0.3)
+	button_style.border_width_left = 1
+	button_style.border_width_right = 1
+	button_style.border_width_top = 1
+	button_style.border_width_bottom = 1
+	buy_button.add_theme_stylebox_override("normal", button_style)
+
+	content_vbox.add_child(buy_button)
+
+	# Create a container for this listing with separator
+	var listing_wrapper = VBoxContainer.new()
+	listing_wrapper.add_child(listing_container)
+
+	# Add separator like the upgrades panel
+	var separator = HSeparator.new()
+	separator.custom_minimum_size = Vector2(0, 5)
+	listing_wrapper.add_child(separator)
+
+	marketplace_listings_container.add_child(listing_wrapper)
+
+func _create_marketplace_listing_item_for_grid(listing: Dictionary, target_grid: GridContainer) -> void:
+	##Create a UI item for a marketplace listing and add it to the specified grid
+	var listing_container = PanelContainer.new()
+	listing_container.custom_minimum_size = Vector2(400, 120)
+	listing_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Add a subtle background panel
+	var style_box = StyleBoxFlat.new()
+	style_box.bg_color = Color(0.1, 0.1, 0.15, 0.8)
+	style_box.border_color = Color(0.2, 0.4, 0.6, 0.6)
+	style_box.border_width_left = 2
+	style_box.border_width_right = 2
+	style_box.border_width_top = 2
+	style_box.border_width_bottom = 2
+	style_box.corner_radius_top_left = 8
+	style_box.corner_radius_top_right = 8
+	style_box.corner_radius_bottom_left = 8
+	style_box.corner_radius_bottom_right = 8
+	listing_container.add_theme_stylebox_override("panel", style_box)
+
+	# Main content container
+	var content_vbox = VBoxContainer.new()
+	content_vbox.add_theme_constant_override("separation", 8)
+	listing_container.add_child(content_vbox)
+
+	# Item name and quantity
+	var item_label = Label.new()
+	var item_name = listing.get("item_name", "Unknown Item")
+	var quantity = listing.get("quantity", 1)
+	var display_name = _format_item_name(item_name)
+	item_label.text = "[%s] x%d" % [display_name, quantity]
+	item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	item_label.add_theme_color_override("font_color", Color.CYAN)
+	item_label.add_theme_font_size_override("font_size", 16)
+	content_vbox.add_child(item_label)
+
+	# Seller info
+	var seller_label = Label.new()
+	var seller_name = listing.get("seller_name", "Unknown")
+	seller_label.text = "Seller: %s" % seller_name
+	seller_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	seller_label.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	seller_label.add_theme_font_size_override("font_size", 12)
+	content_vbox.add_child(seller_label)
+
+	# Price info - FIXED: Use asking_price and calculate total properly
+	var price_label = Label.new()
+	var asking_price = listing.get("asking_price", 0)
+	var total_price = asking_price * quantity
+
+	if quantity > 1:
+		price_label.text = "Price: %d credits each\nTotal: %d credits" % [asking_price, total_price]
+	else:
+		price_label.text = "Price: %d credits" % total_price
+
+	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	price_label.add_theme_color_override("font_color", Color.YELLOW)
+	price_label.add_theme_font_size_override("font_size", 14)
+	content_vbox.add_child(price_label)
+
+	# Action button - either BUY or REMOVE depending on ownership
+	var action_button = Button.new()
+	action_button.custom_minimum_size = Vector2(120, 30)
+
+	# Check if this is the player's own listing
+	var seller_id = listing.get("seller_id", "")
+	var player_id = LocalPlayerData.get_player_id() if LocalPlayerData else ""
+	var is_own_listing = (seller_id == player_id)
+
+	if is_own_listing:
+		# Show REMOVE LISTING button for own listings
+		action_button.text = "REMOVE LISTING"
+		action_button.pressed.connect(_on_remove_button_pressed.bind(listing))
+		action_button.add_theme_color_override("font_color", Color.ORANGE)
+		action_button.tooltip_text = "Remove your listing from marketplace"
+
+		# Style for remove button
+		var remove_style = StyleBoxFlat.new()
+		remove_style.bg_color = Color(0.3, 0.2, 0.1, 0.8)
+		remove_style.border_color = Color(0.4, 0.3, 0.2)
+		remove_style.border_width_left = 1
+		remove_style.border_width_right = 1
+		remove_style.border_width_top = 1
+		remove_style.border_width_bottom = 1
+		action_button.add_theme_stylebox_override("normal", remove_style)
+	else:
+		# Show BUY button for other players' listings (Phase 1.5: Now enabled with purchase confirmation)
+		action_button.text = "BUY NOW"
+
+		# Phase 1.5: Enable buy button and connect to purchase handler
+		var can_purchase = _validate_listing_purchase(listing)
+		action_button.disabled = not can_purchase.success
+
+		if can_purchase.success:
+			action_button.pressed.connect(_on_buy_button_pressed.bind(listing))
+			action_button.add_theme_color_override("font_color", Color.GREEN)
+		else:
+			action_button.tooltip_text = can_purchase.error_message
+			action_button.add_theme_color_override("font_color", Color.GRAY)
+
+		# Style for buy button
+		var buy_style = StyleBoxFlat.new()
+		buy_style.bg_color = Color(0.2, 0.2, 0.3, 0.8) if can_purchase.success else Color(0.15, 0.15, 0.2, 0.6)
+		buy_style.border_color = Color(0.3, 0.3, 0.4) if can_purchase.success else Color(0.2, 0.2, 0.3)
+		buy_style.border_width_left = 1
+		buy_style.border_width_right = 1
+		buy_style.border_width_top = 1
+		buy_style.border_width_bottom = 1
+		action_button.add_theme_stylebox_override("normal", buy_style)
+
+	content_vbox.add_child(action_button)
+
+	# Create a container for this listing with separator (like upgrades panel)
+	var listing_wrapper = VBoxContainer.new()
+	listing_wrapper.add_child(listing_container)
+
+	# Add separator like the upgrades panel
+	var separator = HSeparator.new()
+	separator.custom_minimum_size = Vector2(0, 5)
+	listing_wrapper.add_child(separator)
+
+	target_grid.add_child(listing_wrapper)
+
+func _update_marketplace_status(message: String, color: Color) -> void:
+	##Update marketplace status display
+	if marketplace_status_label:
+		marketplace_status_label.text = message
+		marketplace_status_label.modulate = color
+		print("[LobbyZone2D] Marketplace status: %s" % message)
+
+func _initialize_marketplace_interface() -> void:
+	##Initialize marketplace interface when trading interface opens
+	print("[LobbyZone2D] Initializing marketplace interface")
+
+	# Set initial marketplace status
+	_update_marketplace_status("Marketplace ready - Click REFRESH to load listings", Color.WHITE)
+
+	# Clear any existing listings
+	if marketplace_listings_container:
+		for child in marketplace_listings_container.get_children():
+			child.queue_free()
+
+	# Reset marketplace state
+	marketplace_listings.clear()
+	marketplace_loading = false
+
+	print("[LobbyZone2D] Marketplace interface initialized")
+
+func _show_mock_marketplace_data() -> void:
+	##Show mock marketplace data for development/testing when API is unavailable
+	print("[LobbyZone2D] Mock data disabled - showing empty marketplace")
+
+	# Clear mock marketplace listings (no test data)
+	marketplace_listings = []
+
+	# Populate the UI with empty data (will show "no listings" message)
+	_populate_marketplace_listings()
+
+	# Update status to indicate API is unavailable but no mock data
+	_update_marketplace_status("Marketplace unavailable - API not configured", Color.ORANGE)
+
+func _add_no_listings_message() -> void:
+	##Add a message when no listings are available
+	if not marketplace_listings_container:
+		return
+
+	# Create the same centering structure as regular listings
+	var center_container = CenterContainer.new()
+	center_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var message_grid = GridContainer.new()
+	message_grid.columns = 1
+
+	var message_wrapper = VBoxContainer.new()
+	message_wrapper.custom_minimum_size = Vector2(400, 200)
+	message_wrapper.add_theme_constant_override("separation", 10)
+
+	# Main message
+	var no_listings_label = Label.new()
+	no_listings_label.text = "No items for sale in the marketplace"
+	no_listings_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	no_listings_label.add_theme_color_override("font_color", Color.YELLOW)
+	no_listings_label.add_theme_font_size_override("font_size", 18)
+	message_wrapper.add_child(no_listings_label)
+
+	# Helpful tip
+	var tip_label = Label.new()
+	tip_label.text = "Be the first to post something for sale!\nCollect valuable debris in the 3D world and return here to trade."
+	tip_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tip_label.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	tip_label.add_theme_font_size_override("font_size", 14)
+	tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message_wrapper.add_child(tip_label)
+
+	message_grid.add_child(message_wrapper)
+	center_container.add_child(message_grid)
+	marketplace_listings_container.add_child(center_container)
+
+func _format_item_name(item_name: String) -> String:
+	##Format item names for better display in marketplace
+	var name_map = {
+		"ai_component": "AI Component",
+		"unknown_artifact": "Unknown Artifact",
+		"broken_satellite": "Broken Satellite",
+		"quantum_core": "Quantum Core",
+		"scrap_metal": "Scrap Metal"
+	}
+
+	return name_map.get(item_name, item_name.capitalize().replace("_", " "))
 
 ## WebSocket and Multiplayer Methods
 
@@ -2142,3 +2982,360 @@ func _on_sell_selected_pressed() -> void:
 	_update_trading_result(success_message, Color.GREEN)
 
 	print("[LobbyZone2D] Selective sale completed - %d items sold for %d credits" % [sold_items.size(), total_value])
+
+## PHASE 1.5: PURCHASE CONFIRMATION SYSTEM
+
+func _validate_listing_purchase(listing: Dictionary) -> Dictionary:
+	##Validate if player can purchase a marketplace listing
+	var result = {"success": false, "error_message": ""}
+
+	if not LocalPlayerData or not LocalPlayerData.is_initialized:
+		result.error_message = "Player data not available"
+		return result
+
+	# Use TradingMarketplace validation
+	if TradingMarketplace:
+		return TradingMarketplace.validate_marketplace_purchase(listing)
+	else:
+		result.error_message = "Trading system not available"
+		return result
+
+func _on_buy_button_pressed(listing: Dictionary) -> void:
+	##Handle buy button press for marketplace listing
+	print("[LobbyZone2D] Buy button pressed for listing: %s" % listing.get("listing_id", "unknown"))
+
+	# Store current listing for purchase dialog
+	purchase_current_listing = listing
+
+	# Initialize purchase dialog if needed
+	if not purchase_dialog_initialized:
+		_initialize_purchase_dialog()
+
+	# Populate purchase dialog with listing details
+	_populate_purchase_dialog(listing)
+
+	# Show purchase confirmation dialog
+	if purchase_dialog:
+		purchase_dialog.popup_centered()
+
+func _initialize_purchase_dialog() -> void:
+	##Initialize the purchase confirmation dialog UI (Phase 1.5)
+	print("[LobbyZone2D] Initializing purchase confirmation dialog")
+
+	# Create main dialog
+	purchase_dialog = AcceptDialog.new()
+	purchase_dialog.title = "Confirm Purchase"
+	purchase_dialog.size = Vector2(400, 280)
+	purchase_dialog.unresizable = false
+
+	# Main container
+	var dialog_vbox = VBoxContainer.new()
+	dialog_vbox.add_theme_constant_override("separation", 15)
+	purchase_dialog.add_child(dialog_vbox)
+
+	# Title label
+	var title_label = Label.new()
+	title_label.text = "Purchase Item from Marketplace:"
+	title_label.add_theme_font_size_override("font_size", 16)
+	title_label.add_theme_color_override("font_color", Color.CYAN)
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dialog_vbox.add_child(title_label)
+
+	# Item details
+	purchase_item_label = Label.new()
+	purchase_item_label.text = "Item: [Unknown Item] x1"
+	purchase_item_label.add_theme_font_size_override("font_size", 14)
+	purchase_item_label.add_theme_color_override("font_color", Color.WHITE)
+	purchase_item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dialog_vbox.add_child(purchase_item_label)
+
+	# Seller details
+	purchase_seller_label = Label.new()
+	purchase_seller_label.text = "Seller: Unknown"
+	purchase_seller_label.add_theme_font_size_override("font_size", 12)
+	purchase_seller_label.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	purchase_seller_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dialog_vbox.add_child(purchase_seller_label)
+
+	# Price details
+	purchase_price_label = Label.new()
+	purchase_price_label.text = "Total Cost: 0 credits"
+	purchase_price_label.add_theme_font_size_override("font_size", 16)
+	purchase_price_label.add_theme_color_override("font_color", Color.YELLOW)
+	purchase_price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dialog_vbox.add_child(purchase_price_label)
+
+	# Current credits display
+	var credits_info = Label.new()
+	credits_info.text = "Your Credits: %d" % (LocalPlayerData.get_credits() if LocalPlayerData else 0)
+	credits_info.add_theme_font_size_override("font_size", 12)
+	credits_info.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	credits_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dialog_vbox.add_child(credits_info)
+
+	# Warning message
+	var warning_label = Label.new()
+	warning_label.text = "This will remove credits from your account\nand add the item to your inventory."
+	warning_label.add_theme_font_size_override("font_size", 10)
+	warning_label.add_theme_color_override("font_color", Color.ORANGE)
+	warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	warning_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dialog_vbox.add_child(warning_label)
+
+	# Buttons
+	var button_container = HBoxContainer.new()
+	button_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	var cancel_button = Button.new()
+	cancel_button.text = "Cancel"
+	cancel_button.custom_minimum_size = Vector2(100, 35)
+	cancel_button.pressed.connect(_on_purchase_cancel_pressed)
+	purchase_confirm_button = Button.new()
+	purchase_confirm_button.text = "Confirm Purchase"
+	purchase_confirm_button.custom_minimum_size = Vector2(140, 35)
+	purchase_confirm_button.pressed.connect(_on_purchase_confirm_pressed)
+	purchase_confirm_button.add_theme_color_override("font_color", Color.GREEN)
+	button_container.add_child(cancel_button)
+	button_container.add_child(purchase_confirm_button)
+	dialog_vbox.add_child(button_container)
+
+	# Add to scene
+	ui_layer.add_child(purchase_dialog)
+	purchase_dialog_initialized = true
+
+	print("[LobbyZone2D] Purchase confirmation dialog initialized")
+
+func _populate_purchase_dialog(listing: Dictionary) -> void:
+	##Populate the purchase dialog with listing details
+	print("[LobbyZone2D] Populating purchase dialog with listing details")
+
+	if not purchase_item_label or not purchase_seller_label or not purchase_price_label:
+		return
+
+	# Extract listing details
+	var item_name = listing.get("item_name", "Unknown Item")
+	var quantity = listing.get("quantity", 1)
+	var asking_price = listing.get("asking_price", 0)
+	var total_price = asking_price * quantity
+	var seller_name = listing.get("seller_name", "Unknown Seller")
+
+	# Format item name for display
+	var display_name = _format_item_name(item_name)
+
+	# Update dialog content
+	if quantity > 1:
+		purchase_item_label.text = "Item: [%s] x%d" % [display_name, quantity]
+	else:
+		purchase_item_label.text = "Item: [%s]" % display_name
+
+	purchase_seller_label.text = "Seller: %s" % seller_name
+
+	if quantity > 1:
+		purchase_price_label.text = "Total Cost: %d credits (%d each)" % [total_price, asking_price]
+	else:
+		purchase_price_label.text = "Total Cost: %d credits" % total_price
+
+	# Update current credits display
+	var credits_info = purchase_dialog.get_child(0).get_child(5) as Label  # Get the credits info label
+	if credits_info and LocalPlayerData:
+		credits_info.text = "Your Credits: %d" % LocalPlayerData.get_credits()
+
+func _on_purchase_confirm_pressed() -> void:
+	##Handle purchase confirmation
+	print("[LobbyZone2D] Confirming marketplace purchase")
+
+	if purchase_current_listing.is_empty():
+		print("[LobbyZone2D] ERROR: No current listing for purchase")
+		return
+
+	var listing_id = purchase_current_listing.get("listing_id", "")
+	var seller_id = purchase_current_listing.get("seller_id", "")
+
+	print("[LobbyZone2D] Purchasing listing ID: %s from seller: %s" % [listing_id, seller_id])
+
+	# CRITICAL FIX: Remove conditional signal connections - they're now connected during initialization
+	if TradingMarketplace:
+		# Make the purchase - signals are already connected
+		TradingMarketplace.purchase_marketplace_item(listing_id, seller_id)
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+		_update_marketplace_status("Trading system not available", Color.RED)
+		return
+
+	# Close dialog
+	purchase_dialog.hide()
+
+	# Show purchasing status
+	_update_marketplace_status("Processing purchase...", Color.WHITE)
+
+func _on_purchase_cancel_pressed() -> void:
+	##Handle purchase cancellation
+	print("[LobbyZone2D] Cancelling marketplace purchase")
+	purchase_dialog.hide()
+
+func _on_item_purchase_result(success: bool, item_name: String) -> void:
+	##Handle result of item purchase
+	print("[LobbyZone2D] Item purchase result - Success: %s, Item: %s" % [success, item_name])
+
+	if success:
+		var display_name = _format_item_name(item_name)
+		_update_marketplace_status("Purchase successful! %s added to inventory." % display_name, Color.GREEN)
+		# Refresh marketplace to remove purchased item
+		_refresh_marketplace_listings()
+		# Update UI to show new inventory/credits
+		_update_lobby_ui_with_player_data()
+	else:
+		_update_marketplace_status("Purchase failed. Please try again.", Color.RED)
+
+## LISTING REMOVAL SYSTEM
+
+func _on_remove_button_pressed(listing: Dictionary) -> void:
+	##Handle remove button press for player's own listing
+	print("[LobbyZone2D] Remove button pressed for listing: %s" % listing.get("listing_id", "unknown"))
+
+	# Store current listing for removal dialog
+	removal_current_listing = listing
+
+	# Initialize removal dialog if needed
+	if not removal_dialog_initialized:
+		_initialize_removal_dialog()
+
+	# Populate removal dialog with listing details
+	_populate_removal_dialog(listing)
+
+	# Show removal confirmation dialog
+	if removal_dialog:
+		removal_dialog.popup_centered()
+
+func _initialize_removal_dialog() -> void:
+	##Initialize the listing removal confirmation dialog
+	print("[LobbyZone2D] Initializing removal confirmation dialog")
+
+	# Create dialog
+	removal_dialog = AcceptDialog.new()
+	removal_dialog.title = "Remove Listing"
+	removal_dialog.size = Vector2(400, 300)
+	removal_dialog.add_theme_color_override("title_color", Color.ORANGE)
+
+	# Create content container
+	var content_vbox = VBoxContainer.new()
+	content_vbox.add_theme_constant_override("separation", 15)
+
+	# Warning message
+	var warning_label = Label.new()
+	warning_label.text = "Are you sure you want to remove this listing?"
+	warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	warning_label.add_theme_color_override("font_color", Color.YELLOW)
+	warning_label.add_theme_font_size_override("font_size", 14)
+	content_vbox.add_child(warning_label)
+
+	# Item details
+	removal_item_label = Label.new()
+	removal_item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	removal_item_label.add_theme_color_override("font_color", Color.CYAN)
+	removal_item_label.add_theme_font_size_override("font_size", 16)
+	content_vbox.add_child(removal_item_label)
+
+	removal_price_label = Label.new()
+	removal_price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	removal_price_label.add_theme_color_override("font_color", Color.YELLOW)
+	removal_price_label.add_theme_font_size_override("font_size", 14)
+	content_vbox.add_child(removal_price_label)
+
+	# Info message
+	var info_label = Label.new()
+	info_label.text = "The item will be returned to your inventory."
+	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info_label.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	info_label.add_theme_font_size_override("font_size", 12)
+	content_vbox.add_child(info_label)
+
+	# Button container
+	var button_hbox = HBoxContainer.new()
+	button_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	button_hbox.add_theme_constant_override("separation", 20)
+
+	# Confirm button
+	removal_confirm_button = Button.new()
+	removal_confirm_button.text = "REMOVE LISTING"
+	removal_confirm_button.custom_minimum_size = Vector2(140, 40)
+	removal_confirm_button.pressed.connect(_on_removal_confirm_pressed)
+	removal_confirm_button.add_theme_color_override("font_color", Color.ORANGE)
+	button_hbox.add_child(removal_confirm_button)
+
+	# Cancel button
+	var removal_cancel_button = Button.new()
+	removal_cancel_button.text = "CANCEL"
+	removal_cancel_button.custom_minimum_size = Vector2(100, 40)
+	removal_cancel_button.pressed.connect(_on_removal_cancel_pressed)
+	removal_cancel_button.add_theme_color_override("font_color", Color.LIGHT_GRAY)
+	button_hbox.add_child(removal_cancel_button)
+
+	content_vbox.add_child(button_hbox)
+
+	# Add content to dialog
+	removal_dialog.add_child(content_vbox)
+
+	# Add dialog to scene
+	add_child(removal_dialog)
+
+	removal_dialog_initialized = true
+	print("[LobbyZone2D] Removal dialog initialized")
+
+func _populate_removal_dialog(listing: Dictionary) -> void:
+	##Populate removal dialog with listing details
+	var item_name = listing.get("item_name", "Unknown Item")
+	var quantity = listing.get("quantity", 1)
+	var asking_price = listing.get("asking_price", 0)
+	var total_price = asking_price * quantity
+
+	removal_item_label.text = "%s x%d" % [item_name, quantity]
+
+	if quantity > 1:
+		removal_price_label.text = "Listed at: %d credits each (%d total)" % [asking_price, total_price]
+	else:
+		removal_price_label.text = "Listed at: %d credits" % asking_price
+
+func _on_removal_confirm_pressed() -> void:
+	##Handle removal confirmation
+	print("[LobbyZone2D] Confirming marketplace listing removal")
+
+	if removal_current_listing.is_empty():
+		print("[LobbyZone2D] ERROR: No current listing for removal")
+		return
+
+	var listing_id = removal_current_listing.get("listing_id", "")
+
+	print("[LobbyZone2D] Removing listing ID: %s" % listing_id)
+
+	# CRITICAL FIX: Remove conditional signal connections - they're now connected during initialization
+	if TradingMarketplace:
+		# Remove the listing - signals are already connected
+		TradingMarketplace.remove_listing(listing_id)
+	else:
+		print("[LobbyZone2D] ERROR: TradingMarketplace not available")
+		_update_marketplace_status("Trading system not available", Color.RED)
+		return
+
+	# Close dialog
+	removal_dialog.hide()
+
+	# Show removal status
+	_update_marketplace_status("Removing listing...", Color.WHITE)
+
+func _on_removal_cancel_pressed() -> void:
+	##Handle removal cancellation
+	print("[LobbyZone2D] Cancelling marketplace listing removal")
+	removal_dialog.hide()
+
+func _on_listing_removal_result(success: bool, listing_id: String) -> void:
+	##Handle result of listing removal
+	print("[LobbyZone2D] Listing removal result - Success: %s, ID: %s" % [success, listing_id])
+
+	if success:
+		_update_marketplace_status("Listing removed successfully! Item returned to inventory.", Color.GREEN)
+		# Refresh marketplace to remove the listing from display
+		_refresh_marketplace_listings()
+		# Update UI to show updated inventory
+		_update_lobby_ui_with_player_data()
+	else:
+		_update_marketplace_status("Failed to remove listing. Please try again.", Color.RED)

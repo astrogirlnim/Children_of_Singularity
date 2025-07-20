@@ -140,6 +140,66 @@ Client (Godot) <--ENet--> Server (Godot) <--HTTP--> Backend (FastAPI) <--> Datab
 - **Resource Management**: Efficient loading and unloading of assets
 - **State Machines**: Efficient state management for complex systems
 
+## Inventory Validation Patterns (NEW)
+
+### Multi-Layer Validation Architecture
+**Prevents over-listing through comprehensive validation stack**
+
+#### Layer 1: Active Listings Cache Pattern
+```gdscript
+# Real-time tracking of player's marketplace listings
+var cached_listings: Array[Dictionary] = []         # All marketplace listings
+var player_active_listings: Array[Dictionary] = []  # Player's own listings only
+var listings_cache_timestamp: float = 0.0           # Cache freshness tracking
+```
+
+#### Layer 2: Enhanced Validation Pattern
+```gdscript
+# Compares inventory vs already-listed quantities
+func can_sell_item_enhanced(item_type: String, quantity: int) -> Dictionary:
+    var inventory_quantity = _get_inventory_quantity(inventory, item_type)
+    var listed_quantity = get_player_listed_quantity(item_type)
+    var available_to_list = inventory_quantity - listed_quantity
+    return {"success": available_to_list >= quantity, "available_to_list": available_to_list}
+```
+
+#### Layer 3: Request Debouncing Pattern
+```gdscript
+# Prevents spam-clicking during API calls
+var last_listing_request_time: float = 0.0
+var listing_request_cooldown: float = 2.0
+func can_make_listing_request() -> Dictionary:
+    var time_since_last = Time.get_unix_time_from_system() - last_listing_request_time
+    return {"success": time_since_last >= listing_request_cooldown}
+```
+
+#### Layer 4: Auto-Cache Update Pattern
+```gdscript
+# Ensures cache stays current after operations
+func _handle_api_response(data: Dictionary, _response_code: int):
+    if success:
+        refresh_listings_for_validation()  # Auto-refresh cache
+```
+
+#### Layer 5: Server-Side Validation Pattern
+```python
+# Final safety check on backend
+MAX_LISTED_QUANTITY_PER_ITEM = 50
+existing_quantity = sum(listing["quantity"] for listing in current_listings
+                       if listing["seller_id"] == seller_id and
+                          listing["item_type"] == item_type)
+if existing_quantity + quantity_to_list > MAX_LISTED_QUANTITY_PER_ITEM:
+    return error_response()
+```
+
+### Enhanced UI Feedback Pattern
+```gdscript
+# Real-time display of available quantities
+"AI Component (8 in inventory, 3 listed, 5 available)"
+# Clear error messages with specific numbers
+"Insufficient broken_satellite available for listing. Have 3 in inventory, 3 already listed, 0 available to list (need 1)"
+```
+
 ## Code Quality Patterns
 
 ### Logging Strategy

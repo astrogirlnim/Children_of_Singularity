@@ -27,6 +27,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         path_parameters = event.get("pathParameters") or {}
 
         print(f"Processing {method} {path}")
+        print(f"Path parameters: {path_parameters}")
+        print(
+            f"Event debug: method={method}, path={path}, resource={event.get('resource', 'N/A')}"
+        )
 
         # Route requests
         if method == "GET" and path == "/listings":
@@ -46,6 +50,18 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     listing_id = match.group(1)
             body = json.loads(event.get("body", "{}"))
             return buy_listing(listing_id, body)
+        elif method == "DELETE" and path.startswith("/listings/"):
+            # Handle DELETE /listings/{listing_id}
+            listing_id = path_parameters.get("listing_id") or path_parameters.get("id")
+            if not listing_id:
+                # Try to extract from path
+                import re
+
+                match = re.search(r"/listings/([\w\-]+)", path)
+                if match:
+                    listing_id = match.group(1)
+            body = json.loads(event.get("body", "{}"))
+            return delete_listing(listing_id, body)
         elif method == "GET" and path.startswith("/history/"):
             player_id = path_parameters.get("player_id")
             return get_trade_history(player_id)
@@ -112,6 +128,51 @@ def create_listing(listing_data: Dict[str, Any]) -> Dict[str, Any]:
             return create_response(
                 400, {"error": "Asking price must be a positive integer"}
             )
+
+        # SERVER-SIDE INVENTORY VALIDATION: Prevent over-listing
+        # Check seller's existing active listings for this item type
+        current_listings, _ = load_from_s3(LISTINGS_KEY)
+        seller_id = listing_data["seller_id"]
+        item_type = listing_data["item_type"]
+        quantity_to_list = listing_data["quantity"]
+
+        # Calculate total quantity already listed by this seller for this item type
+        existing_quantity = 0
+        for existing_listing in current_listings:
+            if (
+                existing_listing.get("seller_id") == seller_id
+                and existing_listing.get("item_type") == item_type
+                and existing_listing.get("status") == "active"
+            ):
+                existing_quantity += existing_listing.get("quantity", 0)
+
+        # Basic business logic: Limit total listings per item type per player
+        # This is a server-side safety check - clients should do their own validation
+        MAX_LISTED_QUANTITY_PER_ITEM = 50  # Conservative limit
+        total_after_listing = existing_quantity + quantity_to_list
+
+        if total_after_listing > MAX_LISTED_QUANTITY_PER_ITEM:
+            return create_response(
+                400,
+                {
+                    "error": (
+                        f"Server validation failed: Cannot list {quantity_to_list} "
+                        f"{item_type} - would exceed maximum. Already have "
+                        f"{existing_quantity} listed (max {MAX_LISTED_QUANTITY_PER_ITEM} "
+                        "per item type)"
+                    ),
+                    "existing_quantity": existing_quantity,
+                    "requested_quantity": quantity_to_list,
+                    "max_allowed": MAX_LISTED_QUANTITY_PER_ITEM,
+                },
+            )
+
+        # Comprehensive logging for inventory validation
+        print(f"[INVENTORY_VALIDATION] Seller: {seller_id}")
+        print(f"[INVENTORY_VALIDATION] Item: {item_type} x{quantity_to_list}")
+        print(f"[INVENTORY_VALIDATION] Existing listings: {existing_quantity}")
+        print(f"[INVENTORY_VALIDATION] Total after listing: {total_after_listing}")
+        print("[INVENTORY_VALIDATION] Server validation passed - within limits")
 
         # Create listing object
         listing = {
@@ -297,6 +358,89 @@ def buy_listing(listing_id: str, buyer_data: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         print(f"Error buying listing: {str(e)}")
         return create_response(500, {"error": "Failed to complete purchase"})
+
+
+def delete_listing(listing_id: str, seller_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Remove a trading listing (only by the seller)"""
+    try:
+        if not listing_id:
+            return create_response(400, {"error": "Missing listing ID"})
+
+        # Validate seller data
+        if "seller_id" not in seller_data:
+            return create_response(400, {"error": "Missing seller_id"})
+
+        seller_id = seller_data["seller_id"]
+
+        # Implement optimistic locking with retries
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Load current listings with ETag
+                listings, etag = load_from_s3(LISTINGS_KEY)
+
+                # Find the listing
+                target_listing = None
+
+                for listing in listings:
+                    if (
+                        listing["listing_id"] == listing_id
+                        and listing["status"] == "active"
+                    ):
+                        target_listing = listing
+                        break
+
+                if not target_listing:
+                    return create_response(
+                        404, {"error": "Listing not found or already removed"}
+                    )
+
+                # Validate ownership - only seller can remove their listing
+                if target_listing["seller_id"] != seller_id:
+                    return create_response(
+                        403, {"error": "You can only remove your own listings"}
+                    )
+
+                # Mark listing as removed instead of deleting
+                target_listing["status"] = "removed"
+                target_listing["removed_at"] = datetime.now(timezone.utc).isoformat()
+
+                # Save updated listings with optimistic locking
+                save_to_s3_with_etag(LISTINGS_KEY, listings, etag)
+                break
+
+            except ClientError as e:
+                if (
+                    e.response["Error"]["Code"] == "PreconditionFailed"
+                    and attempt < max_retries - 1
+                ):
+                    print(f"Concurrent write detected, retrying attempt {attempt + 1}")
+                    continue
+                else:
+                    raise e
+
+        print(
+            f"Removed listing {listing_id}: "
+            f"{target_listing['item_name']} by {target_listing['seller_name']}"
+        )
+
+        return create_response(
+            200,
+            {
+                "success": True,
+                "listing_id": listing_id,
+                "message": "Listing removed successfully",
+                "removed_listing": {
+                    "item_name": target_listing["item_name"],
+                    "quantity": target_listing["quantity"],
+                    "asking_price": target_listing["asking_price"],
+                },
+            },
+        )
+
+    except Exception as e:
+        print(f"Error removing listing: {str(e)}")
+        return create_response(500, {"error": "Failed to remove listing"})
 
 
 def get_trade_history(player_id: str) -> Dict[str, Any]:

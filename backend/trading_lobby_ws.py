@@ -19,19 +19,20 @@ import boto3
 import time
 import logging
 from decimal import Decimal
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Initialize AWS clients
-dynamodb = boto3.resource('dynamodb')
+dynamodb = boto3.resource("dynamodb")
 apigateway_management = None  # Will be initialized per request with endpoint
 
 # Environment variables
 TABLE_NAME = "LobbyConnections"
 TTL_SECONDS = 3600  # 1 hour connection timeout
+
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
@@ -45,24 +46,26 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     try:
         # Extract route and connection info
-        route_key = event.get('requestContext', {}).get('routeKey', '$default')
-        connection_id = event.get('requestContext', {}).get('connectionId')
-        domain_name = event.get('requestContext', {}).get('domainName')
-        stage = event.get('requestContext', {}).get('stage')
+        route_key = event.get("requestContext", {}).get("routeKey", "$default")
+        connection_id = event.get("requestContext", {}).get("connectionId")
+        domain_name = event.get("requestContext", {}).get("domainName")
+        stage = event.get("requestContext", {}).get("stage")
 
         logger.info(f"Processing route: {route_key} for connection: {connection_id}")
 
         # Initialize API Gateway Management client for this request
         global apigateway_management
         endpoint_url = f"https://{domain_name}/{stage}"
-        apigateway_management = boto3.client('apigatewaymanagementapi', endpoint_url=endpoint_url)
+        apigateway_management = boto3.client(
+            "apigatewaymanagementapi", endpoint_url=endpoint_url
+        )
 
         # Route to appropriate handler
-        if route_key == '$connect':
+        if route_key == "$connect":
             return handle_connect(event, connection_id)
-        elif route_key == '$disconnect':
+        elif route_key == "$disconnect":
             return handle_disconnect(event, connection_id)
-        elif route_key == 'pos':
+        elif route_key == "pos":
             return handle_position_update(event, connection_id)
         else:
             return handle_default(event, connection_id)
@@ -70,9 +73,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error processing WebSocket request: {str(e)}")
         return {
-            'statusCode': 500,
-            'body': json.dumps({'error': 'Internal server error'})
+            "statusCode": 500,
+            "body": json.dumps({"error": "Internal server error"}),
         }
+
 
 def handle_connect(event: Dict[str, Any], connection_id: str) -> Dict[str, Any]:
     """
@@ -85,8 +89,8 @@ def handle_connect(event: Dict[str, Any], connection_id: str) -> Dict[str, Any]:
     """
     try:
         # Extract player_id from query parameters
-        query_params = event.get('queryStringParameters') or {}
-        player_id = query_params.get('pid', f'player_{connection_id[:8]}')
+        query_params = event.get("queryStringParameters") or {}
+        player_id = query_params.get("pid", f"player_{connection_id[:8]}")
 
         logger.info(f"Player {player_id} connecting with connection {connection_id}")
 
@@ -96,48 +100,52 @@ def handle_connect(event: Dict[str, Any], connection_id: str) -> Dict[str, Any]:
         ttl_timestamp = current_time + TTL_SECONDS
 
         # Default lobby center position (matches LobbyZone2D coordinates)
-        default_x = Decimal('400.0')  # Player spawn position in lobby
-        default_y = Decimal('300.0')
+        default_x = Decimal("400.0")  # Player spawn position in lobby
+        default_y = Decimal("300.0")
 
         table.put_item(
             Item={
-                'connectionId': connection_id,
-                'player_id': player_id,
-                'x': default_x,
-                'y': default_y,
-                'connected_at': current_time,
-                'ttl': ttl_timestamp,
-                'last_update': current_time
+                "connectionId": connection_id,
+                "player_id": player_id,
+                "x": default_x,
+                "y": default_y,
+                "connected_at": current_time,
+                "ttl": ttl_timestamp,
+                "last_update": current_time,
             }
         )
 
-        logger.info(f"Stored connection for player {player_id} at position ({default_x}, {default_y})")
+        logger.info(
+            f"Stored connection for player {player_id} at position "
+            f"({default_x}, {default_y})"
+        )
 
         # Broadcast join message to all other connected players
         # Convert Decimal to float for JSON serialization
         join_message = {
-            'type': 'join',
-            'id': player_id,
-            'x': float(default_x),
-            'y': float(default_y)
+            "type": "join",
+            "id": player_id,
+            "x": float(default_x),
+            "y": float(default_y),
         }
 
         broadcast_to_all_except(join_message, connection_id)
 
         # Send welcome message to connecting player with current lobby state
         welcome_message = {
-            'type': 'welcome',
-            'your_id': player_id,
-            'lobby_players': get_current_lobby_players(connection_id)
+            "type": "welcome",
+            "your_id": player_id,
+            "lobby_players": get_current_lobby_players(connection_id),
         }
 
         send_to_connection(connection_id, welcome_message)
 
-        return {'statusCode': 200}
+        return {"statusCode": 200}
 
     except Exception as e:
         logger.error(f"Error handling connect for {connection_id}: {str(e)}")
-        return {'statusCode': 500}
+        return {"statusCode": 500}
+
 
 def handle_disconnect(event: Dict[str, Any], connection_id: str) -> Dict[str, Any]:
     """
@@ -151,32 +159,34 @@ def handle_disconnect(event: Dict[str, Any], connection_id: str) -> Dict[str, An
         table = dynamodb.Table(TABLE_NAME)
 
         # Get player info before deletion
-        response = table.get_item(Key={'connectionId': connection_id})
-        player_info = response.get('Item')
+        response = table.get_item(Key={"connectionId": connection_id})
+        player_info = response.get("Item")
 
         if player_info:
-            player_id = player_info.get('player_id', 'unknown')
-            logger.info(f"Player {player_id} disconnecting with connection {connection_id}")
+            player_id = player_info.get("player_id", "unknown")
+            logger.info(
+                f"Player {player_id} disconnecting with connection {connection_id}"
+            )
 
             # Remove from DynamoDB
-            table.delete_item(Key={'connectionId': connection_id})
+            table.delete_item(Key={"connectionId": connection_id})
 
             # Broadcast leave message to remaining players
-            leave_message = {
-                'type': 'leave',
-                'id': player_id
-            }
+            leave_message = {"type": "leave", "id": player_id}
 
             broadcast_to_all_except(leave_message, connection_id)
 
         else:
-            logger.warning(f"No player info found for disconnecting connection {connection_id}")
+            logger.warning(
+                f"No player info found for disconnecting connection {connection_id}"
+            )
 
-        return {'statusCode': 200}
+        return {"statusCode": 200}
 
     except Exception as e:
         logger.error(f"Error handling disconnect for {connection_id}: {str(e)}")
-        return {'statusCode': 500}
+        return {"statusCode": 500}
+
 
 def handle_position_update(event: Dict[str, Any], connection_id: str) -> Dict[str, Any]:
     """
@@ -189,76 +199,74 @@ def handle_position_update(event: Dict[str, Any], connection_id: str) -> Dict[st
     """
     try:
         # Parse message body
-        body = event.get('body', '{}')
+        body = event.get("body", "{}")
         if isinstance(body, str):
             message = json.loads(body)
         else:
             message = body
 
         # Extract position coordinates
-        x = message.get('x')
-        y = message.get('y')
+        x = message.get("x")
+        y = message.get("y")
 
         # Validate position data
         if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
             logger.warning(f"Invalid position data from {connection_id}: x={x}, y={y}")
-            return {'statusCode': 400}
+            return {"statusCode": 400}
 
         # Validate position bounds (actual lobby screen size)
         if x < -100 or x > 2000 or y < -100 or y > 1200:
             logger.warning(f"Position out of bounds from {connection_id}: ({x}, {y})")
-            return {'statusCode': 400}
+            return {"statusCode": 400}
 
         # Update position in DynamoDB
         table = dynamodb.Table(TABLE_NAME)
         current_time = int(time.time())
 
         # Get current player info
-        response = table.get_item(Key={'connectionId': connection_id})
-        player_info = response.get('Item')
+        response = table.get_item(Key={"connectionId": connection_id})
+        player_info = response.get("Item")
 
         if not player_info:
-            logger.warning(f"No player info found for position update from {connection_id}")
-            return {'statusCode': 404}
+            logger.warning(
+                f"No player info found for position update from {connection_id}"
+            )
+            return {"statusCode": 404}
 
-        player_id = player_info.get('player_id')
+        player_id = player_info.get("player_id")
 
         # Rate limiting: Don't update more than once per 100ms
-        last_update = player_info.get('last_update', 0)
+        last_update = player_info.get("last_update", 0)
         if current_time - last_update < 0.1:  # 100ms rate limit
-            return {'statusCode': 200}  # Silently ignore rapid updates
+            return {"statusCode": 200}  # Silently ignore rapid updates
 
         # Update position in database
         table.update_item(
-            Key={'connectionId': connection_id},
-            UpdateExpression='SET x = :x, y = :y, last_update = :time',
+            Key={"connectionId": connection_id},
+            UpdateExpression="SET x = :x, y = :y, last_update = :time",
             ExpressionAttributeValues={
-                ':x': Decimal(str(x)),
-                ':y': Decimal(str(y)),
-                ':time': current_time
-            }
+                ":x": Decimal(str(x)),
+                ":y": Decimal(str(y)),
+                ":time": current_time,
+            },
         )
 
         # Broadcast position update to all other players
-        position_message = {
-            'type': 'pos',
-            'id': player_id,
-            'x': x,
-            'y': y
-        }
+        position_message = {"type": "pos", "id": player_id, "x": x, "y": y}
 
         broadcast_to_all_except(position_message, connection_id)
 
         logger.debug(f"Updated position for {player_id} to ({x}, {y})")
 
-        return {'statusCode': 200}
+        return {"statusCode": 200}
 
     except json.JSONDecodeError as e:
         logger.error(f"Invalid JSON in position update from {connection_id}: {str(e)}")
-        return {'statusCode': 400}
+        return {"statusCode": 400}
     except Exception as e:
         logger.error(f"Error handling position update for {connection_id}: {str(e)}")
-        return {'statusCode': 500}
+        return {"statusCode": 500}
+
 
 def handle_default(event: Dict[str, Any], connection_id: str) -> Dict[str, Any]:
     """
@@ -269,23 +277,26 @@ def handle_default(event: Dict[str, Any], connection_id: str) -> Dict[str, Any]:
     - Maintain connection stability
     """
     try:
-        body = event.get('body', '{}')
+        body = event.get("body", "{}")
         logger.warning(f"Unknown message from {connection_id}: {body}")
 
         error_message = {
-            'type': 'error',
-            'message': 'Unknown action. Supported actions: pos'
+            "type": "error",
+            "message": "Unknown action. Supported actions: pos",
         }
 
         send_to_connection(connection_id, error_message)
 
-        return {'statusCode': 200}
+        return {"statusCode": 200}
 
     except Exception as e:
         logger.error(f"Error handling default route for {connection_id}: {str(e)}")
-        return {'statusCode': 500}
+        return {"statusCode": 500}
 
-def broadcast_to_all_except(message: Dict[str, Any], exclude_connection_id: str) -> None:
+
+def broadcast_to_all_except(
+    message: Dict[str, Any], exclude_connection_id: str
+) -> None:
     """
     Broadcast message to all connected players except specified connection.
 
@@ -298,14 +309,17 @@ def broadcast_to_all_except(message: Dict[str, Any], exclude_connection_id: str)
 
         # Get all active connections
         response = table.scan()
-        connections = response.get('Items', [])
+        connections = response.get("Items", [])
 
-        logger.info(f"Broadcasting to {len(connections)} connections (excluding {exclude_connection_id})")
+        logger.info(
+            f"Broadcasting to {len(connections)} connections "
+            f"(excluding {exclude_connection_id})"
+        )
 
         stale_connections = []
 
         for connection in connections:
-            connection_id = connection['connectionId']
+            connection_id = connection["connectionId"]
 
             # Skip the excluded connection
             if connection_id == exclude_connection_id:
@@ -318,10 +332,11 @@ def broadcast_to_all_except(message: Dict[str, Any], exclude_connection_id: str)
         # Clean up stale connections
         for stale_connection_id in stale_connections:
             logger.info(f"Removing stale connection: {stale_connection_id}")
-            table.delete_item(Key={'connectionId': stale_connection_id})
+            table.delete_item(Key={"connectionId": stale_connection_id})
 
     except Exception as e:
         logger.error(f"Error broadcasting message: {str(e)}")
+
 
 def send_to_connection(connection_id: str, message: Dict[str, Any]) -> bool:
     """
@@ -331,8 +346,7 @@ def send_to_connection(connection_id: str, message: Dict[str, Any]) -> bool:
     """
     try:
         apigateway_management.post_to_connection(
-            ConnectionId=connection_id,
-            Data=json.dumps(message)
+            ConnectionId=connection_id, Data=json.dumps(message)
         )
         return True
 
@@ -343,6 +357,7 @@ def send_to_connection(connection_id: str, message: Dict[str, Any]) -> bool:
         logger.error(f"Error sending to connection {connection_id}: {str(e)}")
         return False
 
+
 def get_current_lobby_players(exclude_connection_id: str) -> List[Dict[str, Any]]:
     """
     Get list of all current lobby players for welcome message.
@@ -352,26 +367,29 @@ def get_current_lobby_players(exclude_connection_id: str) -> List[Dict[str, Any]
     try:
         table = dynamodb.Table(TABLE_NAME)
         response = table.scan()
-        connections = response.get('Items', [])
+        connections = response.get("Items", [])
 
         players = []
         for connection in connections:
-            if connection['connectionId'] != exclude_connection_id:
+            if connection["connectionId"] != exclude_connection_id:
                 # Convert Decimal objects to float for JSON serialization
-                x_value = connection.get('x')
-                y_value = connection.get('y')
+                x_value = connection.get("x")
+                y_value = connection.get("y")
 
-                players.append({
-                    'id': connection.get('player_id'),
-                    'x': float(x_value) if x_value is not None else 0.0,
-                    'y': float(y_value) if y_value is not None else 0.0
-                })
+                players.append(
+                    {
+                        "id": connection.get("player_id"),
+                        "x": float(x_value) if x_value is not None else 0.0,
+                        "y": float(y_value) if y_value is not None else 0.0,
+                    }
+                )
 
         return players
 
     except Exception as e:
         logger.error(f"Error getting current lobby players: {str(e)}")
         return []
+
 
 def cleanup_expired_connections() -> None:
     """
@@ -385,13 +403,13 @@ def cleanup_expired_connections() -> None:
         current_time = int(time.time())
 
         response = table.scan()
-        connections = response.get('Items', [])
+        connections = response.get("Items", [])
 
         expired_count = 0
         for connection in connections:
-            ttl = connection.get('ttl', current_time + 1)
+            ttl = connection.get("ttl", current_time + 1)
             if ttl <= current_time:
-                table.delete_item(Key={'connectionId': connection['connectionId']})
+                table.delete_item(Key={"connectionId": connection["connectionId"]})
                 expired_count += 1
 
         if expired_count > 0:
@@ -399,6 +417,7 @@ def cleanup_expired_connections() -> None:
 
     except Exception as e:
         logger.error(f"Error cleaning up expired connections: {str(e)}")
+
 
 # Performance monitoring
 def log_performance_metrics(start_time: float, operation: str) -> None:
