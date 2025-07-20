@@ -37,11 +37,11 @@ aws dynamodb delete-item \
 
 # Test 4: Check WebSocket API
 echo "4. 🌐 Checking WebSocket API..."
-aws apigatewayv2 get-api --api-id 37783owd23 --region us-east-2 --query 'Name' --output text
+aws apigatewayv2 get-api --api-id bktpsfy4rb --region us-east-2 --query 'Name' --output text
 
 # Test 5: List WebSocket routes
 echo "5. 🛣️  Checking WebSocket routes..."
-aws apigatewayv2 get-routes --api-id 37783owd23 --region us-east-2 --query 'Items[].RouteKey' --output table
+aws apigatewayv2 get-routes --api-id bktpsfy4rb --region us-east-2 --query 'Items[].RouteKey' --output table
 
 echo ""
 echo "🎯 Infrastructure Status Summary:"
