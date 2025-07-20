@@ -2398,7 +2398,8 @@ func _load_and_display_player_data() -> void:
 	print("[LobbyZone2D] - Upgrades: %s" % player_upgrades)
 
 	if player_inventory.size() > 0:
-		print("[LobbyZone2D] - Sample inventory items: %s" % player_inventory.slice(0, min(3, player_inventory.size())))
+		var sample_items = player_inventory.slice(0, min(3, player_inventory.size()))
+		print("[LobbyZone2D] - Sample inventory items: %s" % str(sample_items))
 
 	# Check if this looks like freshly synced data from 3D scene
 	if player_inventory.size() > 0 or player_credits > 100 or player_upgrades.values().any(func(level): return level > 0):
