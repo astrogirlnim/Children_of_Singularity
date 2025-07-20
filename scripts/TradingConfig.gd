@@ -61,7 +61,7 @@ func load_config() -> void:
 			print("[TradingConfig] No configuration loaded, creating default configuration")
 			config = default_config.duplicate()
 			save_config()
-	
+
 	# Always validate and fill in missing defaults
 	_validate_config()
 	_merge_default_values()
